@@ -2,10 +2,10 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
-import { verifySupabaseToken } from '../auth/supabase';
-import { createApiToken, listApiTokens, revokeApiToken } from '../auth/tokens';
-import { createCart, getCartWithItems, listRecentCarts, markCartOpened } from '../core/carts';
-import { AppError, notFound, unauthorized, validationError } from '../core/errors';
+import { verifySupabaseToken } from '../auth/supabase.js';
+import { createApiToken, listApiTokens, revokeApiToken } from '../auth/tokens.js';
+import { createCart, getCartWithItems, listRecentCarts, markCartOpened } from '../core/carts.js';
+import { AppError, notFound, unauthorized, validationError } from '../core/errors.js';
 import {
   createHousehold,
   createInvite,
@@ -15,10 +15,10 @@ import {
   listMemberships,
   putProfile,
   updateHousehold,
-} from '../core/households';
-import { listRetailers } from '../core/retailers';
-import { HEALTH_FILTERS } from '../types';
-import { mcpRoute } from '../mcp/route';
+} from '../core/households.js';
+import { listRetailers } from '../core/retailers.js';
+import { HEALTH_FILTERS } from '../types.js';
+import { mcpRoute } from '../mcp/route.js';
 import {
   cartDetailJson,
   cartSummaryJson,
@@ -26,7 +26,7 @@ import {
   lineItemJson,
   profileJson,
   retailerJson,
-} from './serializers';
+} from './serializers.js';
 
 type Vars = { Variables: { userId: string; email: string | null } };
 

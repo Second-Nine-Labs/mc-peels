@@ -8,7 +8,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { env } from '../env';
+import { env } from '../env.js';
 import {
   HEALTH_FILTERS,
   ITEM_CATEGORIES,
@@ -17,7 +17,7 @@ import {
   type ItemCategory,
   type ParsedLineItem,
   type ParseResult,
-} from '../types';
+} from '../types.js';
 
 /** Thrown when the Anthropic API call itself fails (network, auth, 4xx/5xx). */
 export class ParserError extends Error {

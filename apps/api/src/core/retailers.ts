@@ -1,7 +1,7 @@
-import { InstacartApiError, getInstacartClient } from '../instacart/client';
-import type { RetailerInfo } from '../types';
-import { upstreamError } from './errors';
-import { getHouseholdContext } from './households';
+import { InstacartApiError, getInstacartClient } from '../instacart/client.js';
+import type { RetailerInfo } from '../types.js';
+import { upstreamError } from './errors.js';
+import { getHouseholdContext } from './households.js';
 
 export interface ListRetailersOptions {
   householdId?: string;

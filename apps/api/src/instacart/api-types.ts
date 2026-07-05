@@ -11,7 +11,7 @@
  * Instacart with their own account (PRD section 3).
  */
 
-import type { HealthFilter } from '../types';
+import type { HealthFilter } from '../types.js';
 
 // Retailers -----------------------------------------------------------------
 

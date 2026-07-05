@@ -12,7 +12,7 @@ import {
   type HealthFilter,
   type ParsedLineItem,
   type ResolvedLineItem,
-} from '../types';
+} from '../types.js';
 
 /** Dedupe while preserving first-occurrence order. */
 export function dedupe<T>(values: readonly T[]): T[] {

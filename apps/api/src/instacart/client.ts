@@ -7,13 +7,13 @@
  * checkout is always completed by a human on Instacart.
  */
 
-import { env, INSTACART_BASE_URLS } from '../env';
-import type { RetailerInfo } from '../types';
+import { env, INSTACART_BASE_URLS } from '../env.js';
+import type { RetailerInfo } from '../types.js';
 import type {
   ProductsLinkRequest,
   ProductsLinkResponse,
   RetailersResponse,
-} from './api-types';
+} from './api-types.js';
 
 /** Per-attempt request timeout. */
 const REQUEST_TIMEOUT_MS = 15_000;

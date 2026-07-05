@@ -1,14 +1,14 @@
 import { randomInt } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
-import { getDb, schema } from '../db/client';
-import type { DietaryProfile, Household, HouseholdMember } from '../db/schema';
+import { getDb, schema } from '../db/client.js';
+import type { DietaryProfile, Household, HouseholdMember } from '../db/schema.js';
 import {
   EMPTY_PROFILE,
   HEALTH_FILTERS,
   type DietaryProfileRules,
   type HealthFilter,
-} from '../types';
-import { conflict, forbidden, notFound, validationError } from './errors';
+} from '../types.js';
+import { conflict, forbidden, notFound, validationError } from './errors.js';
 
 export interface HouseholdContext {
   household: Household;

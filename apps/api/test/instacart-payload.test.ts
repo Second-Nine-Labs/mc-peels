@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildProductsLinkPayload, withRetailerHint } from '../src/instacart/payload';
-import type { ResolvedLineItem } from '../src/types';
+import { buildProductsLinkPayload, withRetailerHint } from '../src/instacart/payload.js';
+import type { ResolvedLineItem } from '../src/types.js';
 
 function mkResolved(overrides: Partial<ResolvedLineItem> = {}): ResolvedLineItem {
   return {

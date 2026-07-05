@@ -1,7 +1,7 @@
 import { StreamableHTTPTransport } from '@hono/mcp';
 import { Hono } from 'hono';
-import { verifyMcpToken } from '../auth/tokens';
-import { buildMcpServer } from './server';
+import { verifyMcpToken } from '../auth/tokens.js';
+import { buildMcpServer } from './server.js';
 
 /**
  * Streamable-HTTP MCP endpoint, stateless: a fresh server + transport per

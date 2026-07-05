@@ -2,9 +2,9 @@
  * Domain -> wire (snake_case JSON) mappers, matching docs/api-contract.md.
  */
 
-import type { Household } from '../db/schema';
-import type { CartDetail, CartSummary } from '../core/carts';
-import type { DietaryProfileRules, ResolvedLineItem, RetailerInfo } from '../types';
+import type { Household } from '../db/schema.js';
+import type { CartDetail, CartSummary } from '../core/carts.js';
+import type { DietaryProfileRules, ResolvedLineItem, RetailerInfo } from '../types.js';
 
 export function householdJson(h: Household) {
   return {

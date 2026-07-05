@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
-import { unauthorized } from '../core/errors';
-import { env } from '../env';
+import { unauthorized } from '../core/errors.js';
+import { env } from '../env.js';
 
 export interface AuthenticatedUser {
   userId: string;

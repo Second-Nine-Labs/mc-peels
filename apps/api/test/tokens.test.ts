@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { TOKEN_PREFIX, generateToken, hashToken } from '../src/auth/tokens';
+import { TOKEN_PREFIX, generateToken, hashToken } from '../src/auth/tokens.js';
 
 describe('generateToken', () => {
   it('produces mcp_-prefixed, unique, URL-safe tokens', () => {

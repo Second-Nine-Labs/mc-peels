@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { InstacartApiError, createInstacartClient } from '../src/instacart/client';
+import { InstacartApiError, createInstacartClient } from '../src/instacart/client.js';
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {

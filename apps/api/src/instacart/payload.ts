@@ -6,8 +6,8 @@
  * trivially unit-testable.
  */
 
-import type { ResolvedLineItem } from '../types';
-import type { ApiLineItem, ProductsLinkRequest } from './api-types';
+import type { ResolvedLineItem } from '../types.js';
+import type { ApiLineItem, ProductsLinkRequest } from './api-types.js';
 
 export interface BuildProductsLinkOptions {
   /** Shown as a "back to partner" link on the Instacart landing page. */

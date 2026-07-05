@@ -8,10 +8,10 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { createCart, getCartWithItems, listRecentCarts } from '../core/carts';
-import { AppError } from '../core/errors';
-import { getHouseholdContext } from '../core/households';
-import { listRetailers } from '../core/retailers';
+import { createCart, getCartWithItems, listRecentCarts } from '../core/carts.js';
+import { AppError } from '../core/errors.js';
+import { getHouseholdContext } from '../core/households.js';
+import { listRetailers } from '../core/retailers.js';
 import {
   cartDetailJson,
   cartSummaryJson,
@@ -19,7 +19,7 @@ import {
   lineItemJson,
   profileJson,
   retailerJson,
-} from '../http/serializers';
+} from '../http/serializers.js';
 
 const ALLERGEN_CAVEAT =
   'Instacart health filters are preference signals for item selection, not safety ' +

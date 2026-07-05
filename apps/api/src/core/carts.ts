@@ -5,13 +5,13 @@
  */
 
 import { desc, eq } from 'drizzle-orm';
-import { ParserError, parseRequest, parseStructuredItems } from '../ai/parser';
-import { getDb, schema } from '../db/client';
-import type { Cart, LineItem } from '../db/schema';
-import { env } from '../env';
-import { InstacartApiError, getInstacartClient } from '../instacart/client';
-import { buildProductsLinkPayload, withRetailerHint } from '../instacart/payload';
-import { applyProfile } from '../profile/apply';
+import { ParserError, parseRequest, parseStructuredItems } from '../ai/parser.js';
+import { getDb, schema } from '../db/client.js';
+import type { Cart, LineItem } from '../db/schema.js';
+import { env } from '../env.js';
+import { InstacartApiError, getInstacartClient } from '../instacart/client.js';
+import { buildProductsLinkPayload, withRetailerHint } from '../instacart/payload.js';
+import { applyProfile } from '../profile/apply.js';
 import type {
   CreateCartInput,
   CreateCartResult,
@@ -19,9 +19,9 @@ import type {
   ParseResult,
   ResolvedLineItem,
   RetailerInfo,
-} from '../types';
-import { upstreamError, validationError } from './errors';
-import { getHouseholdContext } from './households';
+} from '../types.js';
+import { upstreamError, validationError } from './errors.js';
+import { getHouseholdContext } from './households.js';
 
 export interface CartSummary {
   id: string;

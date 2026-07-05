@@ -5,8 +5,8 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
-import { notFound } from '../core/errors';
-import { getDb, schema } from '../db/client';
+import { notFound } from '../core/errors.js';
+import { getDb, schema } from '../db/client.js';
 
 export const TOKEN_PREFIX = 'mcp_';
 

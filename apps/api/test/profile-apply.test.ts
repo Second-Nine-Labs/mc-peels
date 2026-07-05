@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { applyProfile } from '../src/profile/apply';
+import { applyProfile } from '../src/profile/apply.js';
 import {
   EMPTY_PROFILE,
   type DietaryProfileRules,
   type ParsedLineItem,
-} from '../src/types';
+} from '../src/types.js';
 
 function mkItem(overrides: Partial<ParsedLineItem> = {}): ParsedLineItem {
   return {

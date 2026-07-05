@@ -5,7 +5,7 @@
  * up. Local Node dev uses src/dev.ts, which serves this same app.
  */
 import { Hono } from 'hono';
-import { createApp } from './http/app';
+import { createApp } from './http/app.js';
 
 const app = createApp();
 
