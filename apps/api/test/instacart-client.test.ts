@@ -95,4 +95,17 @@ describe('createProductsLinkPage', () => {
     expect(result.productsLinkUrl).toBe('https://ic/list/3');
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
+
+  it('surfaces a repeated network failure as InstacartApiError status 0, not a raw error', async () => {
+    const fetchImpl = vi.fn().mockRejectedValue(new TypeError('fetch failed'));
+    const promise = mkClient(fetchImpl as typeof fetch).createProductsLinkPage({
+      title: 'T',
+      line_items: [{ name: 'x' }],
+    });
+    await expect(promise).rejects.toBeInstanceOf(InstacartApiError);
+    await promise.catch((err: InstacartApiError) => {
+      expect(err.status).toBe(0);
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
 });

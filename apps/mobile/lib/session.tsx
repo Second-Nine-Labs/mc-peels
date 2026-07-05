@@ -20,6 +20,12 @@ interface SessionContextValue {
   membership: Membership | null;
   /** True once both the auth session and /me have settled. */
   ready: boolean;
+  /**
+   * True when /me failed for a signed-in user (network/server trouble).
+   * Distinguishes "couldn't load your account" from "genuinely no household"
+   * so existing users aren't silently routed into onboarding.
+   */
+  meError: boolean;
   refreshMe: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -31,6 +37,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const [me, setMe] = useState<MeResponse | null>(null);
   const [meLoaded, setMeLoaded] = useState(false);
+  const [meError, setMeError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -59,11 +66,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     if (!userId) {
       setMe(null);
+      setMeError(false);
       setMeLoaded(true);
       return;
     }
 
     setMeLoaded(false);
+    setMeError(false);
     api
       .getMe()
       .then((data) => {
@@ -71,9 +80,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         // A 401 here signs the user out via the api wrapper; other failures
-        // leave me=null and the gate sends the user to onboarding, which can
-        // still create/join a household or surface errors.
-        if (!cancelled) setMe(null);
+        // leave me=null with meError set — onboarding shows a retry banner so
+        // existing-household users don't mistake this for a fresh account.
+        if (!cancelled) {
+          setMe(null);
+          setMeError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setMeLoaded(true);
@@ -85,9 +97,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [userId]);
 
   const refreshMe = useCallback(async () => {
-    const data = await api.getMe();
-    setMe(data);
-    setMeLoaded(true);
+    try {
+      const data = await api.getMe();
+      setMe(data);
+      setMeError(false);
+    } catch (err) {
+      setMeError(true);
+      throw err;
+    } finally {
+      setMeLoaded(true);
+    }
   }, []);
 
   const signOut = useCallback(async () => {
@@ -100,10 +119,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       me,
       membership: me?.memberships[0] ?? null,
       ready: sessionLoaded && meLoaded,
+      meError,
       refreshMe,
       signOut,
     }),
-    [session, me, sessionLoaded, meLoaded, refreshMe, signOut]
+    [session, me, sessionLoaded, meLoaded, meError, refreshMe, signOut]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

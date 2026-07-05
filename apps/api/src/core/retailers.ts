@@ -21,9 +21,8 @@ export async function listRetailers(
     return await getInstacartClient().listNearbyRetailers(postalCode, countryCode);
   } catch (err) {
     if (err instanceof InstacartApiError) {
-      throw upstreamError(
-        `Instacart retailer lookup failed (status ${err.status}). Please try again.`,
-      );
+      const reason = err.status > 0 ? `status ${err.status}` : 'network error';
+      throw upstreamError(`Instacart retailer lookup failed (${reason}). Please try again.`);
     }
     throw err;
   }

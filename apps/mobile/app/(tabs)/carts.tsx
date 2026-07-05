@@ -80,10 +80,16 @@ export default function CartsScreen() {
         data={carts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
-          const retailerName =
-            retailerNames[item.retailer_key] ?? prettifyRetailerKey(item.retailer_key);
+          // retailer_key is null for carts built via the partial-success path
+          // (no preferred retailer + retailer lookup failed/empty).
+          const retailerName = item.retailer_key
+            ? (retailerNames[item.retailer_key] ?? prettifyRetailerKey(item.retailer_key))
+            : null;
           const createdBy = item.created_by_user_id === myUserId ? 'you' : 'a household member';
           const title = item.title?.trim() || item.request_text?.trim() || 'Grocery cart';
+          const meta = [retailerName, formatDate(item.created_at), `by ${createdBy}`]
+            .filter(Boolean)
+            .join(' · ');
 
           return (
             <Pressable
@@ -100,7 +106,7 @@ export default function CartsScreen() {
                 <StatusChip status={item.status} />
               </View>
               <Text style={[styles.rowMeta, { color: p.textMuted }]} numberOfLines={1}>
-                {retailerName} · {formatDate(item.created_at)} · by {createdBy}
+                {meta}
               </Text>
             </Pressable>
           );

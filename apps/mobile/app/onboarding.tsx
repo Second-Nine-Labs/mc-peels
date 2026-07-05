@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Chip, ErrorBanner, Field, LoadingView } from '@/components/ui';
-import { api, getErrorMessage } from '@/lib/api';
+import { ApiError, api, getErrorMessage } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { usePalette } from '@/lib/theme';
 import type { CountryCode, Household, Retailer } from '@/lib/types';
@@ -21,11 +21,27 @@ type Mode = 'create' | 'join';
 
 export default function OnboardingScreen() {
   const p = usePalette();
-  const { signOut, refreshMe } = useSession();
+  const { signOut, refreshMe, meError } = useSession();
 
   const [mode, setMode] = useState<Mode>('create');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+
+  // /me failed for a signed-in user: they may well already have a household,
+  // so offer a retry instead of nudging them into creating a duplicate.
+  const retryLoadAccount = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    setError(null);
+    try {
+      await refreshMe(); // Auth gate routes to the tabs if a membership loads.
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   // Create form
   const [name, setName] = useState('');
@@ -75,6 +91,16 @@ export default function OnboardingScreen() {
     setSubmitting(true);
     try {
       await api.joinHousehold(inviteCode.trim());
+    } catch (err) {
+      // 409 = already a member — e.g. a retry after refreshMe failed on the
+      // previous attempt. Treat it as success and fall through to refreshMe.
+      if (!(err instanceof ApiError && err.status === 409)) {
+        setError(getErrorMessage(err));
+        setSubmitting(false);
+        return;
+      }
+    }
+    try {
       await refreshMe(); // Auth gate routes to the tabs.
     } catch (err) {
       setError(getErrorMessage(err));
@@ -103,6 +129,19 @@ export default function OnboardingScreen() {
             <Chip label="Create a household" selected={mode === 'create'} onPress={() => setMode('create')} />
             <Chip label="Join with a code" selected={mode === 'join'} onPress={() => setMode('join')} />
           </View>
+
+          {meError ? (
+            <>
+              <ErrorBanner message="We couldn't load your account. If you already have a household, retry instead of creating a new one." />
+              <Button
+                title="Retry loading my account"
+                variant="secondary"
+                onPress={retryLoadAccount}
+                loading={retrying}
+                style={styles.retryButton}
+              />
+            </>
+          ) : null}
 
           <ErrorBanner message={error} />
 
@@ -299,6 +338,9 @@ const styles = StyleSheet.create({
   },
   signOut: {
     marginTop: 12,
+  },
+  retryButton: {
+    marginBottom: 20,
   },
   retailerList: {
     gap: 10,

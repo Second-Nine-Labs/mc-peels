@@ -58,7 +58,11 @@ export async function createCart(input: CreateCartInput): Promise<CreateCartResu
       : await parseStructuredItems(input.lineItems!, ctx.profile);
   } catch (err) {
     if (err instanceof ParserError) {
-      throw upstreamError(`Could not parse the grocery request: ${err.message}`);
+      // Raw Anthropic error details stay server-side (information disclosure).
+      console.error('Parser failure:', err);
+      throw upstreamError(
+        err.userMessage ?? 'Could not parse the grocery request right now. Please try again.',
+      );
     }
     throw err;
   }
@@ -118,8 +122,9 @@ export async function createCart(input: CreateCartInput): Promise<CreateCartResu
     ({ productsLinkUrl: instacartUrl } = await instacart.createProductsLinkPage(payload));
   } catch (err) {
     if (err instanceof InstacartApiError) {
+      const reason = err.status > 0 ? `status ${err.status}` : 'network error';
       throw upstreamError(
-        `Instacart could not build the cart page (status ${err.status}). Please try again.`,
+        `Instacart could not build the cart page (${reason}). Please try again.`,
       );
     }
     throw err;

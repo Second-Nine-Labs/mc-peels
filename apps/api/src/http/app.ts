@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
 import { verifySupabaseToken } from '../auth/supabase';
@@ -48,6 +49,25 @@ async function body<T extends z.ZodTypeAny>(c: { req: { json(): Promise<unknown>
 
 const healthFilterEnum = z.enum(HEALTH_FILTERS);
 
+const uuidSchema = z.string().uuid();
+
+/** Malformed path ids 404 like any other unknown id (avoids Postgres 22P02 -> 500). */
+function uuidParam(value: string, what: string): string {
+  if (!uuidSchema.safeParse(value).success) {
+    throw notFound(`${what} not found`);
+  }
+  return value;
+}
+
+/** Optional household_id query params must be UUIDs when present. */
+function uuidQuery(value: string | undefined, name: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (!uuidSchema.safeParse(value).success) {
+    throw validationError(`${name} must be a UUID`);
+  }
+  return value;
+}
+
 const createHouseholdSchema = z.object({
   name: z.string().min(1).max(120),
   postal_code: z.string().min(3).max(10),
@@ -58,7 +78,7 @@ const patchHouseholdSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   postal_code: z.string().min(3).max(10).optional(),
   country_code: z.enum(['US', 'CA']).optional(),
-  preferred_retailer_key: z.string().min(1).nullable().optional(),
+  preferred_retailer_key: z.string().min(1).max(100).nullable().optional(),
 });
 
 const profileSchema = z.object({
@@ -84,11 +104,23 @@ const createCartSchema = z.object({
     .min(1)
     .max(100)
     .optional(),
-  retailer_key: z.string().min(1).optional(),
+  retailer_key: z.string().min(1).max(100).optional(),
 });
 
 export function createApp() {
   const app = new Hono<Vars>();
+
+  // The Expo web target calls the API cross-origin with an Authorization
+  // header, which forces a CORS preflight. Auth is bearer-token (never
+  // cookies), so a permissive origin is safe here.
+  app.use(
+    '*',
+    cors({
+      origin: '*',
+      allowHeaders: ['Authorization', 'Content-Type', 'mcp-session-id', 'mcp-protocol-version'],
+      exposeHeaders: ['mcp-session-id'],
+    }),
+  );
 
   app.get('/health', (c) => c.json({ ok: true }));
 
@@ -135,7 +167,10 @@ export function createApp() {
   });
 
   api.get('/households/:id', async (c) => {
-    const detail = await getHouseholdDetail(c.get('userId'), c.req.param('id'));
+    const detail = await getHouseholdDetail(
+      c.get('userId'),
+      uuidParam(c.req.param('id'), 'Household'),
+    );
     return c.json({
       household: householdJson(detail.household),
       members: detail.members.map((m) => ({
@@ -149,7 +184,7 @@ export function createApp() {
 
   api.patch('/households/:id', async (c) => {
     const input = await body(c, patchHouseholdSchema);
-    const household = await updateHousehold(c.get('userId'), c.req.param('id'), {
+    const household = await updateHousehold(c.get('userId'), uuidParam(c.req.param('id'), 'Household'), {
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.postal_code !== undefined ? { postalCode: input.postal_code } : {}),
       ...(input.country_code !== undefined ? { countryCode: input.country_code } : {}),
@@ -161,7 +196,7 @@ export function createApp() {
   });
 
   api.post('/households/:id/invites', async (c) => {
-    const invite = await createInvite(c.get('userId'), c.req.param('id'));
+    const invite = await createInvite(c.get('userId'), uuidParam(c.req.param('id'), 'Household'));
     return c.json({ code: invite.code, expires_at: invite.expiresAt.toISOString() }, 201);
   });
 
@@ -174,13 +209,13 @@ export function createApp() {
   // Dietary profile -------------------------------------------------------------
 
   api.get('/households/:id/dietary-profile', async (c) => {
-    const profile = await getProfile(c.get('userId'), c.req.param('id'));
+    const profile = await getProfile(c.get('userId'), uuidParam(c.req.param('id'), 'Household'));
     return c.json(profileJson(profile));
   });
 
   api.put('/households/:id/dietary-profile', async (c) => {
     const input = await body(c, profileSchema);
-    const saved = await putProfile(c.get('userId'), c.req.param('id'), {
+    const saved = await putProfile(c.get('userId'), uuidParam(c.req.param('id'), 'Household'), {
       preferOrganic: input.prefer_organic,
       preferredBrands: input.preferred_brands,
       excludedIngredients: input.excluded_ingredients,
@@ -195,7 +230,7 @@ export function createApp() {
 
   api.get('/retailers', async (c) => {
     const retailers = await listRetailers(c.get('userId'), {
-      householdId: c.req.query('household_id'),
+      householdId: uuidQuery(c.req.query('household_id'), 'household_id'),
       postalCode: c.req.query('postal_code'),
       countryCode: c.req.query('country_code'),
     });
@@ -234,20 +269,20 @@ export function createApp() {
       throw validationError('limit must be a positive integer');
     }
     const carts = await listRecentCarts(c.get('userId'), {
-      householdId: c.req.query('household_id'),
+      householdId: uuidQuery(c.req.query('household_id'), 'household_id'),
       limit,
     });
     return c.json({ carts: carts.map(cartSummaryJson) });
   });
 
   api.get('/carts/:id', async (c) => {
-    const cart = await getCartWithItems(c.get('userId'), c.req.param('id'));
+    const cart = await getCartWithItems(c.get('userId'), uuidParam(c.req.param('id'), 'Cart'));
     if (!cart) throw notFound('Cart not found');
     return c.json(cartDetailJson(cart));
   });
 
   api.post('/carts/:id/opened', async (c) => {
-    const cart = await markCartOpened(c.get('userId'), c.req.param('id'));
+    const cart = await markCartOpened(c.get('userId'), uuidParam(c.req.param('id'), 'Cart'));
     if (!cart) throw notFound('Cart not found');
     return c.json(cartSummaryJson(cart));
   });
@@ -276,7 +311,7 @@ export function createApp() {
   });
 
   api.delete('/tokens/:id', async (c) => {
-    await revokeApiToken(c.get('userId'), c.req.param('id'));
+    await revokeApiToken(c.get('userId'), uuidParam(c.req.param('id'), 'Token'));
     return c.body(null, 204);
   });
 

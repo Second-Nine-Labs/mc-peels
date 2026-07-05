@@ -92,8 +92,18 @@ export function createInstacartClient(opts: InstacartClientOptions = {}): Instac
         res = await attempt(path, init);
       }
     } catch {
-      // Network error or timeout — retry once; let a second failure propagate.
-      res = await attempt(path, init);
+      // Network error or timeout — retry once. A second failure surfaces as an
+      // InstacartApiError (status 0) so callers map it to upstream_error
+      // rather than a generic 500.
+      try {
+        res = await attempt(path, init);
+      } catch (err) {
+        throw new InstacartApiError(
+          `Instacart API request failed: ${init.method ?? 'GET'} ${path} -> network error or timeout`,
+          0,
+          null,
+        );
+      }
     }
 
     if (!res.ok) {

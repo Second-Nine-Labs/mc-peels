@@ -78,14 +78,21 @@ export function buildMcpServer(userId: string): McpServer {
           .describe('Pre-structured items; provide exactly one of request_text or line_items'),
         retailer_key: z
           .string()
+          .max(100)
           .optional()
           .describe("Overrides the household's preferred retailer for this cart"),
+        household_id: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Only needed when the user belongs to multiple households'),
       },
     },
     async (args) => {
       try {
         const result = await createCart({
           userId,
+          householdId: args.household_id,
           channel: 'mcp',
           requestText: args.request_text,
           lineItems: args.line_items,
@@ -114,11 +121,19 @@ export function buildMcpServer(userId: string): McpServer {
         'postal_code). Useful for choosing or changing the preferred retailer.',
       inputSchema: {
         postal_code: z.string().min(3).max(10).optional(),
+        household_id: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Only needed when the user belongs to multiple households'),
       },
     },
     async (args) => {
       try {
-        const retailers = await listRetailers(userId, { postalCode: args.postal_code });
+        const retailers = await listRetailers(userId, {
+          householdId: args.household_id,
+          postalCode: args.postal_code,
+        });
         return jsonResult({ retailers: retailers.map(retailerJson) });
       } catch (err) {
         return toolError(err);
@@ -154,11 +169,19 @@ export function buildMcpServer(userId: string): McpServer {
       description: "Returns the household's recent carts, newest first.",
       inputSchema: {
         limit: z.number().int().min(1).max(100).optional(),
+        household_id: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Only needed when the user belongs to multiple households'),
       },
     },
     async (args) => {
       try {
-        const carts = await listRecentCarts(userId, { limit: args.limit });
+        const carts = await listRecentCarts(userId, {
+          householdId: args.household_id,
+          limit: args.limit,
+        });
         return jsonResult({ carts: carts.map(cartSummaryJson) });
       } catch (err) {
         return toolError(err);
@@ -175,11 +198,17 @@ export function buildMcpServer(userId: string): McpServer {
         'preferred retailer — so an agent can explain why filters were applied. ' +
         'Includes the allergen-honesty caveat, which must be respected in any ' +
         'user-facing summary.',
-      inputSchema: {},
+      inputSchema: {
+        household_id: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Only needed when the user belongs to multiple households'),
+      },
     },
-    async () => {
+    async (args) => {
       try {
-        const ctx = await getHouseholdContext(userId);
+        const ctx = await getHouseholdContext(userId, args.household_id);
         return jsonResult({
           household: householdJson(ctx.household),
           dietary_profile: profileJson(ctx.profile),

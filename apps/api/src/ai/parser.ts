@@ -21,9 +21,13 @@ import {
 
 /** Thrown when the Anthropic API call itself fails (network, auth, 4xx/5xx). */
 export class ParserError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message, options);
+  /** Safe to show to end users/agents; raw API details never are. */
+  readonly userMessage?: string;
+
+  constructor(message: string, options?: { cause?: unknown; userMessage?: string }) {
+    super(message, { cause: options?.cause });
     this.name = 'ParserError';
+    this.userMessage = options?.userMessage;
   }
 }
 
@@ -220,7 +224,7 @@ async function runParse(systemPrompt: string, userMessage: string): Promise<Pars
   try {
     response = await getClient().messages.create({
       model: env().ANTHROPIC_MODEL,
-      max_tokens: 4096,
+      max_tokens: 16384,
       system: systemPrompt,
       tools: [PARSE_TOOL],
       tool_choice: {
@@ -238,6 +242,15 @@ async function runParse(systemPrompt: string, userMessage: string): Promise<Pars
       );
     }
     throw new ParserError('Anthropic API request failed', { cause: error });
+  }
+
+  // A truncated response means truncated tool-input JSON: fail loudly rather
+  // than silently returning a shortened grocery list.
+  if (response.stop_reason === 'max_tokens') {
+    throw new ParserError('Anthropic response hit max_tokens; parse output is incomplete', {
+      userMessage:
+        'That grocery request is too large to parse in one go — please split it into smaller requests.',
+    });
   }
 
   const toolUse = response.content.find(

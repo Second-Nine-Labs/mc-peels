@@ -21,7 +21,7 @@ export interface ErrorEnvelope {
 
 export interface ApiUser {
   id: string;
-  email: string;
+  email: string | null;
 }
 
 export type CountryCode = 'US' | 'CA';
@@ -164,7 +164,8 @@ export interface CreateCartResponse {
   cart_id: string;
   request_id: string;
   instacart_url: string;
-  retailer: Retailer;
+  /** null when no retailer could be resolved (partial success). */
+  retailer: Retailer | null;
   resolved_line_items: ResolvedLineItem[];
   notes: string[];
 }
@@ -175,7 +176,8 @@ export interface CartSummary {
   id: string;
   title: string | null;
   instacart_url: string;
-  retailer_key: string;
+  /** null when the cart was built without a resolved retailer (partial success). */
+  retailer_key: string | null;
   status: CartStatus;
   request_text: string | null;
   created_by_user_id: string;
