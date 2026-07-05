@@ -7,7 +7,11 @@
  * malformed LLM response can never crash the pipeline.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+// Named class + subpath type imports (not the default-export namespace):
+// Vercel's builder typechecks with its own interop settings, under which
+// `Anthropic.Tool` / `new Anthropic()` on the default import fail to resolve.
+import { Anthropic, APIError } from '@anthropic-ai/sdk';
+import type { Message, Tool, ToolUseBlock } from '@anthropic-ai/sdk/resources/messages';
 import { env } from '../env.js';
 import {
   HEALTH_FILTERS,
@@ -36,7 +40,7 @@ export class ParserError extends Error {
 const PARSE_TOOL_NAME = 'record_parsed_grocery_items';
 
 /** input_schema mirrors ParseResult / ParsedLineItem from src/types.ts exactly. */
-const PARSE_TOOL: Anthropic.Tool = {
+const PARSE_TOOL: Tool = {
   name: PARSE_TOOL_NAME,
   description:
     'Record the parsed grocery line items and parser-level notes. ' +
@@ -220,7 +224,7 @@ function getClient(): Anthropic {
 }
 
 async function runParse(systemPrompt: string, userMessage: string): Promise<ParseResult> {
-  let response: Anthropic.Message;
+  let response: Message;
   try {
     response = await getClient().messages.create({
       model: env().ANTHROPIC_MODEL,
@@ -235,7 +239,7 @@ async function runParse(systemPrompt: string, userMessage: string): Promise<Pars
       messages: [{ role: 'user', content: userMessage }],
     });
   } catch (error) {
-    if (error instanceof Anthropic.APIError) {
+    if (error instanceof APIError) {
       throw new ParserError(
         `Anthropic API request failed (${error.status ?? 'connection error'}): ${error.message}`,
         { cause: error },
@@ -254,7 +258,7 @@ async function runParse(systemPrompt: string, userMessage: string): Promise<Pars
   }
 
   const toolUse = response.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+    (block): block is ToolUseBlock => block.type === 'tool_use',
   );
   if (!toolUse) {
     throw new ParserError(
