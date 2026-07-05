@@ -7,11 +7,17 @@ import { Platform } from 'react-native';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // Fail loudly in development instead of producing confusing auth errors.
+/**
+ * False when the Supabase env vars are missing. The root layout gates the app
+ * on this and shows a setup screen instead of attempting auth, so a missing
+ * .env produces friendly guidance rather than a crash.
+ */
+export const isSupabaseConfigured = supabaseUrl.length > 0 && supabaseAnonKey.length > 0;
+
+if (!isSupabaseConfigured) {
   console.warn(
     'MC Peels: EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY are not set. ' +
-      'Copy .env.example to .env and fill them in.'
+      'Copy .env.example to .env and fill them in.',
   );
 }
 
@@ -22,12 +28,21 @@ const isServer = Platform.OS === 'web' && typeof window === 'undefined';
 /**
  * Supabase is used for AUTH ONLY. All application data flows through the
  * MC Peels REST API (lib/api.ts) using the session's access token as bearer.
+ *
+ * When unconfigured we still construct a client with a syntactically valid
+ * placeholder URL/key so createClient() does not throw "supabaseUrl is
+ * required" at import time. It is never actually called — the app gates every
+ * auth path behind isSupabaseConfigured.
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    ...(isServer ? {} : { storage: AsyncStorage }),
-    autoRefreshToken: !isServer,
-    persistSession: !isServer,
-    detectSessionInUrl: false,
+export const supabase = createClient(
+  isSupabaseConfigured ? supabaseUrl : 'http://localhost:54321',
+  isSupabaseConfigured ? supabaseAnonKey : 'anon-key-placeholder',
+  {
+    auth: {
+      ...(isServer ? {} : { storage: AsyncStorage }),
+      autoRefreshToken: !isServer,
+      persistSession: !isServer,
+      detectSessionInUrl: false,
+    },
   },
-});
+);

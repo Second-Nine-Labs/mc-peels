@@ -2,8 +2,10 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, type ReactNode } from 'react';
 
+import { EnvSetupScreen } from '@/components/EnvSetupScreen';
 import { LoadingView } from '@/components/ui';
 import { SessionProvider, useSession } from '@/lib/session';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { usePalette } from '@/lib/theme';
 
 /**
@@ -41,6 +43,17 @@ function AuthGate({ children }: { children: ReactNode }) {
 
 export default function RootLayout() {
   const p = usePalette();
+
+  // Without Supabase config there is no auth to run; show setup guidance
+  // instead of mounting SessionProvider (which would call supabase.auth).
+  if (!isSupabaseConfigured) {
+    return (
+      <>
+        <EnvSetupScreen />
+        <StatusBar style="auto" />
+      </>
+    );
+  }
 
   return (
     <SessionProvider>
