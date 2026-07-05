@@ -25,6 +25,11 @@ function AuthGate({ children }: { children: ReactNode }) {
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
 
+    // /connect is a standalone consent page (agent-token handoff). It manages
+    // its own sign-in inline and must keep its query params, so never redirect
+    // into or out of it.
+    if (segments[0] === 'connect') return;
+
     if (!session) {
       if (!inAuthGroup) router.replace('/(auth)/sign-in');
     } else if (!membership) {
@@ -70,6 +75,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="connect" options={{ headerShown: false }} />
           <Stack.Screen name="cart/[id]" options={{ title: 'Cart' }} />
         </Stack>
       </AuthGate>
