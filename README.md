@@ -36,8 +36,9 @@ Staff             │  Supabase Postgres via Drizzle ORM        │
                   └──────────────────────────────────────────┘
 ```
 
-- **Backend** — TypeScript, [Hono](https://hono.dev), deployable to Vercel
-  (`apps/api/api/index.ts`) or run locally (`npm run dev:api`).
+- **Backend** — TypeScript, [Hono](https://hono.dev), deployable to Vercel via
+  its zero-config Hono preset (entrypoint `apps/api/src/index.ts`) or run
+  locally (`npm run dev:api`).
 - **Database / auth** — Supabase (Postgres + Auth), Drizzle ORM. Schema in
   [`apps/api/src/db/schema.ts`](apps/api/src/db/schema.ts), migrations in `apps/api/drizzle/`.
 - **NL parsing** — Anthropic API turns free text into structured line items; the
@@ -76,6 +77,24 @@ npm run dev:api                   # http://localhost:3000
 ```
 
 Sanity check: `curl http://localhost:3000/health`.
+
+#### Deploying the backend to Vercel
+
+The backend uses Vercel's zero-config **Hono** framework preset: the default
+export of a Hono app at [`apps/api/src/index.ts`](apps/api/src/index.ts) becomes
+the deployment; there is no `vercel.json` or `api/` functions directory. In the
+Vercel project settings:
+
+- **Root Directory**: `apps/api` (this is an npm workspace, so Vercel installs
+  from the repo root automatically).
+- **Framework Preset**: **Hono** (Vercel usually auto-detects it — if it shows
+  "Other," set it to Hono, which is what triggers the "No entrypoint found" error).
+- **Environment Variables**: add everything from
+  [`apps/api/.env.example`](apps/api/.env.example) (`DATABASE_URL`, `SUPABASE_URL`,
+  `ANTHROPIC_API_KEY`, `INSTACART_API_KEY`, etc.) in the dashboard — not a
+  committed `.env`.
+
+Then point the app's `EXPO_PUBLIC_API_URL` at the deployed URL.
 
 ### 3. Mobile / web app
 

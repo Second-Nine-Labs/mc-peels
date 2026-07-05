@@ -1,9 +1,11 @@
+/**
+ * Local development server (npm run dev:api). Not used on Vercel — there the
+ * default export from src/index.ts is the entrypoint.
+ */
 import 'dotenv/config';
 import { serve } from '@hono/node-server';
+import app from './index';
 import { env } from './env';
-import { createApp } from './http/app';
-
-const app = createApp();
 
 serve({ fetch: app.fetch, port: env().PORT }, (info) => {
   console.log(`MC Peels API listening on http://localhost:${info.port}`);
