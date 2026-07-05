@@ -1,13 +1,17 @@
 /**
- * Vercel entrypoint. Vercel's Hono framework preset auto-detects a default
- * export of a Hono app at src/index.ts and turns its routes into Vercel
- * Functions — no vercel.json or api/ directory needed.
- *
- * Local Node dev uses src/dev.ts, which wraps this same app in
- * @hono/node-server.
+ * Vercel entrypoint. Vercel's Hono framework preset requires the entrypoint to
+ * (a) import `hono` directly and (b) default-export the Hono app instance, so
+ * the actual app construction stays in ./http/app and this file just wires it
+ * up. Local Node dev uses src/dev.ts, which serves this same app.
  */
+import { Hono } from 'hono';
 import { createApp } from './http/app';
 
 const app = createApp();
+
+// Guards the Vercel contract and keeps the direct `hono` import load-bearing.
+if (!(app instanceof Hono)) {
+  throw new Error('createApp() must return a Hono instance');
+}
 
 export default app;
