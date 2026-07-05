@@ -122,6 +122,21 @@ export function createApp() {
     }),
   );
 
+  // Friendly root so visiting the bare domain in a browser shows the service
+  // is alive instead of a 404 (this host serves the API, not the consumer app).
+  app.get('/', (c) =>
+    c.json({
+      service: 'MC Peels API',
+      status: 'ok',
+      endpoints: {
+        health: '/health',
+        rest: '/api/v1 (Supabase bearer auth)',
+        mcp: '/mcp (mcp_ personal access token)',
+      },
+      docs: 'https://github.com/Second-Nine-Labs/mc-peels',
+    }),
+  );
+
   app.get('/health', (c) => c.json({ ok: true }));
 
   // MCP front door — authenticates with its own mcp_ bearer tokens.
