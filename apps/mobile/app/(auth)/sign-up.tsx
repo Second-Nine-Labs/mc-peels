@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -61,6 +62,12 @@ export default function SignUpScreen() {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
+            <Image
+              source={require('../../assets/brand/banana.png')}
+              style={styles.mascot}
+              contentFit="contain"
+              accessibilityLabel="MC Peels banana mascot"
+            />
             <Text style={[styles.title, { color: p.text }]}>Create your account</Text>
             <Text style={[styles.subtitle, { color: p.textMuted }]}>
               One account per person — you&apos;ll create or join your household next.
@@ -127,6 +134,11 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginBottom: 28,
+  },
+  mascot: {
+    width: 56,
+    height: 66,
+    marginBottom: 14,
   },
   title: {
     fontSize: 30,

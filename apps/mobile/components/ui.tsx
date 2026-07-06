@@ -6,11 +6,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
+  type ImageSourcePropType,
   type StyleProp,
   type TextInputProps,
   type ViewStyle,
@@ -22,7 +24,7 @@ import type { CartStatus } from '@/lib/types';
 // ---------------------------------------------------------------------------
 // Button
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'danger' | 'ghost';
 
 interface ButtonProps {
   title: string;
@@ -47,9 +49,17 @@ export function Button({
   const inactive = disabled || loading;
 
   const background =
-    variant === 'primary' ? p.tint : variant === 'danger' ? p.dangerSoft : variant === 'secondary' ? p.chip : 'transparent';
+    variant === 'primary' ? p.tint
+    : variant === 'accent' ? p.accent
+    : variant === 'danger' ? p.dangerSoft
+    : variant === 'secondary' ? p.chip
+    : 'transparent';
   const color =
-    variant === 'primary' ? p.onTint : variant === 'danger' ? p.danger : variant === 'ghost' ? p.tint : p.text;
+    variant === 'primary' ? p.onTint
+    : variant === 'accent' ? p.onAccent
+    : variant === 'danger' ? p.danger
+    : variant === 'ghost' ? p.tint
+    : p.text;
 
   return (
     <Pressable
@@ -272,15 +282,24 @@ export function EmptyState({
   icon,
   title,
   message,
+  image,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   title: string;
   message: string;
+  /** Optional illustration (e.g. the banana mascot) shown instead of the icon. */
+  image?: ImageSourcePropType;
 }) {
   const p = usePalette();
   return (
     <View style={styles.emptyState}>
-      <Ionicons name={icon} size={40} color={p.textMuted} />
+      {image ? (
+        <Image source={image} style={styles.emptyImage} resizeMode="contain" />
+      ) : (
+        <View style={[styles.emptyIconCircle, { backgroundColor: p.tintSoft }]}>
+          <Ionicons name={icon} size={34} color={p.tint} />
+        </View>
+      )}
       <Text style={[styles.emptyTitle, { color: p.text }]}>{title}</Text>
       <Text style={[styles.emptyMessage, { color: p.textMuted }]}>{message}</Text>
     </View>
@@ -306,12 +325,12 @@ export function StatusChip({ status }: { status: CartStatus | undefined }) {
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 14,
     paddingHorizontal: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 50,
+    minHeight: 52,
   },
   buttonContent: {
     flexDirection: 'row',
@@ -320,7 +339,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   fieldWrap: {
     marginBottom: 16,
@@ -334,7 +353,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
@@ -402,7 +421,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 16,
   },
   sectionTitle: {
@@ -426,6 +445,19 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 48,
     paddingHorizontal: 24,
+  },
+  emptyIconCircle: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyImage: {
+    width: 96,
+    height: 113,
+    marginBottom: 4,
   },
   emptyTitle: {
     fontSize: 17,

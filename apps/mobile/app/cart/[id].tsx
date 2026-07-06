@@ -3,6 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { BananaRain } from '@/components/BananaRain';
 import {
   Button,
   Card,
@@ -71,6 +72,7 @@ export default function CartDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [bananaBurst, setBananaBurst] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +98,8 @@ export default function CartDetailScreen() {
   const openInInstacart = useCallback(async () => {
     if (!cart?.instacartUrl) return;
     setOpening(true);
+    // Celebrate the hand-off — a little rain of bananas.
+    setBananaBurst((n) => n + 1);
     try {
       await Linking.openURL(cart.instacartUrl);
       // Best-effort local status only — Instacart reports no order state back.
@@ -125,11 +129,12 @@ export default function CartDetailScreen() {
   }
 
   return (
-    <ScrollView
-      style={[styles.screen, { backgroundColor: p.background }]}
-      contentContainerStyle={styles.container}
-    >
-      <ErrorBanner message={error} />
+    <View style={styles.screen}>
+      <ScrollView
+        style={[styles.screen, { backgroundColor: p.background }]}
+        contentContainerStyle={styles.container}
+      >
+        <ErrorBanner message={error} />
 
       <View style={styles.header}>
         <Text style={[styles.title, { color: p.text }]}>{cart.title}</Text>
@@ -147,6 +152,7 @@ export default function CartDetailScreen() {
           <Button
             title="Open in Instacart"
             icon="cart-outline"
+            variant="accent"
             onPress={openInInstacart}
             loading={opening}
           />
@@ -211,7 +217,9 @@ export default function CartDetailScreen() {
           })}
         </Card>
       ) : null}
-    </ScrollView>
+      </ScrollView>
+      <BananaRain burstKey={bananaBurst} />
+    </View>
   );
 }
 

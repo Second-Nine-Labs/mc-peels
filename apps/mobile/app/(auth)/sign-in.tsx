@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -43,6 +44,12 @@ export default function SignInScreen() {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
+            <Image
+              source={require('../../assets/brand/banana.png')}
+              style={styles.mascot}
+              contentFit="contain"
+              accessibilityLabel="MC Peels banana mascot"
+            />
             <Text style={[styles.title, { color: p.text }]}>MC Peels</Text>
             <Text style={[styles.subtitle, { color: p.textMuted }]}>
               Say what you need. Get a ready-to-checkout Instacart cart, filtered to your
@@ -100,6 +107,11 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginBottom: 28,
+  },
+  mascot: {
+    width: 64,
+    height: 75,
+    marginBottom: 16,
   },
   title: {
     fontSize: 34,

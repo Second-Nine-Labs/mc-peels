@@ -119,6 +119,7 @@ export default function CartsScreen() {
         ListEmptyComponent={
           !error ? (
             <EmptyState
+              image={require('../../assets/brand/banana.png')}
               icon="cart-outline"
               title="No carts yet"
               message="Head to the Ask tab and tell MC Peels what you need — your carts and order history will show up here."

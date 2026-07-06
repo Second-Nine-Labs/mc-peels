@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -69,6 +70,12 @@ export default function AskScreen() {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
+            <Image
+              source={require('../../assets/brand/banana.png')}
+              style={styles.mascot}
+              contentFit="contain"
+              accessibilityLabel="MC Peels banana mascot"
+            />
             <Text style={[styles.brand, { color: p.tint }]}>MC Peels</Text>
             <Text style={[styles.title, { color: p.text }]}>What do you need?</Text>
             <Text style={[styles.subtitle, { color: p.textMuted }]}>
@@ -135,6 +142,11 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginBottom: 24,
+  },
+  mascot: {
+    width: 60,
+    height: 71,
+    marginBottom: 14,
   },
   brand: {
     fontSize: 14,

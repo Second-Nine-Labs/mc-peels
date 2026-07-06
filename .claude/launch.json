@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "apps/mobile", "run", "web"],
       "port": 8081
+    },
+    {
+      "name": "mobile-web-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "apps/mobile", "run", "web", "--", "--port", "8090"],
+      "port": 8090
     }
   ]
 }

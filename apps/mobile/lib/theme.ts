@@ -9,6 +9,10 @@ export interface Palette {
   tint: string;
   tintSoft: string;
   onTint: string;
+  /** Playful banana-yellow accent — reserved for the big "go" moments. */
+  accent: string;
+  accentSoft: string;
+  onAccent: string;
   danger: string;
   dangerSoft: string;
   success: string;
@@ -18,40 +22,49 @@ export interface Palette {
   chip: string;
 }
 
+// Bright, clean, fun. Primary blue is the same #208AEF as the app icon +
+// splash; the navy text and banana-yellow accent are pulled straight from the
+// mascot so the whole UI agrees with the logo.
 export const lightPalette: Palette = {
-  background: '#FAF8F5',
+  background: '#F3F8FF',
   card: '#FFFFFF',
-  text: '#1C1917',
-  textMuted: '#78716C',
-  border: '#E7E5E4',
-  tint: '#EA580C',
-  tintSoft: '#FFF0E5',
+  text: '#152238',
+  textMuted: '#5C6B85',
+  border: '#E2EAF6',
+  tint: '#208AEF',
+  tintSoft: '#E6F1FE',
   onTint: '#FFFFFF',
-  danger: '#DC2626',
-  dangerSoft: '#FEF2F2',
-  success: '#15803D',
-  successSoft: '#F0FDF4',
-  warning: '#B45309',
-  warningSoft: '#FFFBEB',
-  chip: '#F1EFEC',
+  accent: '#FFC531',
+  accentSoft: '#FFF3D0',
+  onAccent: '#152238',
+  danger: '#E24B4A',
+  dangerSoft: '#FDECEB',
+  success: '#17A34A',
+  successSoft: '#E6F7EE',
+  warning: '#E38A00',
+  warningSoft: '#FEF1DC',
+  chip: '#EAF1FB',
 };
 
 export const darkPalette: Palette = {
-  background: '#141210',
-  card: '#1F1C19',
-  text: '#F5F5F4',
-  textMuted: '#A8A29E',
-  border: '#33302C',
-  tint: '#FB923C',
-  tintSoft: '#3A2413',
-  onTint: '#1C1006',
-  danger: '#F87171',
-  dangerSoft: '#3A1717',
+  background: '#0B1626',
+  card: '#13233A',
+  text: '#EAF2FE',
+  textMuted: '#97A6C2',
+  border: '#243953',
+  tint: '#4FA4F2',
+  tintSoft: '#132E52',
+  onTint: '#06192E',
+  accent: '#FFC531',
+  accentSoft: '#3A2D08',
+  onAccent: '#20180A',
+  danger: '#F98A82',
+  dangerSoft: '#3A1B19',
   success: '#4ADE80',
-  successSoft: '#132A1B',
+  successSoft: '#0F2A1B',
   warning: '#FBBF24',
-  warningSoft: '#332708',
-  chip: '#2B2723',
+  warningSoft: '#33270A',
+  chip: '#1C2E48',
 };
 
 export function usePalette(): Palette {
