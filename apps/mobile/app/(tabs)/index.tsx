@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,7 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, ErrorBanner, LoadingView } from '@/components/ui';
+import { BananaLoader } from '@/components/BananaLoader';
+import { MascotMark } from '@/components/MascotMark';
+import { Button, ErrorBanner } from '@/components/ui';
 import { api, getErrorMessage } from '@/lib/api';
 import { rememberCartResult } from '@/lib/cart-cache';
 import { useSession } from '@/lib/session';
@@ -34,8 +35,31 @@ export default function AskScreen() {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
+  const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopTyping = () => {
+    if (typingRef.current) {
+      clearInterval(typingRef.current);
+      typingRef.current = null;
+    }
+  };
+
+  // Tapping a suggestion "types" it into the box instead of dumping it in.
+  const typeOut = (full: string) => {
+    stopTyping();
+    setText('');
+    let i = 0;
+    typingRef.current = setInterval(() => {
+      i += 1;
+      setText(full.slice(0, i));
+      if (i >= full.length) stopTyping();
+    }, 26);
+  };
+
+  useEffect(() => stopTyping, []);
 
   const submit = async () => {
+    stopTyping();
     const requestText = text.trim();
     if (!requestText || building) return;
     setError(null);
@@ -59,7 +83,7 @@ export default function AskScreen() {
   };
 
   if (building) {
-    return <LoadingView message="Building your cart… applying your household's food rules." />;
+    return <BananaLoader />;
   }
 
   return (
@@ -70,12 +94,9 @@ export default function AskScreen() {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <Image
-              source={require('../../assets/brand/banana.png')}
-              style={styles.mascot}
-              contentFit="contain"
-              accessibilityLabel="MC Peels banana mascot"
-            />
+            <View style={styles.mascot}>
+              <MascotMark size={60} />
+            </View>
             <Text style={[styles.brand, { color: p.tint }]}>MC Peels</Text>
             <Text style={[styles.title, { color: p.text }]}>What do you need?</Text>
             <Text style={[styles.subtitle, { color: p.textMuted }]}>
@@ -111,7 +132,7 @@ export default function AskScreen() {
             {EXAMPLES.map((example) => (
               <Pressable
                 key={example}
-                onPress={() => setText(example)}
+                onPress={() => typeOut(example)}
                 style={[styles.example, { backgroundColor: p.card, borderColor: p.border }]}
               >
                 <Ionicons name="bulb-outline" size={16} color={p.tint} />
@@ -144,8 +165,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   mascot: {
-    width: 60,
-    height: 71,
+    alignSelf: 'flex-start',
     marginBottom: 14,
   },
   brand: {

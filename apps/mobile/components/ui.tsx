@@ -3,9 +3,10 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Pressable,
   StyleSheet,
@@ -20,6 +21,8 @@ import {
 
 import { usePalette } from '@/lib/theme';
 import type { CartStatus } from '@/lib/types';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // ---------------------------------------------------------------------------
 // Button
@@ -47,6 +50,12 @@ export function Button({
 }: ButtonProps) {
   const p = usePalette();
   const inactive = disabled || loading;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const pressIn = () =>
+    Animated.spring(scale, { toValue: 0.96, friction: 7, tension: 320, useNativeDriver: false }).start();
+  const pressOut = () =>
+    Animated.spring(scale, { toValue: 1, friction: 4, tension: 200, useNativeDriver: false }).start();
 
   const background =
     variant === 'primary' ? p.tint
@@ -62,13 +71,15 @@ export function Button({
     : p.text;
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       onPress={onPress}
+      onPressIn={inactive ? undefined : pressIn}
+      onPressOut={inactive ? undefined : pressOut}
       disabled={inactive}
-      style={({ pressed }) => [
+      style={[
         styles.button,
-        { backgroundColor: background, opacity: inactive ? 0.55 : pressed ? 0.8 : 1 },
+        { backgroundColor: background, opacity: inactive ? 0.55 : 1, transform: [{ scale }] },
         style,
       ]}
     >
@@ -80,7 +91,7 @@ export function Button({
           <Text style={[styles.buttonText, { color }]}>{title}</Text>
         </View>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
