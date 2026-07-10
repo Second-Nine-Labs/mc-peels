@@ -113,7 +113,7 @@ export default function CartsScreen() {
         }}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={p.tint} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={p.onBg} />
         }
         ListHeaderComponent={<ErrorBanner message={error} />}
         ListEmptyComponent={

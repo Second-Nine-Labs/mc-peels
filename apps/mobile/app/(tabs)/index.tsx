@@ -163,9 +163,9 @@ export default function AskScreen() {
             <View style={styles.mascot}>
               <MascotMark size={60} onStreak={throwParty} />
             </View>
-            <Text style={[styles.brand, { color: p.tint }]}>MC Peels</Text>
-            <Text style={[styles.title, { color: p.text }]}>What do you need?</Text>
-            <Text style={[styles.subtitle, { color: p.textMuted }]}>
+            <Text style={[styles.brand, { color: p.onBgMuted }]}>MC Peels</Text>
+            <Text style={[styles.title, { color: p.onBg }]}>What do you need?</Text>
+            <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               Say it in plain language — we&apos;ll build an Instacart cart with{' '}
               {membership?.household.name ?? 'your household'}&apos;s dietary rules applied.
             </Text>
@@ -193,7 +193,7 @@ export default function AskScreen() {
             disabled={!text.trim()}
           />
 
-          <Text style={[styles.examplesLabel, { color: p.textMuted }]}>Try something like</Text>
+          <Text style={[styles.examplesLabel, { color: p.onBgMuted }]}>Try something like</Text>
           <View style={styles.examples}>
             {EXAMPLES.map((example) => (
               <Pressable
@@ -207,7 +207,7 @@ export default function AskScreen() {
             ))}
           </View>
 
-          <Text style={[styles.footnote, { color: p.textMuted }]}>
+          <Text style={[styles.footnote, { color: p.onBgMuted }]}>
             You&apos;ll review and pay on Instacart — MC Peels never handles payment.
           </Text>
           </ScrollView>

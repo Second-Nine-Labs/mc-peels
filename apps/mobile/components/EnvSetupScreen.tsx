@@ -40,9 +40,9 @@ export function EnvSetupScreen() {
       style={[styles.screen, { backgroundColor: p.background }]}
       contentContainerStyle={styles.container}
     >
-      <Ionicons name="construct-outline" size={44} color={p.tint} />
-      <Text style={[styles.title, { color: p.text }]}>Almost there</Text>
-      <Text style={[styles.subtitle, { color: p.textMuted }]}>
+      <Ionicons name="construct-outline" size={44} color={p.onBg} />
+      <Text style={[styles.title, { color: p.onBg }]}>Almost there</Text>
+      <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
         MC Peels needs a few environment variables before it can start. Create{' '}
         <Text style={[styles.code, { color: p.text, backgroundColor: p.card }]}>apps/mobile/.env</Text>{' '}
         (copy <Text style={[styles.code, { color: p.text, backgroundColor: p.card }]}>.env.example</Text>) and
@@ -61,11 +61,11 @@ export function EnvSetupScreen() {
             <Ionicons
               name={v.present ? 'checkmark-circle' : 'ellipse-outline'}
               size={20}
-              color={v.present ? p.success : p.textMuted}
+              color={v.present ? p.success : p.onBgMuted}
             />
             <View style={styles.rowText}>
-              <Text style={[styles.varName, { color: p.text }]}>{v.name}</Text>
-              <Text style={[styles.varHint, { color: p.textMuted }]}>
+              <Text style={[styles.varName, { color: p.onBg }]}>{v.name}</Text>
+              <Text style={[styles.varHint, { color: p.onBgMuted }]}>
                 {v.present ? 'Set' : v.hint}
               </Text>
             </View>
@@ -73,7 +73,7 @@ export function EnvSetupScreen() {
         ))}
       </View>
 
-      <Text style={[styles.footnote, { color: p.textMuted }]}>
+      <Text style={[styles.footnote, { color: p.onBgMuted }]}>
         EXPO_PUBLIC_API_URL points the app at your deployed MC Peels backend.
       </Text>
     </ScrollView>

@@ -58,16 +58,16 @@ export function Button({
     Animated.spring(scale, { toValue: 1, friction: 4, tension: 200, useNativeDriver: false }).start();
 
   const background =
-    variant === 'primary' ? p.tint
+    variant === 'primary' ? p.primary
     : variant === 'accent' ? p.accent
     : variant === 'danger' ? p.dangerSoft
     : variant === 'secondary' ? p.chip
     : 'transparent';
   const color =
-    variant === 'primary' ? p.onTint
+    variant === 'primary' ? p.onPrimary
     : variant === 'accent' ? p.onAccent
     : variant === 'danger' ? p.danger
-    : variant === 'ghost' ? p.tint
+    : variant === 'ghost' ? p.onBg
     : p.text;
 
   return (
@@ -101,13 +101,17 @@ export function Button({
 interface FieldProps extends TextInputProps {
   label?: string;
   helperText?: string;
+  /** Override the label color, e.g. p.onBgMuted when the form sits on the canvas. */
+  labelColor?: string;
 }
 
-export function Field({ label, helperText, style, ...inputProps }: FieldProps) {
+export function Field({ label, helperText, labelColor, style, ...inputProps }: FieldProps) {
   const p = usePalette();
   return (
     <View style={styles.fieldWrap}>
-      {label ? <Text style={[styles.fieldLabel, { color: p.textMuted }]}>{label}</Text> : null}
+      {label ? (
+        <Text style={[styles.fieldLabel, { color: labelColor ?? p.textMuted }]}>{label}</Text>
+      ) : null}
       <TextInput
         placeholderTextColor={p.textMuted}
         {...inputProps}
@@ -117,7 +121,9 @@ export function Field({ label, helperText, style, ...inputProps }: FieldProps) {
           style,
         ]}
       />
-      {helperText ? <Text style={[styles.helperText, { color: p.textMuted }]}>{helperText}</Text> : null}
+      {helperText ? (
+        <Text style={[styles.helperText, { color: labelColor ?? p.textMuted }]}>{helperText}</Text>
+      ) : null}
     </View>
   );
 }
@@ -283,8 +289,8 @@ export function LoadingView({ message }: { message?: string }) {
   const p = usePalette();
   return (
     <View style={[styles.loadingView, { backgroundColor: p.background }]}>
-      <ActivityIndicator size="large" color={p.tint} />
-      {message ? <Text style={[styles.loadingText, { color: p.textMuted }]}>{message}</Text> : null}
+      <ActivityIndicator size="large" color={p.onBg} />
+      {message ? <Text style={[styles.loadingText, { color: p.onBgMuted }]}>{message}</Text> : null}
     </View>
   );
 }
@@ -311,8 +317,8 @@ export function EmptyState({
           <Ionicons name={icon} size={34} color={p.tint} />
         </View>
       )}
-      <Text style={[styles.emptyTitle, { color: p.text }]}>{title}</Text>
-      <Text style={[styles.emptyMessage, { color: p.textMuted }]}>{message}</Text>
+      <Text style={[styles.emptyTitle, { color: p.onBg }]}>{title}</Text>
+      <Text style={[styles.emptyMessage, { color: p.onBgMuted }]}>{message}</Text>
     </View>
   );
 }

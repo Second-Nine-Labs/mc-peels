@@ -119,8 +119,8 @@ export default function OnboardingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.title, { color: p.text }]}>Set up your household</Text>
-          <Text style={[styles.subtitle, { color: p.textMuted }]}>
+          <Text style={[styles.title, { color: p.onBg }]}>Set up your household</Text>
+          <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
             Groceries in MC Peels are shared per household — dietary rules, preferred store, and
             carts all live here.
           </Text>
@@ -148,12 +148,14 @@ export default function OnboardingScreen() {
           {mode === 'create' ? (
             <>
               <Field
+                labelColor={p.onBgMuted}
                 label="Household name"
                 value={name}
                 onChangeText={setName}
                 placeholder="e.g. Shaffer Household"
               />
               <Field
+                labelColor={p.onBgMuted}
                 label="Postal code"
                 value={postalCode}
                 onChangeText={setPostalCode}
@@ -161,7 +163,7 @@ export default function OnboardingScreen() {
                 autoCapitalize="characters"
                 helperText="Used to find Instacart retailers near you."
               />
-              <Text style={[styles.fieldLabel, { color: p.textMuted }]}>Country</Text>
+              <Text style={[styles.fieldLabel, { color: p.onBgMuted }]}>Country</Text>
               <View style={styles.modeRow}>
                 <Chip label="United States" selected={countryCode === 'US'} onPress={() => setCountryCode('US')} />
                 <Chip label="Canada" selected={countryCode === 'CA'} onPress={() => setCountryCode('CA')} />
@@ -171,6 +173,7 @@ export default function OnboardingScreen() {
           ) : (
             <>
               <Field
+                labelColor={p.onBgMuted}
                 label="Invite code"
                 value={inviteCode}
                 onChangeText={setInviteCode}
@@ -243,8 +246,8 @@ function RetailerStep({ household }: { household: Household }) {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={[styles.title, { color: p.text }]}>Pick your store</Text>
-        <Text style={[styles.subtitle, { color: p.textMuted }]}>
+        <Text style={[styles.title, { color: p.onBg }]}>Pick your store</Text>
+        <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
           Carts will be built at this retailer by default. You can change it any time in the
           Household tab.
         </Text>
@@ -252,7 +255,7 @@ function RetailerStep({ household }: { household: Household }) {
         <ErrorBanner message={error ?? loadError} />
 
         {retailers.length === 0 && !loadError ? (
-          <Text style={[styles.subtitle, { color: p.textMuted }]}>
+          <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
             No retailers found near {household.postal_code}. You can skip this and set one later.
           </Text>
         ) : null}

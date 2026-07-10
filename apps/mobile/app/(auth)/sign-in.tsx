@@ -47,8 +47,8 @@ export default function SignInScreen() {
             <View style={styles.mascot}>
               <MascotMark size={64} />
             </View>
-            <Text style={[styles.title, { color: p.text }]}>MC Peels</Text>
-            <Text style={[styles.subtitle, { color: p.textMuted }]}>
+            <Text style={[styles.title, { color: p.onBg }]}>MC Peels</Text>
+            <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               Say what you need. Get a ready-to-checkout Instacart cart, filtered to your
               household&apos;s food rules.
             </Text>
@@ -57,6 +57,7 @@ export default function SignInScreen() {
           <ErrorBanner message={error} />
 
           <Field
+            labelColor={p.onBgMuted}
             label="Email"
             value={email}
             onChangeText={setEmail}
@@ -67,6 +68,7 @@ export default function SignInScreen() {
             textContentType="emailAddress"
           />
           <Field
+            labelColor={p.onBgMuted}
             label="Password"
             value={password}
             onChangeText={setPassword}
@@ -80,8 +82,8 @@ export default function SignInScreen() {
           <Button title="Sign in" onPress={signIn} loading={loading} />
 
           <View style={styles.switchRow}>
-            <Text style={{ color: p.textMuted }}>New here? </Text>
-            <Link href="/(auth)/sign-up" style={[styles.link, { color: p.tint }]}>
+            <Text style={{ color: p.onBgMuted }}>New here? </Text>
+            <Link href="/(auth)/sign-up" style={[styles.link, { color: p.onBg }]}>
               Create an account
             </Link>
           </View>

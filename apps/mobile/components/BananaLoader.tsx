@@ -69,7 +69,7 @@ export function BananaLoader({ messages = DEFAULT_MESSAGES }: { messages?: strin
           <Image source={BANANA} style={styles.banana} resizeMode="contain" />
         </Animated.View>
       </View>
-      <Text style={[styles.msg, { color: p.textMuted }]}>{messages[msgIndex]}</Text>
+      <Text style={[styles.msg, { color: p.onBgMuted }]}>{messages[msgIndex]}</Text>
     </View>
   );
 }

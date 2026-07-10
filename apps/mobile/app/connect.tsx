@@ -195,8 +195,8 @@ export default function ConnectScreen() {
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
-            <Ionicons name="link-outline" size={40} color={p.tint} />
-            <Text style={[styles.title, { color: p.text }]}>Connect {agentName}</Text>
+            <Ionicons name="link-outline" size={40} color={p.onBg} />
+            <Text style={[styles.title, { color: p.onBg }]}>Connect {agentName}</Text>
           </View>
           {children}
         </ScrollView>
@@ -303,12 +303,12 @@ export default function ConnectScreen() {
         <ErrorBanner message={error} />
         <Button title={`Connect ${agentName}`} onPress={approve} loading={busy} />
         {canRedirect ? (
-          <Button title="Cancel" variant="ghost" onPress={cancel} disabled={busy} />
+          <Button title="Cancel" variant="secondary" onPress={cancel} disabled={busy} />
         ) : null}
       </Card>
-      <Text style={[styles.note, styles.identity, { color: p.textMuted }]}>
+      <Text style={[styles.note, styles.identity, { color: p.onBgMuted }]}>
         Signed in as {session.user.email ?? 'your account'} ·{' '}
-        <Text style={{ color: p.tint }} onPress={() => supabase.auth.signOut()}>
+        <Text style={{ color: p.onBg, fontWeight: '600' }} onPress={() => supabase.auth.signOut()}>
           Use a different account
         </Text>
       </Text>

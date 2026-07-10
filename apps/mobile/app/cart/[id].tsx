@@ -137,14 +137,14 @@ export default function CartDetailScreen() {
         <ErrorBanner message={error} />
 
       <View style={styles.header}>
-        <Text style={[styles.title, { color: p.text }]}>{cart.title}</Text>
+        <Text style={[styles.title, { color: p.onBg }]}>{cart.title}</Text>
         <StatusChip status={cart.status} />
       </View>
-      <Text style={[styles.meta, { color: p.textMuted }]}>
+      <Text style={[styles.meta, { color: p.onBgMuted }]}>
         {[cart.retailerLabel, formatDate(cart.createdAt)].filter(Boolean).join(' · ')}
       </Text>
       {cart.requestText && cart.requestText !== cart.title ? (
-        <Text style={[styles.requestText, { color: p.textMuted }]}>“{cart.requestText}”</Text>
+        <Text style={[styles.requestText, { color: p.onBgMuted }]}>“{cart.requestText}”</Text>
       ) : null}
 
       {cart.instacartUrl ? (
@@ -156,7 +156,7 @@ export default function CartDetailScreen() {
             onPress={openInInstacart}
             loading={opening}
           />
-          <Text style={[styles.checkoutNote, { color: p.textMuted }]}>
+          <Text style={[styles.checkoutNote, { color: p.onBgMuted }]}>
             You’ll review and pay on Instacart — MC Peels never handles payment.
           </Text>
         </View>

@@ -65,8 +65,8 @@ export default function SignUpScreen() {
             <View style={styles.mascot}>
               <MascotMark size={56} />
             </View>
-            <Text style={[styles.title, { color: p.text }]}>Create your account</Text>
-            <Text style={[styles.subtitle, { color: p.textMuted }]}>
+            <Text style={[styles.title, { color: p.onBg }]}>Create your account</Text>
+            <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               One account per person — you&apos;ll create or join your household next.
             </Text>
           </View>
@@ -75,6 +75,7 @@ export default function SignUpScreen() {
           <SuccessBanner message={info} />
 
           <Field
+            labelColor={p.onBgMuted}
             label="Email"
             value={email}
             onChangeText={setEmail}
@@ -85,6 +86,7 @@ export default function SignUpScreen() {
             textContentType="emailAddress"
           />
           <Field
+            labelColor={p.onBgMuted}
             label="Password"
             value={password}
             onChangeText={setPassword}
@@ -94,6 +96,7 @@ export default function SignUpScreen() {
             textContentType="newPassword"
           />
           <Field
+            labelColor={p.onBgMuted}
             label="Confirm password"
             value={confirm}
             onChangeText={setConfirm}
@@ -107,8 +110,8 @@ export default function SignUpScreen() {
           <Button title="Create account" onPress={signUp} loading={loading} />
 
           <View style={styles.switchRow}>
-            <Text style={{ color: p.textMuted }}>Already have an account? </Text>
-            <Link href="/(auth)/sign-in" style={[styles.link, { color: p.tint }]}>
+            <Text style={{ color: p.onBgMuted }}>Already have an account? </Text>
+            <Link href="/(auth)/sign-in" style={[styles.link, { color: p.onBg }]}>
               Sign in
             </Link>
           </View>

@@ -5,10 +5,16 @@ export interface Palette {
   card: string;
   text: string;
   textMuted: string;
+  /** Text sitting directly on the (bold) background, not on a card. */
+  onBg: string;
+  onBgMuted: string;
   border: string;
   tint: string;
   tintSoft: string;
   onTint: string;
+  /** Primary action button — navy so it pops on the blue canvas. */
+  primary: string;
+  onPrimary: string;
   /** Playful banana-yellow accent — reserved for the big "go" moments. */
   accent: string;
   accentSoft: string;
@@ -22,18 +28,22 @@ export interface Palette {
   chip: string;
 }
 
-// Bright, clean, fun. Primary blue is the same #208AEF as the app icon +
-// splash; the navy text and banana-yellow accent are pulled straight from the
-// mascot so the whole UI agrees with the logo.
+// Bold, bright, fun. The canvas IS the brand blue (#208AEF — same as the app
+// icon + splash), white cards float on it, hero text goes white, and the
+// primary button is the mascot's deep navy so it never melts into the canvas.
 export const lightPalette: Palette = {
-  background: '#F3F8FF',
+  background: '#208AEF',
   card: '#FFFFFF',
   text: '#152238',
   textMuted: '#5C6B85',
+  onBg: '#FFFFFF',
+  onBgMuted: '#D5EAFF',
   border: '#E2EAF6',
   tint: '#208AEF',
   tintSoft: '#E6F1FE',
   onTint: '#FFFFFF',
+  primary: '#152238',
+  onPrimary: '#FFFFFF',
   accent: '#FFC531',
   accentSoft: '#FFF3D0',
   onAccent: '#152238',
@@ -46,15 +56,21 @@ export const lightPalette: Palette = {
   chip: '#EAF1FB',
 };
 
+// Dark mode keeps its calm navy canvas — the bold-blue treatment is a
+// light-mode statement; at night the same tokens resolve to on-dark values.
 export const darkPalette: Palette = {
   background: '#0B1626',
   card: '#13233A',
   text: '#EAF2FE',
   textMuted: '#97A6C2',
+  onBg: '#EAF2FE',
+  onBgMuted: '#97A6C2',
   border: '#243953',
   tint: '#4FA4F2',
   tintSoft: '#132E52',
   onTint: '#06192E',
+  primary: '#4FA4F2',
+  onPrimary: '#06192E',
   accent: '#FFC531',
   accentSoft: '#3A2D08',
   onAccent: '#20180A',
