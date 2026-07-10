@@ -1,24 +1,37 @@
 /**
- * «Книга» — The Book. The Soviet playground for recipe construction.
+ * «Книга» — The Book, v2. The Soviet playground for recipe construction.
  *
- * Twelve canon dishes as GOST spec-sheet cards on a cobalt blueprint canvas.
- * Stamp dishes В ПЛАН, watch the thrift meter, and Поехали: the selection is
- * consolidated client-side (the thrift solver v0) and sent to the existing
- * POST /carts endpoint as structured line_items — the dietary profile is
- * applied server-side like any other cart, and the hand-off reuses the
- * standard cart detail screen. Zero backend changes.
+ * Layout borrows the proven recipe-app grammar (search + filter chips, a
+ * two-column card grid with compact metadata, tap-through detail, actions at
+ * the thumb) and dresses it in the poster language: constructivist motifs on
+ * the deep cobalt canvas, cream paper cards, red for the Bureau's voice,
+ * ochre demoted to accent duty.
+ *
+ * The flow is unchanged: stamp dishes В ПЛАН, the thrift solver consolidates,
+ * Поехали sends structured line_items to the existing POST /carts.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { api, getErrorMessage } from '@/lib/api';
 import type { CreateCartResponse } from '@/lib/types';
 
 import { CANON, consolidatePlan, planToLineItems, type CanonRecipe } from './canon';
-import { BlueprintGrid, CrestMark, QuotaMeter, SpecTag, Stamp } from './components';
+import { ConstructivistBackdrop, CrestMark, QuotaMeter, SpecTag, Stamp } from './components';
 import { useSovietPalette, type SovietPalette } from './palette';
+import { POSTERS } from './posters';
 
 const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, serif' });
 
@@ -36,6 +49,14 @@ const CATEGORY_LABEL: Record<CanonRecipe['category'], string> = {
   salad: 'Salad',
 };
 
+const FILTERS: Array<{ key: 'all' | CanonRecipe['category']; label: string }> = [
+  { key: 'all', label: 'All' },
+  { key: 'main', label: 'Mains' },
+  { key: 'soup', label: 'Soups' },
+  { key: 'breakfast', label: 'Breakfast' },
+  { key: 'salad', label: 'Salads' },
+];
+
 interface BookScreenBodyProps {
   /** Household to build the cart for; undefined in the signed-out preview. */
   householdId?: string;
@@ -47,8 +68,10 @@ interface BookScreenBodyProps {
 
 export function BookScreenBody({ householdId, onCartBuilt, previewMode = false }: BookScreenBodyProps) {
   const p = useSovietPalette();
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const [stage, setStage] = useState(0);
   const [scrub, setScrub] = useState<string | null>(null);
@@ -58,6 +81,22 @@ export function BookScreenBody({ householdId, onCartBuilt, previewMode = false }
     () => consolidatePlan(CANON.filter((recipe) => selected.has(recipe.id))),
     [selected],
   );
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return CANON.filter((recipe) => {
+      if (filter !== 'all' && recipe.category !== filter) return false;
+      if (needle.length === 0) return true;
+      return (
+        recipe.name.toLowerCase().includes(needle) ||
+        recipe.cyrillic.includes(needle) ||
+        recipe.origin.toLowerCase().includes(needle) ||
+        recipe.ingredients.some((ingredient) => ingredient.name.toLowerCase().includes(needle))
+      );
+    });
+  }, [query, filter]);
+
+  const detail = detailId ? (CANON.find((recipe) => recipe.id === detailId) ?? null) : null;
 
   useEffect(() => {
     return () => {
@@ -116,40 +155,82 @@ export function BookScreenBody({ householdId, onCartBuilt, previewMode = false }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.canvas }]} edges={['top']}>
-      <BlueprintGrid />
+      <ConstructivistBackdrop />
+      {POSTERS.cutoutWorker ? (
+        <Image source={POSTERS.cutoutWorker} resizeMode="contain" style={styles.cutout} />
+      ) : null}
+
       <FlatList
-        data={CANON}
+        data={visible}
         keyExtractor={(recipe) => recipe.id}
+        numColumns={2}
+        columnWrapperStyle={styles.gridRow}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.header}>
             <View style={styles.headerRow}>
-              <CrestMark size={58} />
+              <CrestMark size={44} />
               <View style={styles.headerText}>
-                <Text style={[styles.brand, { color: p.creamMuted }]}>
-                  MC PEELS · РЕЖИМ БАБУШКИ
-                </Text>
+                <Text style={[styles.brand, { color: p.creamMuted }]}>РЕЖИМ БАБУШКИ</Text>
                 <Text style={[styles.title, { color: p.cream }]}>
                   The Book <Text style={{ color: p.creamMuted }}>· книга</Text>
                 </Text>
               </View>
             </View>
-            <Text style={[styles.subtitle, { color: p.creamMuted }]}>
-              Twelve dishes of the post-Soviet table. Stamp a week В ПЛАН — the Bureau
-              consolidates one thrifty cart.
-            </Text>
+
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder='Search the canon — try "beets" or "Georgian"'
+              placeholderTextColor={p.creamMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[
+                styles.search,
+                { borderColor: p.canvasLine, color: p.cream, backgroundColor: p.track },
+              ]}
+            />
+
+            <View style={styles.chips}>
+              {FILTERS.map((entry) => {
+                const active = filter === entry.key;
+                return (
+                  <Pressable
+                    key={entry.key}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => setFilter(entry.key)}
+                    style={[
+                      styles.chip,
+                      active
+                        ? { backgroundColor: p.cream, borderColor: p.cream }
+                        : { borderColor: p.creamMuted },
+                    ]}
+                  >
+                    <Text style={[styles.chipText, { color: active ? p.ink : p.creamMuted }]}>
+                      {entry.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         }
         renderItem={({ item }) => (
-          <SpecCard
+          <GridCard
             recipe={item}
             palette={p}
             selected={selected.has(item.id)}
-            expanded={expanded === item.id}
+            onOpen={() => setDetailId(item.id)}
             onToggle={() => toggle(item.id)}
-            onExpand={() => setExpanded((current) => (current === item.id ? null : item.id))}
           />
         )}
+        ListEmptyComponent={
+          <Text style={[styles.empty, { color: p.creamMuted }]}>
+            Nothing in the canon matches. The Bureau accepts proposals.
+          </Text>
+        }
         ListFooterComponent={
           <Text style={[styles.footnote, { color: p.creamMuted }]}>
             Recipes carry their own quantities. Your household profile is applied at build
@@ -186,24 +267,46 @@ export function BookScreenBody({ householdId, onCartBuilt, previewMode = false }
           </Pressable>
         </View>
       ) : null}
+
+      <Modal
+        visible={detail !== null}
+        transparent
+        animationType="none"
+        onRequestClose={() => setDetailId(null)}
+      >
+        <View style={styles.modalRoot}>
+          <Pressable
+            accessibilityLabel="Close"
+            onPress={() => setDetailId(null)}
+            style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(23, 20, 23, 0.62)' }]}
+          />
+          {detail ? (
+            <DetailSheet
+              recipe={detail}
+              palette={p}
+              selected={selected.has(detail.id)}
+              onToggle={() => toggle(detail.id)}
+              onClose={() => setDetailId(null)}
+            />
+          ) : null}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 // ---------------------------------------------------------------------------
 
-interface SpecCardProps {
+interface GridCardProps {
   recipe: CanonRecipe;
   palette: SovietPalette;
   selected: boolean;
-  expanded: boolean;
+  onOpen: () => void;
   onToggle: () => void;
-  onExpand: () => void;
 }
 
-function SpecCard({ recipe, palette: p, selected, expanded, onToggle, onExpand }: SpecCardProps) {
-  // Pressables must stay siblings — react-native-web renders them as
-  // <button>, and nesting buttons is invalid HTML (hydration errors).
+function GridCard({ recipe, palette: p, selected, onOpen, onToggle }: GridCardProps) {
+  // Sibling pressables only — nesting renders nested <button>s on web.
   return (
     <View
       style={[
@@ -211,55 +314,111 @@ function SpecCard({ recipe, palette: p, selected, expanded, onToggle, onExpand }
         {
           backgroundColor: p.card,
           borderColor: p.cardLine,
-          transform: [{ rotate: selected ? '-0.4deg' : '0deg' }],
+          transform: [{ rotate: selected ? '-0.5deg' : '0deg' }],
         },
       ]}
     >
       <Pressable
         accessibilityRole="button"
+        onPress={onOpen}
+        style={({ pressed }) => [styles.cardBody, { opacity: pressed ? 0.8 : 1 }]}
+      >
+        <Text style={[styles.cardGost, { color: p.red }]}>{recipe.gost}</Text>
+        <Text style={[styles.cardTitle, { color: p.ink }]} numberOfLines={2}>
+          {recipe.name}
+        </Text>
+        <Text style={[styles.cardCyrillic, { color: p.inkSoft }]} numberOfLines={1}>
+          {recipe.cyrillic} · {recipe.origin}
+        </Text>
+        <Text style={[styles.cardMeta, { color: p.inkSoft }]}>
+          {CATEGORY_LABEL[recipe.category]} · serves {recipe.serves} ·{' '}
+          {recipe.ingredients.length} ing
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
         accessibilityState={{ selected }}
         onPress={onToggle}
-        style={({ pressed }) => [styles.cardBody, { opacity: pressed ? 0.85 : 1 }]}
+        style={({ pressed }) => [
+          styles.cardAction,
+          selected
+            ? { backgroundColor: p.red, borderColor: p.red }
+            : { borderColor: p.red },
+          { opacity: pressed ? 0.8 : 1 },
+        ]}
       >
-        <View style={styles.cardTags}>
-          <SpecTag color={p.red}>{recipe.gost}</SpecTag>
-          <SpecTag>{CATEGORY_LABEL[recipe.category]}</SpecTag>
-          <SpecTag>{recipe.origin}</SpecTag>
-        </View>
-
-        <View style={styles.cardTitleRow}>
-          <Text style={[styles.cardTitle, { color: p.ink }]}>
-            {recipe.name} <Text style={{ color: p.inkSoft }}>· {recipe.cyrillic}</Text>
-          </Text>
-        </View>
-
-        <Text style={[styles.cardStory, { color: p.ink }]}>{recipe.story}</Text>
-        <Text style={[styles.cardNote, { color: p.inkSoft }]}>“{recipe.note}”</Text>
+        <Text style={[styles.cardActionText, { color: selected ? p.onRed : p.red }]}>
+          {selected ? 'В ПЛАНЕ ✓' : 'В ПЛАН +'}
+        </Text>
       </Pressable>
+    </View>
+  );
+}
 
-      <View style={styles.cardFooter}>
-        <Pressable onPress={onExpand} hitSlop={8} accessibilityRole="button">
-          <Text style={[styles.specLink, { color: p.ink }]}>
-            {expanded ? 'Fold the spec ↑' : `Spec sheet · ${recipe.ingredients.length} ingredients ↓`}
-          </Text>
+// ---------------------------------------------------------------------------
+
+interface DetailSheetProps {
+  recipe: CanonRecipe;
+  palette: SovietPalette;
+  selected: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}
+
+function DetailSheet({ recipe, palette: p, selected, onToggle, onClose }: DetailSheetProps) {
+  return (
+    <View style={[styles.sheet, { backgroundColor: p.card, borderColor: p.cardLine }]}>
+      <View style={styles.sheetTags}>
+        <SpecTag color={p.red}>{recipe.gost}</SpecTag>
+        <SpecTag>{CATEGORY_LABEL[recipe.category]}</SpecTag>
+        <SpecTag>{recipe.origin}</SpecTag>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={onClose}
+          hitSlop={10}
+          style={styles.sheetClose}
+        >
+          <Text style={[styles.sheetCloseText, { color: p.ink }]}>✕</Text>
         </Pressable>
-        <Text style={[styles.serves, { color: p.inkSoft }]}>serves {recipe.serves}</Text>
       </View>
 
-      {expanded ? (
-        <View style={[styles.spec, { borderTopColor: p.cardLine }]}>
-          {recipe.ingredients.map((ingredient) => (
-            <Text key={ingredient.name} style={[styles.specLine, { color: p.ink }]}>
-              {ingredient.pantry
-                ? `— ${ingredient.name} · pantry, assumed`
-                : `— ${[ingredient.quantity, ingredient.unit, ingredient.name].filter(Boolean).join(' ')}`}
-            </Text>
-          ))}
-        </View>
-      ) : null}
+      <Text style={[styles.sheetTitle, { color: p.ink }]}>
+        {recipe.name} <Text style={{ color: p.inkSoft }}>· {recipe.cyrillic}</Text>
+      </Text>
+      <Text style={[styles.sheetStory, { color: p.ink }]}>{recipe.story}</Text>
+      <Text style={[styles.sheetNote, { color: p.inkSoft }]}>“{recipe.note}”</Text>
+
+      <View style={[styles.sheetSpec, { borderTopColor: p.cardLine }]}>
+        <Text style={[styles.sheetSpecTitle, { color: p.inkSoft }]}>
+          SPEC SHEET · SERVES {recipe.serves}
+        </Text>
+        {recipe.ingredients.map((ingredient) => (
+          <Text key={ingredient.name} style={[styles.sheetSpecLine, { color: p.ink }]}>
+            {ingredient.pantry
+              ? `— ${ingredient.name} · pantry, assumed`
+              : `— ${[ingredient.quantity, ingredient.unit, ingredient.name].filter(Boolean).join(' ')}`}
+          </Text>
+        ))}
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        onPress={onToggle}
+        style={({ pressed }) => [
+          styles.sheetAction,
+          selected ? { backgroundColor: p.ink } : { backgroundColor: p.red },
+          { opacity: pressed ? 0.85 : 1 },
+        ]}
+      >
+        <Text style={[styles.sheetActionText, { color: p.cream }]}>
+          {selected ? 'Убрать — remove from the plan' : 'В ПЛАН — add to the plan'}
+        </Text>
+      </Pressable>
 
       {selected ? (
-        <Stamp label="В ПЛАН" sub="into the plan" tone="red" rotate={7} style={styles.planStamp} />
+        <Stamp label="В ПЛАН" sub="into the plan" tone="red" rotate={7} style={styles.sheetStamp} />
       ) : null}
     </View>
   );
@@ -270,113 +429,108 @@ const styles = StyleSheet.create({
   list: {
     padding: 16,
     paddingBottom: 24,
-    gap: 12,
     maxWidth: 640,
     width: '100%',
     alignSelf: 'center',
   },
+  gridRow: {
+    gap: 10,
+  },
   header: {
-    marginBottom: 8,
+    marginBottom: 14,
     gap: 12,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   headerText: {
     flex: 1,
   },
   brand: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.4,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   title: {
-    fontSize: 30,
+    fontSize: 26,
     fontWeight: '800',
   },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+  search: {
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 15,
+    minHeight: 44,
   },
-  scrub: {
-    borderWidth: 2,
-    padding: 12,
-  },
-  scrubText: {
-    fontSize: 14,
-    lineHeight: 19,
-    fontWeight: '600',
-  },
-  card: {
-    borderWidth: 2,
-    padding: 14,
-    gap: 8,
-  },
-  cardBody: {
-    gap: 8,
-  },
-  cardTags: {
+  chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
   },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+  chip: {
+    borderWidth: 1.5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  cardStory: {
-    fontSize: 13.5,
-    lineHeight: 19,
-  },
-  cardNote: {
-    fontSize: 13.5,
-    lineHeight: 19,
-    fontFamily: SERIF,
-    fontStyle: 'italic',
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 2,
-  },
-  specLink: {
+  chipText: {
     fontSize: 12.5,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
     textTransform: 'uppercase',
   },
-  serves: {
-    fontSize: 12.5,
-    fontWeight: '600',
+  empty: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    paddingVertical: 32,
   },
-  spec: {
-    borderTopWidth: 1.5,
-    paddingTop: 8,
+  card: {
+    flex: 1,
+    borderWidth: 2,
+    padding: 12,
+    marginBottom: 10,
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  cardBody: {
     gap: 3,
   },
-  specLine: {
-    fontSize: 13.5,
-    lineHeight: 19,
+  cardGost: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
-  planStamp: {
-    position: 'absolute',
-    top: 10,
-    right: 12,
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
+  cardCyrillic: {
+    fontSize: 12,
+  },
+  cardMeta: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 3,
+  },
+  cardAction: {
+    borderWidth: 1.5,
+    paddingVertical: 7,
+    alignItems: 'center',
+  },
+  cardActionText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   footnote: {
     fontSize: 12.5,
     lineHeight: 18,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: 14,
   },
   planBar: {
     borderTopWidth: 1.5,
@@ -408,5 +562,97 @@ const styles = StyleSheet.create({
   launchArrow: {
     fontSize: 18,
     fontWeight: '800',
+  },
+  scrub: {
+    borderWidth: 2,
+    padding: 12,
+  },
+  scrubText: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '600',
+  },
+  cutout: {
+    position: 'absolute',
+    top: 64,
+    right: -22,
+    width: 150,
+    height: 230,
+    transform: [{ rotate: '-5deg' }],
+    pointerEvents: 'none',
+  },
+  modalRoot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  sheet: {
+    borderWidth: 2,
+    padding: 18,
+    gap: 8,
+    width: '100%',
+    maxWidth: 480,
+  },
+  sheetTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  sheetClose: {
+    marginLeft: 'auto',
+    paddingHorizontal: 4,
+  },
+  sheetCloseText: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sheetTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+  },
+  sheetStory: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  sheetNote: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontFamily: SERIF,
+    fontStyle: 'italic',
+  },
+  sheetSpec: {
+    borderTopWidth: 1.5,
+    paddingTop: 10,
+    marginTop: 6,
+    gap: 3,
+  },
+  sheetSpecTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+  sheetSpecLine: {
+    fontSize: 13.5,
+    lineHeight: 19,
+  },
+  sheetAction: {
+    marginTop: 10,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  sheetActionText: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
+  sheetStamp: {
+    position: 'absolute',
+    top: 12,
+    right: 44,
+    pointerEvents: 'none',
   },
 });

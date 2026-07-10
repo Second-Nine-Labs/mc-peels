@@ -20,6 +20,11 @@ export interface BookPosters {
   crest: ImageSourcePropType | null;
   /** Faceted star with orbiting bananas — achievements only. */
   star: ImageSourcePropType | null;
+  /**
+   * Background-removed welder-banana figure, sticker-style cream outline
+   * baked into the PNG — the "paper cutout" pinned behind the Book header.
+   */
+  cutoutWorker: ImageSourcePropType | null;
 }
 
 export const POSTERS: BookPosters = {
@@ -29,7 +34,9 @@ export const POSTERS: BookPosters = {
   crane: null,
   crest: null,
   star: null,
+  cutoutWorker: null,
   // Drop files in assets/soviet/ then replace the nulls above with:
+  // cutoutWorker: require('../../assets/soviet/cutout-worker.png'),
   // worker: require('../../assets/soviet/poster-worker.png'),
   // cosmonaut: require('../../assets/soviet/poster-cosmonaut.png'),
   // gear: require('../../assets/soviet/emblem-gear.png'),

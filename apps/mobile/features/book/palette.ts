@@ -14,19 +14,19 @@
 import { useColorScheme } from 'react-native';
 
 export interface SovietPalette {
-  /** Deep cobalt blueprint field — body text (cream) passes contrast on it. */
+  /** Deep cobalt field — body text (cream) passes contrast on it. */
   canvas: string;
-  /** Faint cream grid line drawn on the canvas. */
+  /** Faint cream hairline on the canvas (tray borders). */
   canvasLine: string;
-  /** Bright display cobalt — shapes and emblems on the canvas, never text fields. */
+  /** Bright display cobalt — backdrop motifs and emblems, never text fields. */
   display: string;
-  /** Ochre spec-card surface. */
+  /** Cream paper card surface — the readable content layer. */
   card: string;
   /** Ink keyline around cards (the 2px print border). */
   cardLine: string;
-  /** Body text on ochre. */
+  /** Body text on cream. */
   ink: string;
-  /** Secondary text on ochre — dark ochre-brown, never gray. */
+  /** Secondary text on cream — warm brown, never gray. */
   inkSoft: string;
   /** Type on the canvas. */
   cream: string;
@@ -36,7 +36,9 @@ export interface SovietPalette {
   red: string;
   /** Type on red. */
   onRed: string;
-  /** Banana gold — the thread back to the master brand; quota fill. */
+  /** Ochre — demoted to accent duty: quota fill, small badges. */
+  accent: string;
+  /** Banana gold — the thread back to the master brand. */
   gold: string;
   /** Quota-meter track on the canvas. */
   track: string;
@@ -45,33 +47,35 @@ export interface SovietPalette {
 /** Day shift. */
 const dayShift: SovietPalette = {
   canvas: '#2E509F',
-  canvasLine: 'rgba(242, 232, 213, 0.10)',
+  canvasLine: 'rgba(242, 232, 213, 0.18)',
   display: '#3B66C9',
-  card: '#D9A441',
+  card: '#F2E8D5',
   cardLine: '#211C17',
   ink: '#211C17',
-  inkSoft: '#6B4E14',
+  inkSoft: '#6E5D44',
   cream: '#F2E8D5',
   creamMuted: '#C9D6F2',
   red: '#C8332B',
   onRed: '#F2E8D5',
+  accent: '#D9A441',
   gold: '#E9C63F',
   track: 'rgba(23, 20, 40, 0.35)',
 };
 
-/** Night shift — cobalt deepened toward navy, ochre dimmed toward mustard. */
+/** Night shift — cobalt deepened toward navy, paper dimmed like lamplight. */
 const nightShift: SovietPalette = {
   canvas: '#1B2A54',
-  canvasLine: 'rgba(242, 232, 213, 0.08)',
+  canvasLine: 'rgba(242, 232, 213, 0.14)',
   display: '#33569F',
-  card: '#BE8B31',
+  card: '#E8DCC3',
   cardLine: '#171310',
-  ink: '#171310',
-  inkSoft: '#59430E',
+  ink: '#211C17',
+  inkSoft: '#6E5D44',
   cream: '#EFE4CC',
   creamMuted: '#AFC0E8',
   red: '#D5473F',
   onRed: '#F2E8D5',
+  accent: '#C89838',
   gold: '#D9B63A',
   track: 'rgba(0, 0, 0, 0.35)',
 };

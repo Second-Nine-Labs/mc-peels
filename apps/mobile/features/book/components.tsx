@@ -4,7 +4,7 @@
  * borders, transforms, and stubbornness, which is thematically appropriate.
  */
 
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useSovietPalette } from './palette';
@@ -64,45 +64,93 @@ export function QuotaMeter({ shared, count }: { shared: number; count: number })
 }
 
 // ---------------------------------------------------------------------------
-// Blueprint grid — the faint cream drafting grid the whole tab sits on.
-// Rendered as positioned hairline Views inside a fixed, non-interactive layer.
+// Constructivist backdrop — tone-on-tone geometric motifs lifted from the
+// poster's background language (diagonal bars, sputnik rings, triangle
+// stacks), display cobalt on the deep canvas. Fixed layer; content scrolls
+// over it. Deterministic placement — no randomness, like a printed repeat.
 
-export function BlueprintGrid({ spacing = 28 }: { spacing?: number }) {
+const MOTIFS: Array<{ kind: 'bars' | 'sputnik' | 'triangles'; x: number; y: number; flip?: boolean }> = [
+  { kind: 'bars', x: 0.62, y: 30 },
+  { kind: 'sputnik', x: 0.06, y: 150 },
+  { kind: 'triangles', x: 0.74, y: 290, flip: true },
+  { kind: 'bars', x: 0.04, y: 430, flip: true },
+  { kind: 'sputnik', x: 0.68, y: 560 },
+  { kind: 'triangles', x: 0.08, y: 690 },
+  { kind: 'bars', x: 0.6, y: 810 },
+];
+
+export function ConstructivistBackdrop() {
   const p = useSovietPalette();
-  const [size, setSize] = useState({ width: 0, height: 0 });
-  const columns = size.width > 0 ? Math.floor(size.width / spacing) : 0;
-  const rows = size.height > 0 ? Math.floor(size.height / spacing) : 0;
-
   return (
-    <View
-      style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
-      onLayout={(event) => setSize(event.nativeEvent.layout)}
-    >
-      {Array.from({ length: columns }, (_, i) => (
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none', overflow: 'hidden', opacity: 0.55 }]}>
+      {MOTIFS.map((motif, index) => (
         <View
-          key={`v${i}`}
+          key={index}
           style={{
             position: 'absolute',
-            left: (i + 1) * spacing,
-            top: 0,
-            bottom: 0,
-            width: 1,
-            backgroundColor: p.canvasLine,
+            left: `${motif.x * 100}%`,
+            top: motif.y,
+            transform: [{ rotate: motif.flip ? '8deg' : '-8deg' }],
           }}
-        />
-      ))}
-      {Array.from({ length: rows }, (_, i) => (
-        <View
-          key={`h${i}`}
-          style={{
-            position: 'absolute',
-            top: (i + 1) * spacing,
-            left: 0,
-            right: 0,
-            height: 1,
-            backgroundColor: p.canvasLine,
-          }}
-        />
+        >
+          {motif.kind === 'bars' ? (
+            <View style={{ gap: 7 }}>
+              {[86, 62, 40].map((width) => (
+                <View
+                  key={width}
+                  style={{
+                    width,
+                    height: 7,
+                    backgroundColor: p.display,
+                    transform: [{ rotate: '-32deg' }],
+                  }}
+                />
+              ))}
+            </View>
+          ) : motif.kind === 'sputnik' ? (
+            <View style={{ width: 64, height: 64 }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  width: 54,
+                  height: 54,
+                  borderRadius: 27,
+                  borderWidth: 6,
+                  borderColor: p.display,
+                }}
+              />
+              <View
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  bottom: 0,
+                  width: 14,
+                  height: 14,
+                  borderRadius: 7,
+                  backgroundColor: p.display,
+                }}
+              />
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              {[22, 30, 18].map((size, i) => (
+                <View
+                  key={i}
+                  style={{
+                    width: 0,
+                    height: 0,
+                    borderLeftWidth: size / 2,
+                    borderRightWidth: size / 2,
+                    borderBottomWidth: size,
+                    borderLeftColor: 'transparent',
+                    borderRightColor: 'transparent',
+                    borderBottomColor: p.display,
+                  }}
+                />
+              ))}
+            </View>
+          )}
+        </View>
       ))}
     </View>
   );
