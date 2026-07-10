@@ -33,9 +33,9 @@ export default function TabsLayout() {
         options={{
           title: 'The Book',
           headerShown: false,
-          // Feature-flagged playground (PRD phase 2 sandbox): hidden from the
-          // tab bar unless EXPO_PUBLIC_SOVIET_BOOK=1.
-          href: process.env.EXPO_PUBLIC_SOVIET_BOOK === '1' ? undefined : null,
+          // Playground is live for the household; EXPO_PUBLIC_SOVIET_BOOK=0
+          // is the kill switch that hides it from the tab bar again.
+          href: process.env.EXPO_PUBLIC_SOVIET_BOOK === '0' ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="book-outline" size={size} color={color} />
           ),
