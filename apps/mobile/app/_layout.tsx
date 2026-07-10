@@ -30,6 +30,10 @@ function AuthGate({ children }: { children: ReactNode }) {
     // into or out of it.
     if (segments[0] === 'connect') return;
 
+    // /book-preview is the signed-out showcase of the Book (Soviet playground):
+    // static canon only, launch disabled without a session.
+    if (segments[0] === 'book-preview') return;
+
     if (!session) {
       if (!inAuthGroup) router.replace('/(auth)/sign-in');
     } else if (!membership) {

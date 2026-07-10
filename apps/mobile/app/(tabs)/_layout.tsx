@@ -29,6 +29,19 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="book"
+        options={{
+          title: 'The Book',
+          headerShown: false,
+          // Feature-flagged playground (PRD phase 2 sandbox): hidden from the
+          // tab bar unless EXPO_PUBLIC_SOVIET_BOOK=1.
+          href: process.env.EXPO_PUBLIC_SOVIET_BOOK === '1' ? undefined : null,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="book-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="carts"
         options={{
           title: 'Carts',
