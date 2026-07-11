@@ -310,7 +310,14 @@ export interface ConsolidatedPlan {
   pantryAssumed: string[];
 }
 
-export function consolidatePlan(recipes: CanonRecipe[]): ConsolidatedPlan {
+/** Anything with a name and an ingredient list can join a plan — the canon's
+ * recipes and the Eats restaurants' dishes both qualify. */
+export interface PlanSource {
+  name: string;
+  ingredients: CanonIngredient[];
+}
+
+export function consolidatePlan(recipes: PlanSource[]): ConsolidatedPlan {
   const byKey = new Map<string, PlanItem>();
   const pantry = new Set<string>();
   let totalUses = 0;

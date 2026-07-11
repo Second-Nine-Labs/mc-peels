@@ -21,6 +21,16 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          title: 'Home',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="storefront-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ask"
+        options={{
           title: 'Ask',
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
