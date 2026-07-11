@@ -34,6 +34,10 @@ function AuthGate({ children }: { children: ReactNode }) {
     // static canon only, launch disabled without a session.
     if (segments[0] === 'book-preview') return;
 
+    // /eats-preview is the signed-out showcase of the Eats home + restaurants:
+    // static menus only, launches scrub without a session.
+    if (segments[0] === 'eats-preview') return;
+
     if (!session) {
       if (!inAuthGroup) router.replace('/(auth)/sign-in');
     } else if (!membership) {
