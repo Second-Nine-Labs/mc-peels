@@ -285,6 +285,51 @@ export function SectionTitle({ children }: { children: string }) {
   return <Text style={[styles.sectionTitle, { color: p.text }]}>{children}</Text>;
 }
 
+/**
+ * Editorial two-tone title — a light lead-in and an extrabold payoff
+ * ("What do **you need?**"). Defaults to canvas text (onBg).
+ */
+export function TwoToneTitle({
+  light,
+  bold,
+  size = 32,
+  color,
+}: {
+  light: string;
+  bold: string;
+  size?: number;
+  color?: string;
+}) {
+  const p = usePalette();
+  const c = color ?? p.onBg;
+  return (
+    <Text style={{ fontSize: size, lineHeight: Math.round(size * 1.18), color: c }}>
+      <Text style={{ fontWeight: '300' }}>{light} </Text>
+      <Text style={{ fontWeight: '800' }}>{bold}</Text>
+    </Text>
+  );
+}
+
+/**
+ * Hero stat row — outline icon + spaced uppercase label, recipe-app style.
+ * Lives on the canvas (blue), so the icon takes the accent and text is white.
+ */
+export function HeroStat({
+  icon,
+  label,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+}) {
+  const p = usePalette();
+  return (
+    <View style={styles.heroStat}>
+      <Ionicons name={icon} size={20} color={p.accent} />
+      <Text style={[styles.heroStatLabel, { color: p.onBg }]}>{label}</Text>
+    </View>
+  );
+}
+
 export function LoadingView({ message }: { message?: string }) {
   const p = usePalette();
   return (
@@ -445,6 +490,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 10,
+  },
+  heroStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  heroStatLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
   },
   loadingView: {
     flex: 1,

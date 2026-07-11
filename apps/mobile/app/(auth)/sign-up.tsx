@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MascotMark } from '@/components/MascotMark';
-import { Button, ErrorBanner, Field, SuccessBanner } from '@/components/ui';
+import { Button, ErrorBanner, Field, SuccessBanner, TwoToneTitle } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { usePalette } from '@/lib/theme';
 
@@ -65,7 +65,7 @@ export default function SignUpScreen() {
             <View style={styles.mascot}>
               <MascotMark size={56} />
             </View>
-            <Text style={[styles.title, { color: p.onBg }]}>Create your account</Text>
+            <TwoToneTitle light="Create your" bold="account" size={30} />
             <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               One account per person — you&apos;ll create or join your household next.
             </Text>
@@ -134,6 +134,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginBottom: 28,
+    gap: 8,
   },
   mascot: {
     alignSelf: 'flex-start',

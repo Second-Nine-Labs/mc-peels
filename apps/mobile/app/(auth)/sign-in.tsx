@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MascotMark } from '@/components/MascotMark';
-import { Button, ErrorBanner, Field } from '@/components/ui';
+import { Button, ErrorBanner, Field, TwoToneTitle } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { usePalette } from '@/lib/theme';
 
@@ -47,7 +47,7 @@ export default function SignInScreen() {
             <View style={styles.mascot}>
               <MascotMark size={64} />
             </View>
-            <Text style={[styles.title, { color: p.onBg }]}>MC Peels</Text>
+            <TwoToneTitle light="MC" bold="Peels" size={34} />
             <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               Say what you need. Get a ready-to-checkout Instacart cart, filtered to your
               household&apos;s food rules.
@@ -106,6 +106,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginBottom: 28,
+    gap: 8,
   },
   mascot: {
     alignSelf: 'flex-start',

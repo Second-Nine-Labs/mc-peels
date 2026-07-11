@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BananaRain } from '@/components/BananaRain';
+import { MascotMark } from '@/components/MascotMark';
 import {
   Button,
-  Card,
   ErrorBanner,
   FilterTag,
+  HeroStat,
   LoadingView,
   SectionTitle,
   StatusChip,
@@ -121,7 +122,7 @@ export default function CartDetailScreen() {
   if (!cart) {
     return (
       <View style={[styles.screen, { backgroundColor: p.background }]}>
-        <View style={styles.container}>
+        <View style={[styles.container, styles.hero]}>
           <ErrorBanner message={error ?? 'Cart not found.'} />
         </View>
       </View>
@@ -129,54 +130,82 @@ export default function CartDetailScreen() {
   }
 
   return (
-    <View style={styles.screen}>
-      <ScrollView
-        style={[styles.screen, { backgroundColor: p.background }]}
-        contentContainerStyle={styles.container}
-      >
-        <ErrorBanner message={error} />
+    <View style={[styles.screen, { backgroundColor: p.background }]}>
+      <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+        {/* Hero — lives on the blue canvas, recipe-app style. */}
+        <View style={styles.hero}>
+          <ErrorBanner message={error} />
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: p.onBg }]}>{cart.title}</Text>
+            <StatusChip status={cart.status} />
+          </View>
 
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: p.onBg }]}>{cart.title}</Text>
-        <StatusChip status={cart.status} />
-      </View>
-      <Text style={[styles.meta, { color: p.onBgMuted }]}>
-        {[cart.retailerLabel, formatDate(cart.createdAt)].filter(Boolean).join(' · ')}
-      </Text>
-      {cart.requestText && cart.requestText !== cart.title ? (
-        <Text style={[styles.requestText, { color: p.onBgMuted }]}>“{cart.requestText}”</Text>
-      ) : null}
+          <View style={styles.stats}>
+            {cart.createdAt ? (
+              <HeroStat icon="time-outline" label={`Built ${formatDate(cart.createdAt)}`} />
+            ) : null}
+            {cart.retailerLabel ? (
+              <HeroStat icon="storefront-outline" label={cart.retailerLabel} />
+            ) : null}
+            {cart.lineItems.length > 0 ? (
+              <HeroStat
+                icon="basket-outline"
+                label={`${cart.lineItems.length} item${cart.lineItems.length === 1 ? '' : 's'}`}
+              />
+            ) : null}
+          </View>
 
-      {cart.instacartUrl ? (
-        <View style={styles.checkout}>
-          <Button
-            title="Open in Instacart"
-            icon="cart-outline"
-            variant="accent"
-            onPress={openInInstacart}
-            loading={opening}
-          />
-          <Text style={[styles.checkoutNote, { color: p.onBgMuted }]}>
-            You’ll review and pay on Instacart — MC Peels never handles payment.
-          </Text>
-        </View>
-      ) : null}
+          {cart.requestText && cart.requestText !== cart.title ? (
+            <Text style={[styles.requestText, { color: p.onBgMuted }]}>“{cart.requestText}”</Text>
+          ) : null}
 
-      {cart.notes.length > 0 ? (
-        <Card style={styles.section}>
-          <SectionTitle>What MC Peels applied</SectionTitle>
-          {cart.notes.map((note, index) => (
-            <View key={index} style={styles.noteRow}>
-              <Ionicons name="sparkles-outline" size={15} color={p.tint} style={styles.noteIcon} />
-              <Text style={[styles.noteText, { color: p.text }]}>{note}</Text>
+          {cart.instacartUrl ? (
+            <View style={styles.checkout}>
+              <Button
+                title="Open in Instacart"
+                icon="cart-outline"
+                variant="accent"
+                onPress={openInInstacart}
+                loading={opening}
+              />
+              <Text style={[styles.checkoutNote, { color: p.onBgMuted }]}>
+                You’ll review and pay on Instacart — MC Peels never handles payment.
+              </Text>
             </View>
-          ))}
-        </Card>
-      ) : null}
+          ) : null}
+        </View>
 
-      {cart.lineItems.length > 0 ? (
-        <Card style={styles.section}>
-          <SectionTitle>Items</SectionTitle>
+        {/* Content sheet — white panel sliding over the canvas. */}
+        <View style={[styles.sheet, { backgroundColor: p.card }]}>
+          <View style={[styles.handle, { backgroundColor: p.border }]} />
+          <View style={styles.sheetMascot}>
+            <MascotMark size={64} />
+          </View>
+
+          {cart.notes.length > 0 ? (
+            <View style={styles.section}>
+              <SectionTitle>What MC Peels applied</SectionTitle>
+              {cart.notes.map((note, index) => (
+                <View key={index} style={styles.noteRow}>
+                  <Ionicons
+                    name="sparkles-outline"
+                    size={15}
+                    color={p.tint}
+                    style={styles.noteIcon}
+                  />
+                  <Text style={[styles.noteText, { color: p.text }]}>{note}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {cart.notes.length > 0 && cart.lineItems.length > 0 ? (
+            <View style={[styles.divider, { backgroundColor: p.border }]} />
+          ) : null}
+
+          {cart.lineItems.length > 0 ? (
+            <View style={styles.section}>
+              <SectionTitle>Items</SectionTitle>
           {cart.lineItems.map((item, index) => {
             const quantityLabel = item.quantity !== null
               ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`
@@ -215,8 +244,15 @@ export default function CartDetailScreen() {
               </View>
             );
           })}
-        </Card>
-      ) : null}
+            </View>
+          ) : null}
+
+          {cart.notes.length === 0 && cart.lineItems.length === 0 ? (
+            <Text style={[styles.sheetEmpty, { color: p.textMuted }]}>
+              Cart details will appear here.
+            </Text>
+          ) : null}
+        </View>
       </ScrollView>
       <BananaRain burstKey={bananaBurst} />
     </View>
@@ -226,12 +262,49 @@ export default function CartDetailScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   container: {
-    padding: 16,
-    paddingBottom: 40,
-    gap: 12,
+    flexGrow: 1,
     maxWidth: 640,
     width: '100%',
     alignSelf: 'center',
+  },
+  hero: {
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    paddingBottom: 30,
+    gap: 14,
+  },
+  stats: {
+    gap: 10,
+    marginTop: 2,
+  },
+  sheet: {
+    flexGrow: 1,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 48,
+  },
+  handle: {
+    width: 44,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginBottom: 14,
+  },
+  sheetMascot: {
+    position: 'absolute',
+    top: -36,
+    right: 20,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 18,
+  },
+  sheetEmpty: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 24,
   },
   header: {
     flexDirection: 'row',
@@ -244,9 +317,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     lineHeight: 28,
-  },
-  meta: {
-    fontSize: 14,
   },
   requestText: {
     fontSize: 14,

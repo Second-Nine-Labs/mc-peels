@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BananaLoader } from '@/components/BananaLoader';
 import { BananaRain } from '@/components/BananaRain';
 import { MascotMark } from '@/components/MascotMark';
-import { Button, ErrorBanner } from '@/components/ui';
+import { Button, ErrorBanner, TwoToneTitle } from '@/components/ui';
 import { api, getErrorMessage } from '@/lib/api';
 import { rememberCartResult } from '@/lib/cart-cache';
 import { useSession } from '@/lib/session';
@@ -164,7 +164,7 @@ export default function AskScreen() {
               <MascotMark size={60} onStreak={throwParty} />
             </View>
             <Text style={[styles.brand, { color: p.onBgMuted }]}>MC Peels</Text>
-            <Text style={[styles.title, { color: p.onBg }]}>What do you need?</Text>
+            <TwoToneTitle light="What do" bold="you need?" />
             <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               Say it in plain language — we&apos;ll build an Instacart cart with{' '}
               {membership?.household.name ?? 'your household'}&apos;s dietary rules applied.
@@ -231,6 +231,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginBottom: 24,
+    gap: 8,
   },
   mascot: {
     alignSelf: 'flex-start',
