@@ -1,21 +1,25 @@
 /**
- * «Столовая № 7» — the menu as a document, not a card grid.
+ * «Столовая № 7» — the menu as a document, staged like a propaganda poster.
  *
- * One cream paper sheet floats on an ink-dark canvas: a pre-printed letterhead
- * (heavy sans, red double rule) with the day's menu typewritten onto it
- * (monospace ledger rows, dotted leaders). Tapping a line expands it in place
- * — an accordion, like unfolding the carbon copy — and stamping a dish
- * В ПЛАН marks the row with a red numeral block and an ОДОБРЕНО stamp.
+ * The wall: angular red-on-red stripes (TJ's spec, 2026-07-11). The banana
+ * steelworker cutout stands PINNED TO THE SCREEN's bottom-left corner, big,
+ * floating on a soft shadow — content scrolls behind him. The cream paper
+ * sheet carries the pre-printed letterhead (heavy sans, red double rule) and
+ * the day's menu typewritten onto it (monospace ledger rows, dotted leaders).
+ * Tapping a line expands it in place — an accordion, like unfolding the
+ * carbon copy — and stamping a dish В ПЛАН marks the row with a red numeral
+ * block and an ОДОБРЕНО stamp.
  *
- * Visual rules inherited from the Book: red is the Bureau's voice, red never
- * touches ink without a cream boundary, no state insignia, Cyrillic is typeset.
+ * Visual rules inherited from the Book: red is the Bureau's voice, cream
+ * boundaries between red and ink, no state insignia, Cyrillic is typeset.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  Image,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -23,6 +27,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Stamp } from '@/features/book/components';
+import { POSTERS } from '@/features/book/posters';
 
 import { STOLOVAYA } from './data/stolovaya';
 import type { Dish, RestaurantScreenProps } from './types';
@@ -40,6 +45,8 @@ const PAPER = '#F2E8D5';
 const INK = '#211C17';
 const INK_SOFT = '#6E5D44';
 const RED = '#C8332B';
+/** The lighter propaganda stripe — same hue, sun-faded. */
+const RED_LIGHT = '#DA5C50';
 const ON_RED = '#F2E8D5';
 
 const MONTHS_RU = [
@@ -60,6 +67,14 @@ export function StolovayaScreen({
   onBack,
 }: RestaurantScreenProps) {
   const [openId, setOpenId] = useState<string | null>(initialDishId ?? null);
+  // The worker greets at the corner, then steps aside as the menu scrolls up
+  // (and returns when you scroll back). Content is never permanently covered.
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const workerSlide = scrollY.interpolate({
+    inputRange: [0, 380],
+    outputRange: [0, 560],
+    extrapolate: 'clamp',
+  });
   const { selected, toggle, chosen, plan, building, error, launch } = usePlan({
     dishes: STOLOVAYA.dishes,
     householdId,
@@ -82,21 +97,39 @@ export function StolovayaScreen({
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <PropagandaStripes />
+      <Animated.ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
+      >
         {onBack ? (
           <Pressable accessibilityRole="button" onPress={onBack} style={styles.back}>
             <Text style={styles.backText}>← НАЗАД · back</Text>
           </Pressable>
         ) : null}
 
+        <View style={styles.docWrap}>
         <View style={styles.paper}>
-          {/* --- pre-printed letterhead --- */}
-          <View style={styles.letterheadRow}>
+          {/* --- pre-printed letterhead; the right column stays clear for the
+              paper-cutout worker pinned over the document's top corner --- */}
+          <View style={styles.letterhead}>
             <Text style={styles.letterheadSmall}>НАРПИТ · ОБЩЕПИТ</Text>
-            <Stamp label="УТВЕРЖДЕНО" sub="approved for service" tone="ink" rotate={2} />
+            <Text style={styles.masthead}>СТОЛОВАЯ</Text>
+            <Text style={styles.mastheadNo}>№ 7</Text>
+            <Text style={styles.mastheadSub}>
+              canteen no. 7 — the bureau of the evening meal
+            </Text>
+            <View style={styles.credRow}>
+              {POSTERS.crest ? (
+                <Image source={POSTERS.crest} resizeMode="cover" style={styles.crest} />
+              ) : null}
+              <Stamp label="УТВЕРЖДЕНО" sub="approved for service" tone="ink" rotate={-2} />
+            </View>
           </View>
-          <Text style={styles.masthead}>СТОЛОВАЯ № 7</Text>
-          <Text style={styles.mastheadSub}>canteen no. 7 — the bureau of the evening meal</Text>
           <View style={styles.doubleRule}>
             <View style={styles.ruleThick} />
             <View style={styles.ruleThin} />
@@ -133,7 +166,20 @@ export function StolovayaScreen({
             review and pay on Instacart — the Bureau never handles money.
           </Text>
         </View>
-      </ScrollView>
+        </View>
+      </Animated.ScrollView>
+
+      {/* The banana steelworker — big, bottom-left of the SCREEN, floating on
+          a soft shadow. Touches pass through; scrolling walks him offstage. */}
+      {POSTERS.cutoutWorker ? (
+        <Animated.View
+          style={[styles.workerWrap, { transform: [{ translateY: workerSlide }] }]}
+          pointerEvents="none"
+        >
+          <View style={styles.workerShadow} />
+          <Image source={POSTERS.cutoutWorker} resizeMode="contain" style={styles.worker} />
+        </Animated.View>
+      ) : null}
 
       {chosen.length > 0 ? (
         <View style={styles.planBar}>
@@ -158,6 +204,9 @@ export function StolovayaScreen({
             <Text style={styles.launchText}>
               {building ? 'The Bureau consolidates…' : 'ПОЕХАЛИ — build the cart'}
             </Text>
+            {POSTERS.fist ? (
+              <Image source={POSTERS.fist} resizeMode="cover" style={styles.fistPlate} />
+            ) : null}
             {!building ? <Text style={styles.launchArrow}>→</Text> : null}
           </Pressable>
         </View>
@@ -245,11 +294,40 @@ function LedgerRow({ dish, no, open, inPlan, onOpen, onToggle }: LedgerRowProps)
 
 // ---------------------------------------------------------------------------
 
+/** The wall: angular red-on-red stripes, a poster's ray background. */
+function PropagandaStripes() {
+  return (
+    <View style={[StyleSheet.absoluteFill, styles.stripeClip]} pointerEvents="none">
+      <View style={styles.stripeField}>
+        {Array.from({ length: 30 }, (_, index) => (
+          <View
+            key={index}
+            style={{ height: 74, backgroundColor: index % 2 === 0 ? RED : RED_LIGHT }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: INK_CANVAS },
+  safe: { flex: 1, backgroundColor: RED },
+  stripeClip: {
+    overflow: 'hidden',
+  },
+  stripeField: {
+    position: 'absolute',
+    top: '-55%',
+    left: '-50%',
+    width: '200%',
+    height: '230%',
+    transform: [{ rotate: '-18deg' }],
+  },
   scroll: {
     padding: 14,
-    paddingBottom: 28,
+    paddingBottom: 48,
     maxWidth: 660,
     width: '100%',
     alignSelf: 'center',
@@ -269,36 +347,99 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.8,
   },
+  // Wrapper so the cutout can hang past the paper's edges onto the ink wall.
+  docWrap: {
+    marginTop: 26,
+  },
   paper: {
     backgroundColor: PAPER,
+    borderWidth: 2,
+    borderColor: INK,
     paddingHorizontal: 18,
     paddingVertical: 20,
   },
-  letterheadRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
+  letterhead: {},
   letterheadSmall: {
     color: INK_SOFT,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 2.2,
-    marginTop: 4,
+    marginBottom: 8,
   },
   masthead: {
     color: INK,
+    fontSize: 30,
+    fontWeight: '900',
+    letterSpacing: 1.4,
+    lineHeight: 33,
+  },
+  mastheadNo: {
+    color: RED,
     fontSize: 34,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
+    lineHeight: 40,
   },
   mastheadSub: {
     color: INK_SOFT,
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.6,
-    marginTop: 2,
+    marginTop: 4,
+  },
+  credRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+  },
+  crest: {
+    width: 46,
+    height: 46,
+    borderWidth: 1.5,
+    borderColor: INK,
+  },
+  workerWrap: {
+    position: 'absolute',
+    left: -14,
+    bottom: -6,
+    width: 200,
+    height: 492,
+    zIndex: 4,
+  },
+  // The light shadow beneath him — a soft ellipse under the boots.
+  workerShadow: {
+    position: 'absolute',
+    bottom: 10,
+    left: 26,
+    width: 148,
+    height: 22,
+    borderRadius: 999,
+    backgroundColor: 'rgba(23, 19, 16, 0.3)',
+    filter: [{ blur: 6 }],
+  },
+  worker: {
+    width: 200,
+    height: 489,
+    transform: [{ rotate: '-4deg' }],
+    // Lift: a soft down-shadow so he reads raised off the wall (web/android;
+    // iOS renders without — the sticker outline still sells the cutout).
+    filter: [
+      {
+        dropShadow: {
+          offsetX: 0,
+          offsetY: 6,
+          standardDeviation: 8,
+          color: 'rgba(23, 19, 16, 0.28)',
+        },
+      },
+    ],
+  },
+  fistPlate: {
+    width: 40,
+    height: 40,
+    borderWidth: 1.5,
+    borderColor: ON_RED,
   },
   doubleRule: {
     marginTop: 12,
@@ -501,6 +642,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 660,
     alignSelf: 'center',
+    // Draws over the corner-pinned worker when the plan is live.
+    zIndex: 6,
   },
   planSummary: {
     fontFamily: MONO,
@@ -524,8 +667,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 12,
     backgroundColor: RED,
-    paddingVertical: 14,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     minHeight: 52,
   },

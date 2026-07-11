@@ -40,8 +40,9 @@ export const POSTERS: BookPosters = {
   star: require('../../assets/soviet/medal-star.jpg'),
   bust: require('../../assets/soviet/mark-worker.jpg'),
   fist: require('../../assets/soviet/cta-fist.jpg'),
-  cutoutWorker: null,
+  // Vision subject-lift from TJ's «НАШ ТРУД» poster, cream sticker outline
+  // baked in. Palette-quantized PNG (69KB).
+  cutoutWorker: require('../../assets/soviet/cutout-worker.png'),
   // Pending drops (assets/soviet/README.md):
   // cosmonaut: require('../../assets/soviet/poster-cosmonaut.jpg'),
-  // cutoutWorker: require('../../assets/soviet/cutout-worker.png'),
 };
