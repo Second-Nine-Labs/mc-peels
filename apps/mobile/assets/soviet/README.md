@@ -13,7 +13,7 @@ cream tile plates (the "enamel pin" treatment); posters keep full art.
 | `mark-worker.jpg` | ✅ delivered | Babushka-note byline avatar (slot ready) |
 | `cta-fist.jpg` | ✅ delivered | "Поехали" action mark (slot ready) |
 | `poster-cosmonaut.png` | ⏳ pending | Launch celebration, Cosmonautics Day (Apr 12) — retype CCCP→ПОЕХАЛИ first |
-| `cutout-worker.png` | ⏳ pending | Paper-cutout header figure (background-removed, transparent PNG) |
+| `cutout-worker.png` | ✅ delivered | Paper-cutout figure — Столовая № 7 header + Book header (Vision subject-lift from the «НАШ ТРУД» poster, cream outline baked in, 256-color PNG) |
 
 Production notes (agreed direction):
 
