@@ -1,25 +1,26 @@
 # Soviet-mode art — drop zone
 
-Export the Nano Banana pieces here with these exact names, then flip the
-corresponding `require`s on in `features/book/posters.ts`:
+Delivered art is wired through `features/book/posters.ts`. Emblems keep their
+cream tile plates (the "enamel pin" treatment); posters keep full art.
 
-| File | Source art | Used for |
+| File | Status | Used for |
 | --- | --- | --- |
-| `poster-worker.png` | Welder banana, "НАШ ТРУД" poster | Book empty state / hero |
-| `poster-cosmonaut.png` | 1961 rocket banana | Launch celebration, Cosmonautics Day (Apr 12) |
-| `emblem-gear.png` | Gear + banana bunch (the cleaner-toothed one) | Tab glyph, solver spinner |
-| `loader-crane.png` | Crane lifting bananas | Loading states |
-| `crest-bureau.png` | Fist + crossed hammer/wrench (wrench-forward one) | Bureau crest: stamps, headers |
-| `medal-star.png` | Faceted star + orbiting bananas | Achievements only |
+| `poster-worker.jpg` | ✅ delivered | Book empty state / hero |
+| `emblem-gear.jpg` | ✅ delivered | Tab glyph, solver spinner (slot ready) |
+| `loader-crane.jpg` | ✅ delivered | Loading states (slot ready) |
+| `crest-bureau.jpg` | ✅ delivered | Bureau crest: stamps, headers (slot ready) |
+| `medal-star.jpg` | ✅ delivered | Achievements only (slot ready) |
+| `mark-worker.jpg` | ✅ delivered | Babushka-note byline avatar (slot ready) |
+| `cta-fist.jpg` | ✅ delivered | "Поехали" action mark (slot ready) |
+| `poster-cosmonaut.png` | ⏳ pending | Launch celebration, Cosmonautics Day (Apr 12) — retype CCCP→ПОЕХАЛИ first |
+| `cutout-worker.png` | ⏳ pending | Paper-cutout header figure (background-removed, transparent PNG) |
 
 Production notes (agreed direction):
 
-- Vectorize before shipping (Illustrator trace or `potrace` per color layer);
-  flat 3-color art traces nearly losslessly. Keep the PNGs here as source.
-- Normalize inks to tokens: cobalt `#3B66C9`, ochre `#D9A441`, gold `#E9C63F`,
-  red `#C8332B`, ink `#211C17`, cream `#F2E8D5`. Transparent backgrounds —
-  cream comes from the surface, not the file.
-- No hammer-and-sickle, no state insignia; crossed kitchen/workshop tools are
-  the crest language. Never let the image model render Cyrillic — typeset it.
-- Cosmonaut poster: replace the CCCP lettering with ПОЕХАЛИ (typeset), keep
-  1961 small.
+- Source PNGs can be dropped at any size; they get downscaled + converted here
+  (sips). Vectorize later for crispness if these ever need to scale up.
+- Ink tokens: cobalt `#3B66C9` / powder `#647EC7`, ochre `#D9A441`, gold
+  `#E9C63F`, red `#C8332B`, ink `#211C17`, cream `#F2E8D5`.
+- No hammer-and-sickle, no state insignia in product assets; crossed
+  kitchen/workshop tools are the crest language. Never let the image model
+  render Cyrillic — typeset it.

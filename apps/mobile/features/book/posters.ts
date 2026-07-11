@@ -1,8 +1,8 @@
 /**
- * Poster-art slots for the Book. Metro requires are static, so the slots stay
- * commented out until the files exist — drop the PNGs into assets/soviet/
- * (names below, see assets/soviet/README.md), then uncomment. Every consumer
- * null-checks, so missing art degrades to the View-drawn placeholders.
+ * Poster-art slots for the Book. Delivered art lives in assets/soviet/ as
+ * compact JPEGs (flat print art compresses well; emblems sit on their cream
+ * plates by design). Still-empty slots stay null and consumers null-check,
+ * so missing art degrades to the View-drawn placeholders.
  */
 
 import type { ImageSourcePropType } from 'react-native';
@@ -16,31 +16,32 @@ export interface BookPosters {
   gear: ImageSourcePropType | null;
   /** Crane-lifting-bananas — loading states. */
   crane: ImageSourcePropType | null;
-  /** Fist with crossed tools — the Bureau crest (stamps, headers). */
+  /** Fist with wrench and bananas — the Bureau crest (stamps, headers). */
   crest: ImageSourcePropType | null;
   /** Faceted star with orbiting bananas — achievements only. */
   star: ImageSourcePropType | null;
+  /** Welder bust — avatar mark for babushka notes / Bureau bylines. */
+  bust: ImageSourcePropType | null;
+  /** Fist gripping a peeled banana — the "Поехали" action mark. */
+  fist: ImageSourcePropType | null;
   /**
-   * Background-removed welder-banana figure, sticker-style cream outline
-   * baked into the PNG — the "paper cutout" pinned behind the Book header.
+   * Background-removed welder-banana figure, sticker-style cream outline —
+   * the "paper cutout" pinned behind the Book header. Not yet delivered.
    */
   cutoutWorker: ImageSourcePropType | null;
 }
 
 export const POSTERS: BookPosters = {
-  worker: null,
+  worker: require('../../assets/soviet/poster-worker.jpg'),
   cosmonaut: null,
-  gear: null,
-  crane: null,
-  crest: null,
-  star: null,
+  gear: require('../../assets/soviet/emblem-gear.jpg'),
+  crane: require('../../assets/soviet/loader-crane.jpg'),
+  crest: require('../../assets/soviet/crest-bureau.jpg'),
+  star: require('../../assets/soviet/medal-star.jpg'),
+  bust: require('../../assets/soviet/mark-worker.jpg'),
+  fist: require('../../assets/soviet/cta-fist.jpg'),
   cutoutWorker: null,
-  // Drop files in assets/soviet/ then replace the nulls above with:
+  // Pending drops (assets/soviet/README.md):
+  // cosmonaut: require('../../assets/soviet/poster-cosmonaut.jpg'),
   // cutoutWorker: require('../../assets/soviet/cutout-worker.png'),
-  // worker: require('../../assets/soviet/poster-worker.png'),
-  // cosmonaut: require('../../assets/soviet/poster-cosmonaut.png'),
-  // gear: require('../../assets/soviet/emblem-gear.png'),
-  // crane: require('../../assets/soviet/loader-crane.png'),
-  // crest: require('../../assets/soviet/crest-bureau.png'),
-  // star: require('../../assets/soviet/medal-star.png'),
 };

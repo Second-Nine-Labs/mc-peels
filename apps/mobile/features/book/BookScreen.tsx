@@ -29,7 +29,7 @@ import { api, getErrorMessage } from '@/lib/api';
 import type { CreateCartResponse } from '@/lib/types';
 
 import { CANON, consolidatePlan, planToLineItems, type CanonRecipe } from './canon';
-import { ConstructivistBackdrop, CrestMark, QuotaMeter, SpecTag, Stamp } from './components';
+import { CrestMark, PosterBackdrop, QuotaMeter, SpecTag, Stamp } from './components';
 import { useSovietPalette, type SovietPalette } from './palette';
 import { POSTERS } from './posters';
 
@@ -155,7 +155,7 @@ export function BookScreenBody({ householdId, onCartBuilt, previewMode = false }
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.canvas }]} edges={['top']}>
-      <ConstructivistBackdrop />
+      <PosterBackdrop />
       {POSTERS.cutoutWorker ? (
         <Image source={POSTERS.cutoutWorker} resizeMode="contain" style={styles.cutout} />
       ) : null}
@@ -183,12 +183,12 @@ export function BookScreenBody({ householdId, onCartBuilt, previewMode = false }
               value={query}
               onChangeText={setQuery}
               placeholder='Search the canon — try "beets" or "Georgian"'
-              placeholderTextColor={p.creamMuted}
+              placeholderTextColor={p.inkSoft}
               autoCapitalize="none"
               autoCorrect={false}
               style={[
                 styles.search,
-                { borderColor: p.canvasLine, color: p.cream, backgroundColor: p.track },
+                { borderColor: p.cardLine, color: p.ink, backgroundColor: p.card },
               ]}
             />
 
@@ -204,11 +204,11 @@ export function BookScreenBody({ householdId, onCartBuilt, previewMode = false }
                     style={[
                       styles.chip,
                       active
-                        ? { backgroundColor: p.cream, borderColor: p.cream }
-                        : { borderColor: p.creamMuted },
+                        ? { backgroundColor: p.ink, borderColor: p.ink }
+                        : { borderColor: p.ink, backgroundColor: p.card },
                     ]}
                   >
-                    <Text style={[styles.chipText, { color: active ? p.ink : p.creamMuted }]}>
+                    <Text style={[styles.chipText, { color: active ? p.cream : p.ink }]}>
                       {entry.label}
                     </Text>
                   </Pressable>
@@ -227,20 +227,31 @@ export function BookScreenBody({ householdId, onCartBuilt, previewMode = false }
           />
         )}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: p.creamMuted }]}>
-            Nothing in the canon matches. The Bureau accepts proposals.
-          </Text>
+          <View style={styles.emptyWrap}>
+            {POSTERS.worker ? (
+              <Image
+                source={POSTERS.worker}
+                resizeMode="cover"
+                style={[styles.emptyPoster, { borderColor: p.cardLine }]}
+              />
+            ) : null}
+            <Text style={[styles.empty, { color: p.ink }]}>
+              Nothing in the canon matches. The Bureau accepts proposals.
+            </Text>
+          </View>
         }
         ListFooterComponent={
-          <Text style={[styles.footnote, { color: p.creamMuted }]}>
-            Recipes carry their own quantities. Your household profile is applied at build
-            time; you review and pay on Instacart — the Bureau never handles money.
-          </Text>
+          <View style={[styles.footnoteWrap, { backgroundColor: p.card, borderColor: p.cardLine }]}>
+            <Text style={[styles.footnote, { color: p.inkSoft }]}>
+              Recipes carry their own quantities. Your household profile is applied at build
+              time; you review and pay on Instacart — the Bureau never handles money.
+            </Text>
+          </View>
         }
       />
 
       {dishCount > 0 ? (
-        <View style={[styles.planBar, { backgroundColor: p.canvas, borderTopColor: p.canvasLine }]}>
+        <View style={[styles.planBar, { backgroundColor: p.tray, borderTopColor: p.cream }]}>
           {scrub ? (
             <View style={[styles.scrub, { borderColor: p.cream, backgroundColor: p.red }]}>
               <Text style={[styles.scrubText, { color: p.onRed }]}>{scrub}</Text>
@@ -485,7 +496,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
-    paddingVertical: 32,
+    fontWeight: '600',
+  },
+  emptyWrap: {
+    alignItems: 'center',
+    gap: 16,
+    paddingVertical: 28,
+  },
+  emptyPoster: {
+    width: 170,
+    height: 300,
+    borderWidth: 3,
+    transform: [{ rotate: '2deg' }],
   },
   card: {
     flex: 1,
@@ -526,11 +548,16 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
   },
+  footnoteWrap: {
+    marginTop: 14,
+    borderWidth: 1.5,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
   footnote: {
     fontSize: 12.5,
     lineHeight: 18,
     textAlign: 'center',
-    marginTop: 14,
   },
   planBar: {
     borderTopWidth: 1.5,

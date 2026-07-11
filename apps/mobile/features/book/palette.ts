@@ -14,12 +14,14 @@
 import { useColorScheme } from 'react-native';
 
 export interface SovietPalette {
-  /** Deep cobalt field — body text (cream) passes contrast on it. */
+  /** Ochre poster field — the page itself. Text on it is ink, never cream. */
   canvas: string;
-  /** Faint cream hairline on the canvas (tray borders). */
+  /** Ink-tinted hairline on the ochre field. */
   canvasLine: string;
-  /** Bright display cobalt — backdrop motifs and emblems, never text fields. */
+  /** Powder periwinkle — the poster's industrial silhouettes. Shapes only. */
   display: string;
+  /** Ink band surface (the plan tray). Cream text on it. */
+  tray: string;
   /** Cream paper card surface — the readable content layer. */
   card: string;
   /** Ink keyline around cards (the 2px print border). */
@@ -44,40 +46,42 @@ export interface SovietPalette {
   track: string;
 }
 
-/** Day shift. */
+/** Day shift — the poster in daylight. */
 const dayShift: SovietPalette = {
-  canvas: '#2E509F',
-  canvasLine: 'rgba(242, 232, 213, 0.18)',
-  display: '#3B66C9',
+  canvas: '#D9A441',
+  canvasLine: 'rgba(33, 28, 23, 0.28)',
+  display: '#647EC7',
+  tray: '#211C17',
   card: '#F2E8D5',
   cardLine: '#211C17',
   ink: '#211C17',
   inkSoft: '#6E5D44',
   cream: '#F2E8D5',
-  creamMuted: '#C9D6F2',
+  creamMuted: '#F3DFC8',
   red: '#C8332B',
   onRed: '#F2E8D5',
   accent: '#D9A441',
   gold: '#E9C63F',
-  track: 'rgba(23, 20, 40, 0.35)',
+  track: 'rgba(242, 232, 213, 0.18)',
 };
 
-/** Night shift — cobalt deepened toward navy, paper dimmed like lamplight. */
+/** Night shift — the poster under a desk lamp: field to umber, inks deepen. */
 const nightShift: SovietPalette = {
-  canvas: '#1B2A54',
-  canvasLine: 'rgba(242, 232, 213, 0.14)',
-  display: '#33569F',
+  canvas: '#6E5619',
+  canvasLine: 'rgba(23, 19, 16, 0.4)',
+  display: '#4A5C96',
+  tray: '#171310',
   card: '#E8DCC3',
   cardLine: '#171310',
   ink: '#211C17',
   inkSoft: '#6E5D44',
   cream: '#EFE4CC',
-  creamMuted: '#AFC0E8',
-  red: '#D5473F',
+  creamMuted: '#E3D0B4',
+  red: '#B23A31',
   onRed: '#F2E8D5',
   accent: '#C89838',
   gold: '#D9B63A',
-  track: 'rgba(0, 0, 0, 0.35)',
+  track: 'rgba(239, 228, 204, 0.15)',
 };
 
 export function useSovietPalette(): SovietPalette {
