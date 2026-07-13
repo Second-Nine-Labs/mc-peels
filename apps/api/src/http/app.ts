@@ -16,6 +16,7 @@ import {
   putProfile,
   updateHousehold,
 } from '../core/households.js';
+import { deleteRecipe, ingestRecipe, listRecipes } from '../core/recipes.js';
 import { listRetailers } from '../core/retailers.js';
 import { HEALTH_FILTERS } from '../types.js';
 import { mcpRoute } from '../mcp/route.js';
@@ -25,6 +26,7 @@ import {
   householdJson,
   lineItemJson,
   profileJson,
+  recipeJson,
   retailerJson,
 } from './serializers.js';
 
@@ -88,6 +90,11 @@ const profileSchema = z.object({
   allergens: z.array(z.string().min(1)).max(100),
   health_filters: z.array(healthFilterEnum).max(HEALTH_FILTERS.length),
   notes: z.string().max(2000).nullable().optional(),
+});
+
+const ingestRecipeSchema = z.object({
+  household_id: z.string().uuid().optional(),
+  url: z.string().min(8).max(2048),
 });
 
 const createCartSchema = z.object({
@@ -300,6 +307,43 @@ export function createApp() {
     const cart = await markCartOpened(c.get('userId'), uuidParam(c.req.param('id'), 'Cart'));
     if (!cart) throw notFound('Cart not found');
     return c.json(cartSummaryJson(cart));
+  });
+
+  // Recipes (the shelf) -------------------------------------------------------------
+
+  api.post('/recipes', async (c) => {
+    const input = await body(c, ingestRecipeSchema);
+    const result = await ingestRecipe({
+      userId: c.get('userId'),
+      householdId: input.household_id,
+      url: input.url,
+    });
+    return c.json(
+      { recipe: recipeJson(result.recipe), already_saved: result.alreadySaved },
+      result.alreadySaved ? 200 : 201,
+    );
+  });
+
+  api.get('/recipes', async (c) => {
+    const limitRaw = c.req.query('limit');
+    const limit = limitRaw === undefined ? undefined : Number(limitRaw);
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
+      throw validationError('limit must be a positive integer');
+    }
+    const listing = await listRecipes(c.get('userId'), {
+      householdId: uuidQuery(c.req.query('household_id'), 'household_id'),
+      limit,
+    });
+    return c.json({
+      recipes: listing.recipes.map(recipeJson),
+      cuisine_counts: listing.cuisineCounts,
+    });
+  });
+
+  api.delete('/recipes/:id', async (c) => {
+    const removed = await deleteRecipe(c.get('userId'), uuidParam(c.req.param('id'), 'Recipe'));
+    if (!removed) throw notFound('Recipe not found');
+    return c.body(null, 204);
   });
 
   // MCP access tokens --------------------------------------------------------------

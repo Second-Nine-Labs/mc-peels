@@ -15,6 +15,7 @@ export default function HomeTab() {
         router.push({ pathname: '/restaurant/[id]', params: { id, ...(dishId ? { dish: dishId } : {}) } })
       }
       onOpenAsk={() => router.push('/(tabs)/ask')}
+      onOpenShelf={() => router.push('/shelf')}
     />
   );
 }

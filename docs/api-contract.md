@@ -177,6 +177,75 @@ Cart plus its line items (same resolved shape as POST response).
 Marks the cart `opened` (best-effort local status; Instacart does not report order
 state back — PRD section 7). Returns the cart.
 
+## Recipes (the shelf)
+
+### POST /api/v1/recipes
+Ingests a recipe from a link: resolve the source (TikTok/YouTube oEmbed,
+Pinterest pin -> blog hop, schema.org/Recipe JSON-LD, OG/text fallback) ->
+one Anthropic extraction pass -> saved recipe with Instacart-ready
+ingredients. Deduped per household on the normalized source URL. Body:
+
+```json
+{
+  "household_id": "uuid (optional if single membership)",
+  "url": "https://www.tiktok.com/@creator/video/123..."
+}
+```
+
+Returns `201` (or `200` with `already_saved: true` when the link is already
+on the shelf):
+
+```json
+{
+  "already_saved": false,
+  "recipe": {
+    "id": "uuid",
+    "household_id": "uuid",
+    "source_url": "https://www.tiktok.com/@creator/video/123",
+    "source_platform": "tiktok",
+    "creator": "@creator",
+    "title": "Chongqing chicken",
+    "sub": "辣子鸡",
+    "description": "Crisp chicken buried in toasted chiles.",
+    "cuisine": "sichuan-chongqing",
+    "dish_type": "main",
+    "serves": 4,
+    "minutes": 45,
+    "heat": 3,
+    "ingredients": [
+      { "name": "boneless chicken thighs", "quantity": 1.5, "unit": "lb", "pantry": false },
+      { "name": "dried red chiles", "quantity": 4, "unit": "oz", "pantry": false },
+      { "name": "sichuan peppercorns", "quantity": null, "unit": null, "pantry": true }
+    ],
+    "steps": ["Cube and marinate the chicken.", "..."],
+    "provenance": "transcribed",
+    "confidence": "high",
+    "notes": ["Serves was not stated; assumed 4."],
+    "created_at": "2026-07-12T00:00:00.000Z"
+  }
+}
+```
+
+`provenance` is honesty, not decoration: `transcribed` means the source
+contained the actual recipe; `reconstructed` means the dish was rebuilt from
+its name and hints (common for Instagram, which hides captions from
+signed-out readers) — the client must say so. `422 validation_error` when the
+link isn't food content; `502 upstream_error` when the source/AI pass fails.
+
+### GET /api/v1/recipes?household_id=uuid&limit=100
+The household shelf, newest first, plus cuisine clustering counts (the
+kitchen-genesis meter):
+
+```json
+{
+  "recipes": [ { "...": "same shape as above" } ],
+  "cuisine_counts": [ { "cuisine": "italian", "count": 5 } ]
+}
+```
+
+### DELETE /api/v1/recipes/:id
+Removes a recipe from the shelf. `204` on success.
+
 ## MCP access tokens
 
 Personal access tokens let MCP clients (e.g. Chief of Staff) act as the user.
