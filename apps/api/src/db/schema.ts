@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   numeric,
   pgEnum,
@@ -155,6 +156,62 @@ export const householdInvites = pgTable(
   (t) => [index('household_invites_household_idx').on(t.householdId)],
 );
 
+// Recipes ingested from links — the shelf (PRD section 12, "recipe concoction").
+// 'transcribed' = the source actually contained the ingredient list;
+// 'reconstructed' = the dish was rebuilt from a name/partial hints and says so.
+export const recipeProvenance = pgEnum('recipe_provenance', ['transcribed', 'reconstructed']);
+
+/** One stored ingredient — mirrors the client's CanonIngredient shape, so a
+ * saved recipe drops straight into the thrift solver and POST /carts. */
+export type RecipeIngredient = {
+  /** Clean product name suitable for Instacart store search. */
+  name: string;
+  quantity?: number;
+  unit?: string;
+  /** Assumed on-hand (salt, oil, spices) — excluded from carts by default. */
+  pantry?: boolean;
+};
+
+export const recipes = pgTable(
+  'recipes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    addedByUserId: uuid('added_by_user_id').notNull(),
+    /** Normalized (tracking params stripped, redirects resolved) — the dedupe key. */
+    sourceUrl: text('source_url').notNull(),
+    // Text, not an enum: a new platform should never need a migration.
+    sourcePlatform: text('source_platform').notNull(),
+    /** Credit to the human whose recipe this is, when the source names them. */
+    creator: text('creator'),
+    title: text('title').notNull(),
+    /** Native-script or stylized secondary name (辣子鸡 / tres leches). */
+    sub: text('sub'),
+    description: text('description'),
+    cuisine: text('cuisine').notNull(),
+    dishType: text('dish_type').notNull(),
+    serves: integer('serves').notNull(),
+    minutes: integer('minutes').notNull(),
+    /** Chile scale 0-3; null when heat is not the point. */
+    heat: integer('heat'),
+    ingredients: jsonb('ingredients').$type<RecipeIngredient[]>().notNull(),
+    steps: jsonb('steps').$type<string[]>().notNull().default([]),
+    provenance: recipeProvenance('provenance').notNull(),
+    confidence: text('confidence').notNull().default('medium'),
+    /** Extraction + resolver notes, surfaced to the human. Never silently dropped. */
+    notes: jsonb('notes').$type<string[]>().notNull().default([]),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('recipes_household_source_idx').on(t.householdId, t.sourceUrl),
+    index('recipes_household_created_idx').on(t.householdId, t.createdAt),
+    index('recipes_household_cuisine_idx').on(t.householdId, t.cuisine),
+  ],
+);
+
 // Personal access tokens used by MCP clients (Chief of Staff) to act as a user.
 // Only a SHA-256 hash is stored; the plaintext is shown once at creation.
 export const apiTokens = pgTable(
@@ -178,3 +235,4 @@ export type Cart = typeof carts.$inferSelect;
 export type LineItem = typeof lineItems.$inferSelect;
 export type HouseholdInvite = typeof householdInvites.$inferSelect;
 export type ApiToken = typeof apiTokens.$inferSelect;
+export type Recipe = typeof recipes.$inferSelect;

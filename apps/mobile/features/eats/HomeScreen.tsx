@@ -66,6 +66,7 @@ export interface HomeScreenProps {
   previewMode?: boolean;
   onOpenRestaurant: (id: RestaurantId, dishId?: string) => void;
   onOpenAsk?: () => void;
+  onOpenShelf?: () => void;
 }
 
 export function HomeScreen({
@@ -73,6 +74,7 @@ export function HomeScreen({
   previewMode = false,
   onOpenRestaurant,
   onOpenAsk,
+  onOpenShelf,
 }: HomeScreenProps) {
   const t = useColorScheme() === 'dark' ? dark : light;
   const [query, setQuery] = useState('');
@@ -166,6 +168,31 @@ export function HomeScreen({
                 />
               ))}
             </View>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={onOpenShelf}
+              disabled={!onOpenShelf}
+              style={({ pressed }) => [
+                styles.askCard,
+                { backgroundColor: t.card, borderColor: t.hairline, opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <View style={[styles.askBadge, { backgroundColor: t.gold }]}>
+                <Ionicons name="download-outline" size={18} color={t.onGold} />
+              </View>
+              <View style={styles.askBody}>
+                <Text style={[styles.askTitle, { color: t.ink }]}>The shelf</Text>
+                <Text style={[styles.askText, { color: t.muted }]}>
+                  {previewMode
+                    ? 'Send MC Peels a TikTok, a pin, or any recipe link — it becomes a dish you can cart.'
+                    : 'Paste a TikTok, a pin, or any recipe link — it becomes a dish you can cart. Enough of one cuisine and a kitchen opens.'}
+                </Text>
+              </View>
+              {onOpenShelf ? (
+                <Ionicons name="chevron-forward" size={18} color={t.muted} />
+              ) : null}
+            </Pressable>
 
             <Pressable
               accessibilityRole="button"

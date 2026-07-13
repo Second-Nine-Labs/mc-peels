@@ -19,9 +19,12 @@ import type {
   ErrorEnvelope,
   Household,
   HouseholdDetailResponse,
+  IngestRecipeBody,
+  IngestRecipeResponse,
   InviteResponse,
   MeResponse,
   RetailersResponse,
+  ShelfResponse,
   TokensResponse,
   UpdateHouseholdBody,
 } from './types';
@@ -154,6 +157,16 @@ export const api = {
 
   markCartOpened: (cartId: string) =>
     request<CartDetailResponse>(`/carts/${cartId}/opened`, { method: 'POST' }),
+
+  // Recipes (the shelf) ------------------------------------------------------
+  ingestRecipe: (body: IngestRecipeBody) =>
+    request<IngestRecipeResponse>('/recipes', { method: 'POST', body }),
+
+  listRecipes: (params: { household_id?: string; limit?: number } = {}) =>
+    request<ShelfResponse>('/recipes', { query: params }),
+
+  deleteRecipe: (recipeId: string) =>
+    request<void>(`/recipes/${recipeId}`, { method: 'DELETE' }),
 
   // MCP access tokens ------------------------------------------------------
   createToken: (name: string) =>

@@ -203,6 +203,63 @@ export type CartDetailResponse = Partial<CartSummary> & {
 };
 
 // ---------------------------------------------------------------------------
+// Recipes (the shelf)
+
+export type RecipeProvenance = 'transcribed' | 'reconstructed';
+export type RecipeConfidence = 'high' | 'medium' | 'low';
+
+export interface RecipeIngredientWire {
+  name: string;
+  quantity: number | null;
+  unit: string | null;
+  pantry: boolean;
+}
+
+export interface SavedRecipe {
+  id: string;
+  household_id: string;
+  source_url: string;
+  source_platform: 'tiktok' | 'instagram' | 'pinterest' | 'youtube' | 'web' | string;
+  creator: string | null;
+  title: string;
+  sub: string | null;
+  description: string | null;
+  cuisine: string;
+  dish_type: string;
+  serves: number;
+  minutes: number;
+  /** Chile scale 0-3; null when heat is not the point. */
+  heat: number | null;
+  ingredients: RecipeIngredientWire[];
+  steps: string[];
+  /** 'reconstructed' means the dish was rebuilt from hints — the UI says so. */
+  provenance: RecipeProvenance;
+  confidence: RecipeConfidence;
+  notes: string[];
+  created_at: string;
+}
+
+export interface IngestRecipeBody {
+  household_id?: string;
+  url: string;
+}
+
+export interface IngestRecipeResponse {
+  recipe: SavedRecipe;
+  already_saved: boolean;
+}
+
+export interface CuisineCount {
+  cuisine: string;
+  count: number;
+}
+
+export interface ShelfResponse {
+  recipes: SavedRecipe[];
+  cuisine_counts: CuisineCount[];
+}
+
+// ---------------------------------------------------------------------------
 // MCP access tokens
 
 export interface CreatedTokenResponse {

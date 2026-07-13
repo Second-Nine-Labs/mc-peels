@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { createCart, getCartWithItems, listRecentCarts } from '../core/carts.js';
 import { AppError } from '../core/errors.js';
 import { getHouseholdContext } from '../core/households.js';
+import { ingestRecipe, listRecipes } from '../core/recipes.js';
 import { listRetailers } from '../core/retailers.js';
 import {
   cartDetailJson,
@@ -18,6 +19,7 @@ import {
   householdJson,
   lineItemJson,
   profileJson,
+  recipeJson,
   retailerJson,
 } from '../http/serializers.js';
 
@@ -183,6 +185,76 @@ export function buildMcpServer(userId: string): McpServer {
           limit: args.limit,
         });
         return jsonResult({ carts: carts.map(cartSummaryJson) });
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'mcpeels_save_recipe',
+    {
+      title: 'Save a recipe link to the household shelf',
+      description:
+        'Ingests a recipe from a link — TikTok, Pinterest, Instagram, YouTube, or any ' +
+        'recipe page — onto the household shelf. The server reads what the link honestly ' +
+        'yields and extracts one structured recipe with Instacart-ready ingredients; when ' +
+        'the source hides its content (common on Instagram), the dish is rebuilt from ' +
+        "what's visible and marked provenance: 'reconstructed'. Surface the recipe's " +
+        'notes and provenance to the user. Saving does not build a cart; the recipe ' +
+        'becomes orderable from the shelf in the app.',
+      inputSchema: {
+        url: z.string().min(8).max(2048).describe('The shared link, as pasted'),
+        household_id: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Only needed when the user belongs to multiple households'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = await ingestRecipe({
+          userId,
+          householdId: args.household_id,
+          url: args.url,
+        });
+        return jsonResult({
+          recipe: recipeJson(result.recipe),
+          already_saved: result.alreadySaved,
+        });
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'mcpeels_list_shelf_recipes',
+    {
+      title: 'List the recipes on the household shelf',
+      description:
+        "Returns the household's saved recipes (newest first) plus per-cuisine counts. " +
+        'Recipes carry cartable ingredients; a human orders them from the app.',
+      inputSchema: {
+        limit: z.number().int().min(1).max(200).optional(),
+        household_id: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Only needed when the user belongs to multiple households'),
+      },
+    },
+    async (args) => {
+      try {
+        const listing = await listRecipes(userId, {
+          householdId: args.household_id,
+          limit: args.limit,
+        });
+        return jsonResult({
+          recipes: listing.recipes.map(recipeJson),
+          cuisine_counts: listing.cuisineCounts,
+        });
       } catch (err) {
         return toolError(err);
       }

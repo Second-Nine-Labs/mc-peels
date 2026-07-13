@@ -7,6 +7,7 @@ import { HomeScreen } from '@/features/eats/HomeScreen';
 import { LaMilpaScreen } from '@/features/eats/LaMilpaScreen';
 import { StolovayaScreen } from '@/features/eats/StolovayaScreen';
 import type { RestaurantId } from '@/features/eats/types';
+import { ShelfScreen } from '@/features/shelf/ShelfScreen';
 
 /**
  * Signed-out showcase of the Eats experience — the auth gate exempts this
@@ -15,20 +16,21 @@ import type { RestaurantId } from '@/features/eats/types';
  * here can read or write household data.
  */
 
-type View_ = 'home' | RestaurantId;
+type View_ = 'home' | 'shelf' | RestaurantId;
 
 const STOPS: Array<{ key: View_; label: string }> = [
   { key: 'home', label: 'Home' },
   { key: 'stolovaya-7', label: '№ 7' },
   { key: 'greenhouse', label: 'greenhouse' },
   { key: 'la-milpa', label: 'La Milpa' },
+  { key: 'shelf', label: 'the shelf' },
 ];
 
 export default function EatsPreviewScreen() {
   const [view, setView] = useState<View_>('home');
   const [dishId, setDishId] = useState<string | undefined>(undefined);
 
-  const open = (id: RestaurantId, dish?: string) => {
+  const open = (id: View_, dish?: string) => {
     setDishId(dish);
     setView(id);
   };
@@ -63,7 +65,9 @@ export default function EatsPreviewScreen() {
       </View>
 
       {view === 'home' ? (
-        <HomeScreen previewMode onOpenRestaurant={open} />
+        <HomeScreen previewMode onOpenRestaurant={open} onOpenShelf={() => open('shelf')} />
+      ) : view === 'shelf' ? (
+        <ShelfScreen previewMode onBack={home} />
       ) : view === 'stolovaya-7' ? (
         <StolovayaScreen previewMode initialDishId={dishId} onBack={home} />
       ) : view === 'greenhouse' ? (
