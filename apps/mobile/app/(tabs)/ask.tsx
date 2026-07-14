@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BananaLoader } from '@/components/BananaLoader';
 import { BananaRain } from '@/components/BananaRain';
 import { MascotMark } from '@/components/MascotMark';
-import { Button, ErrorBanner, TwoToneTitle } from '@/components/ui';
+import { Button, DisplayTitle, ErrorBanner, EyebrowChip } from '@/components/ui';
 import { api, getErrorMessage } from '@/lib/api';
 import { rememberCartResult } from '@/lib/cart-cache';
 import { useSession } from '@/lib/session';
@@ -163,8 +163,8 @@ export default function AskScreen() {
             <View style={styles.mascot}>
               <MascotMark size={60} onStreak={throwParty} />
             </View>
-            <Text style={[styles.brand, { color: p.onBgMuted }]}>MC Peels</Text>
-            <TwoToneTitle light="What do" bold="you need?" />
+            <EyebrowChip label="Groceries, in plain words" onCanvas />
+            <DisplayTitle text="What do you need?" emphasis="need" size={38} style={styles.heroTitle} />
             <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               Say it in plain language — we&apos;ll build an Instacart cart with{' '}
               {membership?.household.name ?? 'your household'}&apos;s dietary rules applied.
@@ -199,7 +199,7 @@ export default function AskScreen() {
               <Pressable
                 key={example}
                 onPress={() => typeOut(example)}
-                style={[styles.example, { backgroundColor: p.card, borderColor: p.border }]}
+                style={[styles.example, { backgroundColor: p.card }]}
               >
                 <Ionicons name="bulb-outline" size={16} color={p.tint} />
                 <Text style={[styles.exampleText, { color: p.text }]}>{example}</Text>
@@ -231,23 +231,14 @@ const styles = StyleSheet.create({
   },
   hero: {
     marginBottom: 24,
-    gap: 8,
+    gap: 12,
   },
   mascot: {
     alignSelf: 'flex-start',
-    marginBottom: 14,
+    marginBottom: 10,
   },
-  brand: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    marginBottom: 8,
+  heroTitle: {
+    marginTop: 2,
   },
   subtitle: {
     fontSize: 15,
@@ -276,11 +267,11 @@ const styles = StyleSheet.create({
   example: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 10,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    boxShadow: '0px 10px 22px rgba(21, 34, 56, 0.10)',
   },
   exampleText: {
     flex: 1,

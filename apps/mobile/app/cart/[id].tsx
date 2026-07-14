@@ -8,8 +8,9 @@ import { MascotMark } from '@/components/MascotMark';
 import { OffersSection } from '@/components/offers';
 import {
   Button,
+  DisplayTitle,
   ErrorBanner,
-  FilterTag,
+  EyebrowChip,
   HeroStat,
   LoadingView,
   SectionTitle,
@@ -142,8 +143,9 @@ export default function CartDetailScreen() {
         {/* Hero — lives on the blue canvas, recipe-app style. */}
         <View style={styles.hero}>
           <ErrorBanner message={error} />
+          <EyebrowChip label="Ready to check out" onCanvas />
           <View style={styles.header}>
-            <Text style={[styles.title, { color: p.onBg }]}>{cart.title}</Text>
+            <DisplayTitle text={cart.title} size={30} style={styles.title} />
             <StatusChip status={cart.status} />
           </View>
 
@@ -184,7 +186,6 @@ export default function CartDetailScreen() {
 
         {/* Content sheet — white panel sliding over the canvas. */}
         <View style={[styles.sheet, { backgroundColor: p.card }]}>
-          <View style={[styles.handle, { backgroundColor: p.border }]} />
           <View style={styles.sheetMascot}>
             <MascotMark size={64} />
           </View>
@@ -228,44 +229,67 @@ export default function CartDetailScreen() {
           {cart.lineItems.length > 0 ? (
             <View style={styles.section}>
               <SectionTitle>Items</SectionTitle>
-          {cart.lineItems.map((item, index) => {
-            const quantityLabel = item.quantity !== null
-              ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`
-              : null;
-            return (
-              <View
-                key={`${item.name}-${index}`}
-                style={[
-                  styles.itemRow,
-                  index > 0 ? { borderTopWidth: 1, borderTopColor: p.border } : null,
-                ]}
-              >
-                <View style={styles.itemHeader}>
-                  <Text style={[styles.itemName, { color: p.text }]}>{item.display_text}</Text>
-                  {quantityLabel ? (
-                    <Text style={[styles.itemQuantity, { color: p.textMuted }]}>{quantityLabel}</Text>
-                  ) : null}
-                </View>
-                {item.applied_filters.health_filters.length > 0 ||
-                item.applied_filters.brand_filters.length > 0 ? (
-                  <View style={styles.tagRow}>
-                    {item.applied_filters.health_filters.map((filter) => (
-                      <FilterTag key={filter} label={prettifyFilterValue(filter)} />
-                    ))}
-                    {item.applied_filters.brand_filters.map((brand) => (
-                      <FilterTag key={brand} label={brand} tone="neutral" />
+              {cart.lineItems.map((item, index) => {
+                const quantityLabel = item.quantity !== null
+                  ? `${item.quantity}${item.unit ? ` ${item.unit}` : ''}`
+                  : null;
+                return (
+                  <View
+                    key={`${item.name}-${index}`}
+                    style={[
+                      styles.itemRow,
+                      { borderBottomColor: p.border },
+                      index === 0 ? { borderTopWidth: 1, borderTopColor: p.border } : null,
+                    ]}
+                  >
+                    <View style={styles.itemHeader}>
+                      <View style={styles.itemHeaderLeft}>
+                        <View style={[styles.check, { backgroundColor: p.success }]}>
+                          <Ionicons name="checkmark" size={13} color="#fff" />
+                        </View>
+                        <Text style={[styles.itemName, { color: p.text }]}>{item.display_text}</Text>
+                      </View>
+                      {quantityLabel ? (
+                        <Text style={[styles.itemQuantity, { color: p.textMuted }]}>{quantityLabel}</Text>
+                      ) : null}
+                    </View>
+                    {item.applied_filters.health_filters.length > 0 ||
+                    item.applied_filters.brand_filters.length > 0 ? (
+                      <View style={styles.tagRow}>
+                        {item.applied_filters.health_filters.map((filter) => {
+                          const organic = filter.toLowerCase().includes('organic');
+                          return (
+                            <View
+                              key={filter}
+                              style={[
+                                styles.tag,
+                                { backgroundColor: organic ? p.successSoft : p.accentSoft },
+                              ]}
+                            >
+                              <Text
+                                style={[styles.tagText, { color: organic ? p.success : '#9A6B00' }]}
+                              >
+                                {prettifyFilterValue(filter)}
+                              </Text>
+                            </View>
+                          );
+                        })}
+                        {item.applied_filters.brand_filters.map((brand) => (
+                          <View key={brand} style={[styles.tag, { backgroundColor: p.accentSoft }]}>
+                            <Text style={[styles.tagText, { color: '#9A6B00' }]}>{brand}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : null}
+                    {item.warnings.map((warning, warningIndex) => (
+                      <View key={warningIndex} style={styles.warningRow}>
+                        <Ionicons name="warning-outline" size={14} color={p.danger} />
+                        <Text style={[styles.warningText, { color: p.danger }]}>{warning}</Text>
+                      </View>
                     ))}
                   </View>
-                ) : null}
-                {item.warnings.map((warning, warningIndex) => (
-                  <View key={warningIndex} style={styles.warningRow}>
-                    <Ionicons name="warning-outline" size={14} color={p.danger} />
-                    <Text style={[styles.warningText, { color: p.danger }]}>{warning}</Text>
-                  </View>
-                ))}
-              </View>
-            );
-          })}
+                );
+              })}
             </View>
           ) : null}
 
@@ -300,19 +324,14 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   sheet: {
-    flexGrow: 1,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderRadius: 24,
+    marginHorizontal: 18,
+    marginTop: 10,
+    marginBottom: 24,
     paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 48,
-  },
-  handle: {
-    width: 44,
-    height: 5,
-    borderRadius: 3,
-    alignSelf: 'center',
-    marginBottom: 14,
+    paddingTop: 22,
+    paddingBottom: 28,
+    boxShadow: '0px 12px 26px rgba(21, 34, 56, 0.10)',
   },
   sheetMascot: {
     position: 'absolute',
@@ -336,9 +355,6 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 28,
   },
   requestText: {
     fontSize: 14,
@@ -374,15 +390,30 @@ const styles = StyleSheet.create({
   itemRow: {
     paddingVertical: 12,
     gap: 8,
+    borderBottomWidth: 1,
+    borderStyle: 'dashed',
   },
   itemHeader: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
   },
+  itemHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexShrink: 1,
+  },
+  check: {
+    width: 22,
+    height: 22,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   itemName: {
-    flex: 1,
+    flexShrink: 1,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -393,11 +424,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
+    paddingLeft: 34,
+  },
+  tag: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  tagText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   warningRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 6,
+    paddingLeft: 34,
   },
   warningText: {
     flex: 1,

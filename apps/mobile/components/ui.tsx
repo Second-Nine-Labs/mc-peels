@@ -271,12 +271,92 @@ export function SuccessBanner({ message }: { message: string | null }) {
   );
 }
 
-export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+export function Card({
+  children,
+  style,
+  elevated = false,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  /** Float the card with a soft drop shadow (the landing look) instead of a border. */
+  elevated?: boolean;
+}) {
   const p = usePalette();
   return (
-    <View style={[styles.card, { backgroundColor: p.card, borderColor: p.border }, style]}>
+    <View
+      style={[
+        styles.card,
+        elevated
+          ? { backgroundColor: p.card, ...styles.cardElevated }
+          : { backgroundColor: p.card, borderColor: p.border },
+        style,
+      ]}
+    >
       {children}
     </View>
+  );
+}
+
+/**
+ * Pill eyebrow label — the landing's "● GROCERIES, IN PLAIN WORDS" chip.
+ * `onCanvas` sits on the blue background; the default sits on a card.
+ */
+export function EyebrowChip({ label, onCanvas = false }: { label: string; onCanvas?: boolean }) {
+  const p = usePalette();
+  return (
+    <View
+      style={[
+        styles.eyebrowChip,
+        { backgroundColor: onCanvas ? 'rgba(255,255,255,0.16)' : p.tintSoft },
+      ]}
+    >
+      <View style={[styles.eyebrowDot, { backgroundColor: p.accent }]} />
+      <Text style={[styles.eyebrowChipText, { color: onCanvas ? '#fff' : p.tint }]}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * Bold display headline (the landing's "Just **say** what you want."). Pass
+ * `emphasis` to tint one word banana-yellow. Defaults to canvas text (onBg).
+ */
+export function DisplayTitle({
+  text,
+  emphasis,
+  size = 34,
+  color,
+  style,
+}: {
+  text: string;
+  emphasis?: string;
+  size?: number;
+  color?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const p = usePalette();
+  const c = color ?? p.onBg;
+  const body = emphasis
+    ? text
+        .split(new RegExp(`(${emphasis})`, 'i'))
+        .map((part, i) =>
+          part.toLowerCase() === emphasis.toLowerCase() ? (
+            <Text key={i} style={{ color: p.accent }}>
+              {part}
+            </Text>
+          ) : (
+            part
+          ),
+        )
+    : text;
+  return (
+    <Text
+      style={[
+        { fontSize: size, fontWeight: '800', letterSpacing: -0.6, lineHeight: Math.round(size * 1.08), color: c },
+        style,
+      ]}
+    >
+      {body}
+    </Text>
   );
 }
 
@@ -485,6 +565,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 18,
     padding: 16,
+  },
+  cardElevated: {
+    borderWidth: 0,
+    boxShadow: '0px 18px 40px rgba(21, 34, 56, 0.12)',
+  },
+  eyebrowChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  eyebrowDot: { width: 7, height: 7, borderRadius: 999 },
+  eyebrowChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   sectionTitle: {
     fontSize: 18,
