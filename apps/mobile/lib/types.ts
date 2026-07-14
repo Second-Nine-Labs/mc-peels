@@ -167,6 +167,100 @@ export interface CreateCartResponse {
   /** null when no retailer could be resolved (partial success). */
   retailer: Retailer | null;
   resolved_line_items: ResolvedLineItem[];
+  /** One per enabled fulfillment service; absent from pre-rails servers. */
+  offers?: Offer[];
+  notes: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Fulfillment offers (parallel rails + price comparison)
+
+export type OfferStatus = 'pending' | 'quoted' | 'unpriced' | 'failed';
+export type OfferMatchStatus = 'matched' | 'no_match' | 'unpriced';
+export type OfferMatchConfidence = 'high' | 'medium' | 'low';
+
+export interface OfferStore {
+  provider_store_id: string;
+  name: string;
+  address?: string;
+  chain?: string;
+  logo_url?: string | null;
+}
+
+export interface OfferMatchedProduct {
+  product_id: string;
+  upc?: string;
+  description: string;
+  brand?: string;
+  size?: string;
+  sold_by?: string;
+}
+
+export interface OfferItemMatch {
+  line_item_id: string | null;
+  requested_name: string;
+  requested_quantity: number | null;
+  requested_unit: string | null;
+  status: OfferMatchStatus;
+  confidence: OfferMatchConfidence | null;
+  product: OfferMatchedProduct | null;
+  quantity: number;
+  unit_price_cents: number | null;
+  regular_price_cents: number | null;
+  promo_price_cents: number | null;
+  line_total_cents: number | null;
+  promo_savings_cents: number;
+  warnings: string[];
+}
+
+export interface Offer {
+  id: string;
+  provider: string;
+  display_name: string;
+  capabilities: { quote: boolean; handoff: 'link' | 'account_cart_push' };
+  status: OfferStatus;
+  handoff_url: string | null;
+  store: OfferStore | null;
+  /** Items subtotal in cents — real shelf prices only, never an estimate. */
+  subtotal_cents: number | null;
+  promo_savings_cents: number;
+  currency: string;
+  matched_count: number;
+  total_count: number;
+  item_matches: OfferItemMatch[];
+  notes: string[];
+  quoted_at: string | null;
+  expires_at: string | null;
+}
+
+export interface OffersRefreshBody {
+  providers?: string[];
+  force?: boolean;
+}
+
+export interface OffersRefreshResponse {
+  offers: Offer[];
+  /** provider -> linked, for the current user (e.g. { kroger: true }). */
+  connections: Record<string, boolean>;
+}
+
+export interface ConnectionSummaryWire {
+  provider: string;
+  connected_at: string;
+}
+
+export interface ConnectionsResponse {
+  connections: ConnectionSummaryWire[];
+}
+
+export interface KrogerConnectStartResponse {
+  authorize_url: string;
+}
+
+export interface KrogerHandoffResponse {
+  handoff_url: string;
+  pushed_count: number;
+  skipped: Array<{ line_item_id: string | null; name: string; reason: string }>;
   notes: string[];
 }
 
@@ -199,6 +293,7 @@ export type CartDetailResponse = Partial<CartSummary> & {
   retailer?: Retailer | null;
   line_items?: ResolvedLineItem[];
   resolved_line_items?: ResolvedLineItem[];
+  offers?: Offer[];
   notes?: string[];
 };
 

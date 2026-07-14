@@ -2,8 +2,9 @@
  * Domain -> wire (snake_case JSON) mappers, matching docs/api-contract.md.
  */
 
-import type { Household, Recipe } from '../db/schema.js';
+import type { CartOffer, Household, Recipe } from '../db/schema.js';
 import type { CartDetail, CartSummary } from '../core/carts.js';
+import { providerMeta } from '../fulfillment/registry.js';
 import type { DietaryProfileRules, ResolvedLineItem, RetailerInfo } from '../types.js';
 
 export function householdJson(h: Household) {
@@ -69,6 +70,29 @@ export function cartDetailJson(c: CartDetail) {
   return {
     ...cartSummaryJson(c),
     line_items: c.lineItems.map(lineItemJson),
+    offers: c.offers.map(offerJson),
+  };
+}
+
+export function offerJson(o: CartOffer) {
+  const meta = providerMeta(o.provider);
+  return {
+    id: o.id,
+    provider: o.provider,
+    display_name: meta.displayName,
+    capabilities: meta.capabilities,
+    status: o.status,
+    handoff_url: o.handoffUrl,
+    store: o.store,
+    subtotal_cents: o.subtotalCents,
+    promo_savings_cents: o.promoSavingsCents,
+    currency: o.currency,
+    matched_count: o.matchedCount,
+    total_count: o.totalCount,
+    item_matches: o.itemMatches,
+    notes: o.notes,
+    quoted_at: o.quotedAt?.toISOString() ?? null,
+    expires_at: o.expiresAt?.toISOString() ?? null,
   };
 }
 

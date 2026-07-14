@@ -7,8 +7,9 @@
 import { desc, eq } from 'drizzle-orm';
 import { ParserError, parseRequest, parseStructuredItems } from '../ai/parser.js';
 import { getDb, schema } from '../db/client.js';
-import type { Cart, LineItem } from '../db/schema.js';
+import type { Cart, CartOffer, LineItem } from '../db/schema.js';
 import { env } from '../env.js';
+import { listOffers, seedRowsForNewCart } from '../fulfillment/offer-rows.js';
 import { InstacartApiError, getInstacartClient } from '../instacart/client.js';
 import { buildProductsLinkPayload, withRetailerHint } from '../instacart/payload.js';
 import { applyProfile } from '../profile/apply.js';
@@ -37,6 +38,8 @@ export interface CartSummary {
 
 export interface CartDetail extends CartSummary {
   lineItems: ResolvedLineItem[];
+  /** One row per enabled fulfillment provider, csv order. */
+  offers: CartOffer[];
 }
 
 export async function createCart(input: CreateCartInput): Promise<CreateCartResult> {
@@ -140,7 +143,7 @@ export async function createCart(input: CreateCartInput): Promise<CreateCartResu
         )
         .join(', ');
 
-  const { cartId, requestId } = await getDb().transaction(async (tx) => {
+  const { cartId, requestId, offers } = await getDb().transaction(async (tx) => {
     const [request] = await tx
       .insert(schema.requests)
       .values({
@@ -161,24 +164,34 @@ export async function createCart(input: CreateCartInput): Promise<CreateCartResu
         createdByUserId: input.userId,
       })
       .returning();
-    await tx.insert(schema.lineItems).values(
-      resolved.map((item) => ({
-        requestId: request!.id,
-        householdId: household.id,
-        cartId: cart!.id,
-        source: item.source,
-        name: item.name,
-        quantity: item.quantity === null ? null : String(item.quantity),
-        unit: item.unit,
-        appliedFilters: {
-          health_filters: item.appliedFilters.healthFilters,
-          brand_filters: item.appliedFilters.brandFilters,
-        },
-        resolvedDisplayText: item.displayText,
-        warnings: item.warnings,
-      })),
-    );
-    return { cartId: cart!.id, requestId: request!.id };
+    const insertedItems = await tx
+      .insert(schema.lineItems)
+      .values(
+        resolved.map((item) => ({
+          requestId: request!.id,
+          householdId: household.id,
+          cartId: cart!.id,
+          source: item.source,
+          name: item.name,
+          quantity: item.quantity === null ? null : String(item.quantity),
+          unit: item.unit,
+          appliedFilters: {
+            health_filters: item.appliedFilters.healthFilters,
+            brand_filters: item.appliedFilters.brandFilters,
+          },
+          resolvedDisplayText: item.displayText,
+          warnings: item.warnings,
+        })),
+      )
+      .returning();
+    // Seed one offer per enabled rail (static data — real quotes come later
+    // via POST /carts/:id/offers/refresh, never blocking cart creation).
+    const seedRows = seedRowsForNewCart(household, cart!, insertedItems);
+    const seededOffers =
+      seedRows.length > 0
+        ? await tx.insert(schema.cartOffers).values(seedRows).returning()
+        : [];
+    return { cartId: cart!.id, requestId: request!.id, offers: seededOffers };
   });
 
   // 7. Hand off. Notes tell the caller exactly what was applied (PRD section 6.7).
@@ -188,6 +201,7 @@ export async function createCart(input: CreateCartInput): Promise<CreateCartResu
     instacartUrl,
     retailer,
     resolvedLineItems: resolved,
+    offers,
     notes: [...profileNotes, ...notes, ...parsed.notes],
   };
 }
@@ -224,7 +238,7 @@ function toSummary(cart: Cart, requestText: string): CartSummary {
 }
 
 /** Fetch a cart the user can see (membership enforced), or null. */
-async function getAuthorizedCart(userId: string, cartId: string) {
+export async function getAuthorizedCart(userId: string, cartId: string) {
   const rows = await getDb()
     .select({ cart: schema.carts, request: schema.requests })
     .from(schema.carts)
@@ -244,11 +258,15 @@ export async function getCartWithItems(
 ): Promise<CartDetail | null> {
   const row = await getAuthorizedCart(userId, cartId);
   if (!row) return null;
-  const items = await getDb()
-    .select()
-    .from(schema.lineItems)
-    .where(eq(schema.lineItems.cartId, cartId));
-  return { ...toSummary(row.cart, row.request.rawText), lineItems: items.map(rowToResolvedItem) };
+  const [items, offers] = await Promise.all([
+    getDb().select().from(schema.lineItems).where(eq(schema.lineItems.cartId, cartId)),
+    listOffers(cartId),
+  ]);
+  return {
+    ...toSummary(row.cart, row.request.rawText),
+    lineItems: items.map(rowToResolvedItem),
+    offers,
+  };
 }
 
 export async function listRecentCarts(

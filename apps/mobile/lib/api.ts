@@ -11,6 +11,7 @@ import { supabase } from './supabase';
 import type {
   CartDetailResponse,
   CartsResponse,
+  ConnectionsResponse,
   CreateCartBody,
   CreateCartResponse,
   CreateHouseholdBody,
@@ -22,7 +23,11 @@ import type {
   IngestRecipeBody,
   IngestRecipeResponse,
   InviteResponse,
+  KrogerConnectStartResponse,
+  KrogerHandoffResponse,
   MeResponse,
+  OffersRefreshBody,
+  OffersRefreshResponse,
   RetailersResponse,
   ShelfResponse,
   TokensResponse,
@@ -157,6 +162,23 @@ export const api = {
 
   markCartOpened: (cartId: string) =>
     request<CartDetailResponse>(`/carts/${cartId}/opened`, { method: 'POST' }),
+
+  // Fulfillment offers (price comparison + parallel rails) -------------------
+  refreshOffers: (cartId: string, body: OffersRefreshBody = {}) =>
+    request<OffersRefreshResponse>(`/carts/${cartId}/offers/refresh`, { method: 'POST', body }),
+
+  krogerHandoff: (cartId: string) =>
+    request<KrogerHandoffResponse>(`/carts/${cartId}/handoff/kroger`, { method: 'POST', body: {} }),
+
+  krogerConnectStart: (returnTo: string) =>
+    request<KrogerConnectStartResponse>('/connect/kroger/start', {
+      query: { return_to: returnTo },
+    }),
+
+  getConnections: () => request<ConnectionsResponse>('/connections'),
+
+  disconnectProvider: (provider: string) =>
+    request<void>(`/connections/${provider}`, { method: 'DELETE' }),
 
   // Recipes (the shelf) ------------------------------------------------------
   ingestRecipe: (body: IngestRecipeBody) =>

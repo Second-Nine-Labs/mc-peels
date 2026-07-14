@@ -20,6 +20,9 @@ export const requestChannel = pgEnum('request_channel', ['app', 'mcp']);
 export const lineItemSource = pgEnum('line_item_source', ['direct_request', 'recipe']);
 // Best-effort only: the Instacart API returns a link, not order state (PRD section 7 notes).
 export const cartStatus = pgEnum('cart_status', ['created', 'opened', 'expired']);
+// Offer lifecycle: 'pending' (seeded, quote not run), 'quoted' (real prices),
+// 'unpriced' (service exposes no prices — handoff only), 'failed' (quote errored).
+export const offerStatus = pgEnum('offer_status', ['pending', 'quoted', 'unpriced', 'failed']);
 
 // Tables -------------------------------------------------------------------
 
@@ -227,6 +230,137 @@ export const apiTokens = pgTable(
   (t) => [index('api_tokens_user_idx').on(t.userId)],
 );
 
+// Fulfillment — parallel rails + price comparison ---------------------------
+
+/** Provider-scoped store identity, denormalized for display. */
+export type OfferStoreRef = {
+  provider_store_id: string;
+  name: string;
+  address?: string;
+  chain?: string;
+  logo_url?: string | null;
+};
+
+/**
+ * One line item's resolution against a provider's catalog. Snake_case because
+ * this jsonb is served to clients verbatim (mirrors AppliedFilters precedent).
+ */
+export type OfferItemMatch = {
+  line_item_id: string | null;
+  requested_name: string;
+  requested_quantity: number | null;
+  requested_unit: string | null;
+  status: 'matched' | 'no_match' | 'unpriced';
+  confidence: 'high' | 'medium' | 'low' | null;
+  product: {
+    product_id: string;
+    upc?: string;
+    description: string;
+    brand?: string;
+    size?: string;
+    sold_by?: string;
+  } | null;
+  /** Discrete quantity we would push to the provider's cart. */
+  quantity: number;
+  unit_price_cents: number | null;
+  regular_price_cents: number | null;
+  promo_price_cents: number | null;
+  line_total_cents: number | null;
+  promo_savings_cents: number;
+  warnings: string[];
+};
+
+/**
+ * One provider's offer for a cart: a real quote (Kroger), an unpriced handoff
+ * (Instacart, DoorDash, Uber Eats), or a failed quote. Real prices only —
+ * subtotal_cents is null unless the provider's API priced the items.
+ */
+export const cartOffers = pgTable(
+  'cart_offers',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    cartId: uuid('cart_id')
+      .notNull()
+      .references(() => carts.id, { onDelete: 'cascade' }),
+    // Text, not an enum: a new provider should never need a migration.
+    provider: text('provider').notNull(),
+    status: offerStatus('status').notNull().default('pending'),
+    handoffUrl: text('handoff_url'),
+    store: jsonb('store').$type<OfferStoreRef | null>().default(null),
+    /** Items subtotal — never a "total"; taxes/fees belong to the service. */
+    subtotalCents: integer('subtotal_cents'),
+    promoSavingsCents: integer('promo_savings_cents').notNull().default(0),
+    currency: text('currency').notNull().default('USD'),
+    matchedCount: integer('matched_count').notNull().default(0),
+    totalCount: integer('total_count').notNull().default(0),
+    itemMatches: jsonb('item_matches').$type<OfferItemMatch[]>().notNull().default([]),
+    notes: jsonb('notes').$type<string[]>().notNull().default([]),
+    quotedAt: timestamp('quoted_at', { withTimezone: true }),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('cart_offers_cart_provider_idx').on(t.cartId, t.provider),
+    index('cart_offers_cart_idx').on(t.cartId),
+  ],
+);
+
+/**
+ * A user's linked account at a provider (e.g. Kroger OAuth grant). Tokens are
+ * AES-256-GCM encrypted at rest (`v1.<iv>.<ct>.<tag>`, AAD-bound to
+ * `${userId}:${provider}`) — plaintext never touches the database or clients.
+ */
+export const providerConnections = pgTable(
+  'provider_connections',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    // Supabase auth.users id; no FK because auth lives in a separate schema.
+    userId: uuid('user_id').notNull(),
+    provider: text('provider').notNull(),
+    accessTokenEnc: text('access_token_enc').notNull(),
+    refreshTokenEnc: text('refresh_token_enc').notNull(),
+    accessTokenExpiresAt: timestamp('access_token_expires_at', { withTimezone: true }).notNull(),
+    scopes: text('scopes').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('provider_connections_user_provider_idx').on(t.userId, t.provider)],
+);
+
+/**
+ * Catalog-search cache: top candidates (with prices) for a normalized term at
+ * one provider store. Lazy TTL (QUOTE_CACHE_TTL_MINUTES) — refreshed in place
+ * on stale read; most of the 10k/day rate-limit budget lives here.
+ */
+export const providerMatchCache = pgTable(
+  'provider_match_cache',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    provider: text('provider').notNull(),
+    storeId: text('store_id').notNull(),
+    normalizedTerm: text('normalized_term').notNull(),
+    response: jsonb('response').notNull(),
+    cachedAt: timestamp('cached_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('provider_match_cache_key_idx').on(t.provider, t.storeId, t.normalizedTerm),
+  ],
+);
+
+/** Nearest provider store per postal code. Lazy 30-day TTL. */
+export const providerLocations = pgTable(
+  'provider_locations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    provider: text('provider').notNull(),
+    postalCode: text('postal_code').notNull(),
+    store: jsonb('store').$type<OfferStoreRef>().notNull(),
+    cachedAt: timestamp('cached_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('provider_locations_key_idx').on(t.provider, t.postalCode)],
+);
+
 export type Household = typeof households.$inferSelect;
 export type HouseholdMember = typeof householdMembers.$inferSelect;
 export type DietaryProfile = typeof dietaryProfiles.$inferSelect;
@@ -236,3 +370,6 @@ export type LineItem = typeof lineItems.$inferSelect;
 export type HouseholdInvite = typeof householdInvites.$inferSelect;
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type Recipe = typeof recipes.$inferSelect;
+export type CartOffer = typeof cartOffers.$inferSelect;
+export type ProviderConnection = typeof providerConnections.$inferSelect;
+export type ProviderLocation = typeof providerLocations.$inferSelect;
