@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MC Peels — Groceries, in plain words</title>
+  <meta name="description" content="Tell MC Peels what you want in plain language and it builds a ready-to-checkout grocery cart at your store — already filtered to your household's diet. A Second 9 Labs product." />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="MC Peels — Groceries, in plain words" />
+  <meta property="og:description" content="Say what you want. Get a ready-to-checkout cart at your store, already filtered to your household's diet." />
+
+  <link rel="icon" href="banana.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      /* MC Peels brand — bright, bold, fun (mirrors apps/mobile/lib/theme.ts) */
+      --blue: #208AEF;         /* the canvas — the brand IS this blue */
+      --blue-deep: #1668B8;
+      --blue-soft: #E6F1FE;    /* tintSoft */
+      --blue-wash: #EDF5FE;
+      --navy: #152238;         /* text + primary button */
+      --navy-2: #0F1B2E;
+      --ink-mute: #5C6B85;
+      --on-blue: #FFFFFF;
+      --on-blue-mute: #D5EAFF;
+      --card: #FFFFFF;
+      --border: #E2EAF6;
+      --banana: #FFC531;       /* accent — the big "go" moments */
+      --banana-soft: #FFF3D0;
+      --green: #17A34A;        /* success — organic */
+      --green-soft: #E6F7EE;
+
+      --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --display: 'Poppins', var(--sans);
+
+      --shadow-sm: 0 6px 16px -8px rgba(21,34,56,0.30);
+      --shadow-card: 0 22px 48px -20px rgba(21,34,56,0.40);
+      --shadow-float: 0 30px 60px -22px rgba(6,32,68,0.55);
+      --radius: 22px;
+      --radius-sm: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--sans); background: var(--card); color: var(--navy);
+      font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    ::selection { background: var(--banana); color: var(--navy); }
+    a { color: inherit; }
+    img { max-width: 100%; display: block; }
+
+    h1, h2, h3 { font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; }
+    h1 { font-size: clamp(2.75rem, 7vw, 5.2rem); }
+    h2 { font-size: clamp(2rem, 4.3vw, 3.3rem); }
+    h3 { font-size: clamp(1.15rem, 1.7vw, 1.4rem); font-weight: 700; letter-spacing: -0.01em; }
+    em { font-style: normal; color: var(--banana); }
+
+    .lede { font-size: clamp(1.1rem, 1.35vw, 1.28rem); line-height: 1.5; font-weight: 400; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 3rem); }
+    section { position: relative; }
+    .section-pad { padding: clamp(3.6rem, 7vw, 6rem) 0; }
+
+    /* Pills / eyebrows */
+    .chip {
+      display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--display);
+      font-weight: 600; font-size: 0.76rem; letter-spacing: 0.09em; text-transform: uppercase;
+      padding: 0.4rem 0.95rem; border-radius: 999px;
+    }
+    .chip-onblue { background: rgba(255,255,255,0.16); color: #fff; }
+    .chip-soft { background: var(--blue-soft); color: var(--blue-deep); }
+    .chip-navy { background: rgba(255,255,255,0.08); color: var(--banana); border: 1px solid rgba(255,255,255,0.16); }
+    .chip .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--banana); }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--display); font-weight: 700; font-size: 1rem; border-radius: 999px;
+      padding: 0.9rem 1.6rem; display: inline-flex; align-items: center; gap: 0.55rem;
+      cursor: pointer; text-decoration: none; border: 2px solid transparent; white-space: nowrap;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .btn .arrow { transition: transform 0.15s ease; }
+    .btn:hover .arrow { transform: translateX(4px); }
+    .btn-banana { background: var(--banana); color: var(--navy); box-shadow: var(--shadow-sm); }
+    .btn-banana:hover { transform: translateY(-2px); box-shadow: 0 14px 26px -10px rgba(255,150,0,0.6); }
+    .btn-navy { background: var(--navy); color: #fff; box-shadow: var(--shadow-sm); }
+    .btn-navy:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+    .btn-ghost-blue { background: transparent; color: #fff; border-color: rgba(255,255,255,0.55); }
+    .btn-ghost-blue:hover { background: #fff; color: var(--navy); border-color: #fff; }
+    .btn-ghost-navy { background: transparent; color: var(--navy); border-color: rgba(21,34,56,0.28); }
+    .btn-ghost-navy:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    /* ---------- NAV ---------- */
+    header.nav {
+      position: sticky; top: 0; z-index: 50; background: rgba(32,138,239,0.92);
+      backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.18);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem clamp(1.25rem, 4vw, 3rem); }
+    .brand { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
+    .brand img { width: 38px; height: auto; filter: drop-shadow(0 3px 5px rgba(6,32,68,0.35)); }
+    .brand-name { font-family: var(--display); font-weight: 800; font-size: 1.3rem; color: #fff; line-height: 1; letter-spacing: -0.02em; }
+    .brand-sub { font-family: var(--sans); font-size: 0.6rem; font-weight: 500; letter-spacing: 0.16em; color: var(--on-blue-mute); text-transform: uppercase; margin-top: 3px; }
+    .nav-cta { font-family: var(--display); font-weight: 700; font-size: 0.88rem; color: var(--navy); background: #fff; padding: 0.5rem 1.05rem; border-radius: 999px; text-decoration: none; box-shadow: var(--shadow-sm); transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease; }
+    .nav-cta:hover { background: var(--banana); transform: translateY(-1px); }
+
+    /* ---------- HERO ---------- */
+    .hero { background: var(--blue); color: #fff; position: relative; overflow: hidden; }
+    .hero::before { /* soft dot texture */
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+      background-image: radial-gradient(circle 1.5px, rgba(255,255,255,0.16) 1.5px, transparent 2px);
+      background-size: 26px 26px;
+    }
+    .hero::after { /* glow */
+      content: ''; position: absolute; top: -30%; right: -10%; width: 55%; height: 120%; pointer-events: none;
+      background: radial-gradient(circle, rgba(255,255,255,0.14), transparent 62%);
+    }
+    .hero .wrap { position: relative; z-index: 1; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(2rem, 5vw, 4.5rem); align-items: center; padding: clamp(3rem, 6.5vw, 5.5rem) 0 clamp(3.4rem, 7vw, 6rem); }
+    .hero h1 { margin: 1.3rem 0 1.4rem; color: #fff; }
+    .hero .lede { max-width: 35ch; color: var(--on-blue-mute); }
+    .hero-cta { display: flex; flex-wrap: wrap; gap: 0.85rem; margin: 2rem 0 1.5rem; }
+    .reassure { display: flex; flex-wrap: wrap; gap: 0.4rem 0.7rem; font-size: 0.86rem; color: var(--on-blue-mute); font-weight: 500; }
+    .reassure span:not(:last-child)::after { content: '•'; margin-left: 0.7rem; color: var(--banana); }
+
+    /* Cart ticket */
+    .ticket { position: relative; background: var(--card); color: var(--navy); border-radius: var(--radius); box-shadow: var(--shadow-float); padding: 1.7rem 1.7rem 1.5rem; }
+    .ticket-mascot { position: absolute; top: -46px; right: -18px; width: 104px; transform: rotate(8deg); filter: drop-shadow(0 10px 16px rgba(6,32,68,0.35)); }
+    .ticket-said { font-family: var(--display); font-weight: 600; font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-mute); }
+    .ticket-quote { font-family: var(--display); font-weight: 700; font-size: 1.28rem; line-height: 1.28; margin: 0.4rem 0 0; max-width: 15ch; }
+    .ticket-quote .cursor { display: inline-block; width: 3px; height: 1.05em; background: var(--blue); margin-left: 3px; vertical-align: -0.16em; border-radius: 2px; animation: blink 1.1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .ticket-arrow { display: flex; align-items: center; gap: 0.65rem; margin: 1.15rem 0 0.7rem; font-family: var(--display); font-weight: 600; font-size: 0.64rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--blue-deep); }
+    .ticket-arrow::before, .ticket-arrow::after { content: ''; height: 2px; background: var(--blue-soft); flex: 1; border-radius: 2px; }
+    .line { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; padding: 0.62rem 0; border-bottom: 1px solid var(--border); }
+    .line-name { display: flex; align-items: center; gap: 0.65rem; font-weight: 600; }
+    .check { width: 22px; height: 22px; flex: none; background: var(--green); border-radius: 999px; display: grid; place-items: center; }
+    .check svg { width: 12px; height: 12px; }
+    .line-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: flex-end; }
+    .tag { font-family: var(--display); font-weight: 600; font-size: 0.62rem; letter-spacing: 0.04em; text-transform: uppercase; padding: 0.22rem 0.6rem; border-radius: 999px; }
+    .tag.organic { background: var(--green-soft); color: var(--green); }
+    .tag.grass { background: var(--banana-soft); color: #9A6B00; }
+    .ticket-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-top: 1.15rem; }
+    .ticket-store { font-size: 0.8rem; color: var(--ink-mute); }
+    .ticket-store b { color: var(--navy); font-weight: 700; }
+    .ticket-checkout { font-family: var(--display); font-weight: 700; font-size: 0.82rem; color: #fff; background: var(--navy); border-radius: 999px; padding: 0.55rem 0.95rem; display: inline-flex; align-items: center; gap: 0.4rem; }
+
+    /* ---------- HOW IT WORKS ---------- */
+    .section-head { max-width: 46ch; margin-bottom: clamp(2.4rem, 4vw, 3.4rem); }
+    .section-head h2 { margin: 1rem 0 0.9rem; }
+    .section-head p { color: var(--ink-mute); }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1.4rem, 3vw, 2.4rem); }
+    .step-num { font-family: var(--display); font-weight: 800; font-size: 2.4rem; color: var(--blue); line-height: 1; }
+    .step-num small { font-family: var(--display); font-weight: 600; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); display: block; margin-top: 0.5rem; }
+    .step-rule { height: 4px; width: 46px; background: var(--banana); border-radius: 4px; margin: 1rem 0 1.1rem; }
+    .step h3 { margin-bottom: 0.5rem; }
+    .step p { color: var(--ink-mute); font-size: 0.98rem; }
+
+    /* ---------- WHY DIFFERENT ---------- */
+    .why { background: var(--blue-wash); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(1.2rem, 2.5vw, 1.8rem); }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow-card); padding: 1.8rem 1.6rem; transition: transform 0.18s ease, box-shadow 0.18s ease; }
+    .card:hover { transform: translateY(-6px); box-shadow: var(--shadow-float); }
+    .card-ic { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; margin-bottom: 1.15rem; }
+    .card-ic.c1 { background: var(--blue-soft); } .card-ic.c2 { background: var(--banana-soft); } .card-ic.c3 { background: var(--green-soft); }
+    .card-ic svg { width: 26px; height: 26px; }
+    .card h3 { margin-bottom: 0.55rem; }
+    .card p { color: var(--ink-mute); font-size: 0.97rem; }
+
+    /* ---------- HONEST ---------- */
+    .honest { background: var(--navy); color: #fff; position: relative; overflow: hidden; }
+    .honest::before { content: ''; position: absolute; inset: 0; opacity: 0.6; pointer-events: none; background-image: radial-gradient(circle 1.5px, rgba(255,197,49,0.16) 1.5px, transparent 2px); background-size: 26px 26px; }
+    .honest .wrap { position: relative; }
+    .honest-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+    .honest h2 { margin: 1rem 0 0; color: #fff; }
+    .honest .lede { color: var(--on-blue-mute); margin-top: 1.1rem; max-width: 34ch; }
+    .honest-points { display: flex; flex-direction: column; gap: 1.4rem; }
+    .hp { display: flex; gap: 0.95rem; align-items: flex-start; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); border-radius: var(--radius-sm); padding: 1.05rem 1.2rem; }
+    .hp-ic { width: 30px; height: 30px; flex: none; border-radius: 999px; background: var(--banana); display: grid; place-items: center; margin-top: 1px; }
+    .hp-ic svg { width: 16px; height: 16px; }
+    .hp h3 { font-family: var(--display); font-weight: 700; font-size: 1.02rem; margin-bottom: 0.2rem; color: #fff; }
+    .hp p { color: rgba(213,234,255,0.72); font-size: 0.93rem; line-height: 1.5; }
+
+    /* ---------- FINAL CTA ---------- */
+    .final { background: var(--blue); color: #fff; text-align: center; position: relative; overflow: hidden; }
+    .final::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5; background-image: radial-gradient(circle 1.5px, rgba(255,255,255,0.16) 1.5px, transparent 2px); background-size: 26px 26px; }
+    .final .wrap { position: relative; z-index: 1; }
+    .final img.banana-big { width: 92px; margin: 0 auto 1.4rem; filter: drop-shadow(0 12px 20px rgba(6,32,68,0.4)); animation: bob 3.4s ease-in-out infinite; }
+    @keyframes bob { 50% { transform: translateY(-9px) rotate(-3deg); } }
+    .final h2 { max-width: 20ch; margin: 0 auto 1.2rem; color: #fff; }
+    .final .lede { max-width: 52ch; margin: 0 auto; color: var(--on-blue-mute); }
+    .final .hero-cta { justify-content: center; margin-bottom: 1.2rem; }
+    .final .reassure { justify-content: center; }
+
+    /* ---------- FOOTER ---------- */
+    footer { background: var(--navy-2); color: #fff; }
+    .foot-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 1.6rem clamp(1.25rem, 4vw, 3rem); }
+    .foot-left { display: flex; align-items: center; gap: 0.6rem; font-size: 0.8rem; color: rgba(213,234,255,0.6); }
+    .foot-left img { width: 24px; }
+    .foot-right { display: flex; gap: 1.4rem; font-family: var(--display); font-weight: 600; font-size: 0.76rem; letter-spacing: 0.03em; }
+    .foot-right a { color: rgba(213,234,255,0.7); text-decoration: none; }
+    .foot-right a:hover { color: var(--banana); }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 860px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 3.2rem; }
+      .hero .lede { max-width: 48ch; }
+      .ticket-mascot { width: 88px; top: -40px; right: -6px; }
+      .steps { grid-template-columns: 1fr; gap: 2rem; }
+      .cards { grid-template-columns: 1fr; }
+      .honest-grid { grid-template-columns: 1fr; gap: 2rem; }
+    }
+    @media (max-width: 520px) {
+      .brand-name { font-size: 1.15rem; }
+      .hero-cta .btn { flex: 1 1 auto; justify-content: center; }
+      .ticket-foot { flex-direction: column; align-items: stretch; }
+      .ticket-checkout { justify-content: center; }
+    }
+    @media (prefers-reduced-motion: reduce) { .final img.banana-big, .ticket-quote .cursor { animation: none; } }
+  </style>
+</head>
+<body>
+
+  <!-- ============ NAV ============ -->
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="#top" class="brand" aria-label="MC Peels home">
+        <img src="banana.png" alt="" />
+        <span>
+          <span class="brand-name" style="display:block">MC Peels</span>
+          <span class="brand-sub" style="display:block">By Second 9 Labs</span>
+        </span>
+      </a>
+      <a href="#get" class="nav-cta">Get early access</a>
+    </div>
+  </header>
+
+  <span id="top"></span>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="chip chip-onblue"><span class="dot"></span> Groceries, in plain words</span>
+        <h1>Just <em>say</em> what you want.</h1>
+        <p class="lede">Tell MC Peels &ldquo;organic bananas, blueberries, grass-fed beef.&rdquo; You get a ready-to-checkout cart at your store &mdash; already filtered to your household&rsquo;s diet. Open the link, check out, done.</p>
+        <div class="hero-cta">
+          <a href="#get" class="btn btn-banana">Get early access <span class="arrow">&rarr;</span></a>
+          <a href="#how" class="btn btn-ghost-blue">See how it works</a>
+        </div>
+        <p class="reassure">
+          <span>You always check out yourself</span>
+          <span>we never see your card</span>
+          <span>filters, not guarantees</span>
+        </p>
+      </div>
+
+      <!-- Cart ticket -->
+      <div class="ticket" aria-label="Example: a plain-language request becomes a filtered cart">
+        <img class="ticket-mascot" src="banana.png" alt="MC Peels banana mascot in sunglasses" />
+        <div class="ticket-said">You said</div>
+        <p class="ticket-quote">organic bananas, blueberries, grass-fed beef<span class="cursor"></span></p>
+
+        <div class="ticket-arrow">MC Peels filled the cart</div>
+
+        <div class="line">
+          <span class="line-name"><span class="check"><svg viewBox="0 0 12 12"><path d="M1 6l3.2 3.5L11 2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Bananas</span>
+          <span class="line-tags"><span class="tag organic">Organic</span></span>
+        </div>
+        <div class="line">
+          <span class="line-name"><span class="check"><svg viewBox="0 0 12 12"><path d="M1 6l3.2 3.5L11 2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Blueberries</span>
+          <span class="line-tags"><span class="tag organic">Organic</span></span>
+        </div>
+        <div class="line">
+          <span class="line-name"><span class="check"><svg viewBox="0 0 12 12"><path d="M1 6l3.2 3.5L11 2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Ground beef</span>
+          <span class="line-tags"><span class="tag grass">Grass-fed</span><span class="tag organic">Organic</span></span>
+        </div>
+
+        <div class="ticket-foot">
+          <span class="ticket-store">at <b>your preferred store</b></span>
+          <span class="ticket-checkout">Check out on Instacart <span aria-hidden="true">&rarr;</span></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <section id="how" class="section-pad">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="chip chip-soft">How it works</span>
+        <h2>Three steps, and most of them aren&rsquo;t yours.</h2>
+        <p>You do the asking and the checking out. MC Peels does the tedious part in the middle &mdash; the part where you used to tick &ldquo;organic&rdquo; box by box.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01<small>Say it</small></div>
+          <div class="step-rule"></div>
+          <h3>Ask in plain words</h3>
+          <p>Type or tell it what you want, the way you&rsquo;d say it to a partner. No hunting through listings, no filter menus.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02<small>We filter it</small></div>
+          <div class="step-rule"></div>
+          <h3>Your diet, applied</h3>
+          <p>Organic-preferring, grass-fed, brands you trust, things you avoid &mdash; your household&rsquo;s rules ride along on every item, automatically.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03<small>You check out</small></div>
+          <div class="step-rule"></div>
+          <h3>One tap to Instacart</h3>
+          <p>Get a ready-to-checkout link at your store. You review and pay on Instacart. MC Peels never touches your card.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHY DIFFERENT ============ -->
+  <section class="why section-pad">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="chip chip-soft">Why it&rsquo;s different</span>
+        <h2>Set your kitchen&rsquo;s rules once.</h2>
+        <p>Grocery apps make you do the translation every single time. MC Peels learns it once and carries it forward.</p>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <div class="card-ic c1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#208AEF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="19" cy="17" r="2.2" fill="#208AEF" stroke="none"/></svg>
+          </div>
+          <h3>One profile, every cart</h3>
+          <p>Set your household&rsquo;s diet once &mdash; organic, grass-fed, the brands you trust, the stuff you steer clear of. It applies to every order without you lifting a finger.</p>
+        </article>
+        <article class="card">
+          <div class="card-ic c2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9A6B00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5a4 4 0 0 1 8 0c0 3-4 3.6-4 6.5"/><circle cx="12" cy="16.5" r="1.5" fill="#9A6B00" stroke="none"/><path d="M4 9h3M17 9h3"/></svg>
+          </div>
+          <h3>An app <em>and</em> an assistant</h3>
+          <p>Use MC Peels yourself on your phone, or let your AI assistant place the order for you. Same brain behind both doors &mdash; your diet applies either way.</p>
+        </article>
+        <article class="card">
+          <div class="card-ic c3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#17A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 9-4.1-1.5-7-4.8-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          </div>
+          <h3>Honest about the hard parts</h3>
+          <p>Filters are preferences, not promises. For real allergies, you&rsquo;re the last set of eyes at checkout &mdash; and we tell you so, every time. No over-promising.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HONEST ============ -->
+  <section class="honest section-pad">
+    <div class="wrap">
+      <div class="honest-grid">
+        <div>
+          <span class="chip chip-navy">The fine print, up front</span>
+          <h2>You&rsquo;re always the <em>last</em> set of eyes.</h2>
+          <p class="lede">We&rsquo;re honest about what software can and can&rsquo;t promise &mdash; especially where it counts.</p>
+        </div>
+        <div class="honest-points">
+          <div class="hp">
+            <span class="hp-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="#152238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 4"/></svg></span>
+            <div>
+              <h3>Checkout stays on Instacart</h3>
+              <p>MC Peels builds the cart and hands you a link. You pick the store, review the cart, and pay &mdash; signed into your own Instacart account.</p>
+            </div>
+          </div>
+          <div class="hp">
+            <span class="hp-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="#152238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 4"/></svg></span>
+            <div>
+              <h3>We never touch your card</h3>
+              <p>No card numbers, no Instacart passwords, nothing to store. MC Peels only ever assembles the list. Your money moves on Instacart, not here.</p>
+            </div>
+          </div>
+          <div class="hp">
+            <span class="hp-ic" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="#152238" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l3.5 3.5L13 4"/></svg></span>
+            <div>
+              <h3>Filters aren&rsquo;t guarantees</h3>
+              <p>&ldquo;Organic&rdquo; and &ldquo;no peanuts&rdquo; are strong preferences we apply for you &mdash; not a certification. For real sensitivities, your review at checkout is the safety gate.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section id="get" class="final section-pad">
+    <div class="wrap">
+      <img class="banana-big" src="banana.png" alt="MC Peels banana mascot in sunglasses" />
+      <h2>Stop translating your grocery list.</h2>
+      <p class="lede">MC Peels is coming to iPhone, Android, and the web &mdash; and to the AI assistants that run your household. Be first in line.</p>
+      <div class="hero-cta" style="margin-top:1.9rem;">
+        <a href="mailto:hello@secondninelabs.com?subject=MC%20Peels%20early%20access" class="btn btn-banana">Get early access <span class="arrow">&rarr;</span></a>
+        <a href="#how" class="btn btn-ghost-blue">See how it works</a>
+      </div>
+      <p class="reassure">A Second 9 Labs kitchen experiment &mdash; built to be boring, useful, and honest.</p>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="foot-inner">
+      <span class="foot-left">
+        <img src="banana.png" alt="" />
+        &copy; 2026 Second 9 Labs &mdash; a tool from the kitchen
+      </span>
+      <nav class="foot-right">
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="https://secondninelabs.com">Second 9 Labs</a>
+      </nav>
+    </div>
+  </footer>
+
+</body>
+</html>

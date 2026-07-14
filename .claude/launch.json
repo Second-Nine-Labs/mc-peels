@@ -18,6 +18,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "apps/mobile", "run", "web", "--", "--port", "8090"],
       "port": 8090
+    },
+    {
+      "name": "landing",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["landing/server.mjs"],
+      "port": 8092
     }
   ]
 }
