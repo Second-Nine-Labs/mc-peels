@@ -2,7 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { EmptyState, ErrorBanner, LoadingView, StatusChip } from '@/components/ui';
+import { DisplayTitle, EmptyState, ErrorBanner, EyebrowChip, LoadingView, StatusChip } from '@/components/ui';
 import { api, getErrorMessage } from '@/lib/api';
 import { formatDate, prettifyRetailerKey } from '@/lib/format';
 import { useSession } from '@/lib/session';
@@ -96,7 +96,7 @@ export default function CartsScreen() {
               onPress={() => router.push({ pathname: '/cart/[id]', params: { id: item.id } })}
               style={({ pressed }) => [
                 styles.row,
-                { backgroundColor: p.card, borderColor: p.border, opacity: pressed ? 0.85 : 1 },
+                { backgroundColor: p.card, opacity: pressed ? 0.85 : 1 },
               ]}
             >
               <View style={styles.rowHeader}>
@@ -115,7 +115,13 @@ export default function CartsScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={p.onBg} />
         }
-        ListHeaderComponent={<ErrorBanner message={error} />}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <EyebrowChip label="Your kitchen" onCanvas />
+            <DisplayTitle text="Recent carts" size={32} />
+            <ErrorBanner message={error} />
+          </View>
+        }
         ListEmptyComponent={
           !error ? (
             <EmptyState
@@ -141,11 +147,15 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexGrow: 1,
   },
+  header: {
+    gap: 12,
+    marginBottom: 6,
+  },
   row: {
-    borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
     gap: 6,
+    boxShadow: '0px 12px 26px rgba(21, 34, 56, 0.10)',
   },
   rowHeader: {
     flexDirection: 'row',

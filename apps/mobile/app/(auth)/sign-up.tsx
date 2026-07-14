@@ -4,7 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MascotMark } from '@/components/MascotMark';
-import { Button, ErrorBanner, Field, SuccessBanner, TwoToneTitle } from '@/components/ui';
+import { Button, Card, DisplayTitle, ErrorBanner, EyebrowChip, Field, SuccessBanner } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { usePalette } from '@/lib/theme';
 
@@ -63,58 +63,60 @@ export default function SignUpScreen() {
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <View style={styles.mascot}>
-              <MascotMark size={56} />
+              <MascotMark size={72} />
             </View>
-            <TwoToneTitle light="Create your" bold="account" size={30} />
+            <EyebrowChip label="Groceries, in plain words" onCanvas />
+            <DisplayTitle text="Make an account." emphasis="account" size={36} />
             <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               One account per person — you&apos;ll create or join your household next.
             </Text>
           </View>
 
-          <ErrorBanner message={error} />
-          <SuccessBanner message={info} />
+          <Card elevated style={styles.formCard}>
+            <Text style={[styles.cardTitle, { color: p.text }]}>Create your account.</Text>
 
-          <Field
-            labelColor={p.onBgMuted}
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@example.com"
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            textContentType="emailAddress"
-          />
-          <Field
-            labelColor={p.onBgMuted}
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="At least 6 characters"
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
-          />
-          <Field
-            labelColor={p.onBgMuted}
-            label="Confirm password"
-            value={confirm}
-            onChangeText={setConfirm}
-            placeholder="Same password again"
-            secureTextEntry
-            autoComplete="new-password"
-            textContentType="newPassword"
-            onSubmitEditing={signUp}
-          />
+            <ErrorBanner message={error} />
+            <SuccessBanner message={info} />
 
-          <Button title="Create account" onPress={signUp} loading={loading} />
+            <Field
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              textContentType="emailAddress"
+            />
+            <Field
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="At least 6 characters"
+              secureTextEntry
+              autoComplete="new-password"
+              textContentType="newPassword"
+            />
+            <Field
+              label="Confirm password"
+              value={confirm}
+              onChangeText={setConfirm}
+              placeholder="Same password again"
+              secureTextEntry
+              autoComplete="new-password"
+              textContentType="newPassword"
+              onSubmitEditing={signUp}
+            />
 
-          <View style={styles.switchRow}>
-            <Text style={{ color: p.onBgMuted }}>Already have an account? </Text>
-            <Link href="/(auth)/sign-in" style={[styles.link, { color: p.onBg }]}>
-              Sign in
-            </Link>
-          </View>
+            <Button title="Create account" onPress={signUp} loading={loading} />
+
+            <View style={styles.switchRow}>
+              <Text style={{ color: p.textMuted }}>Already have an account? </Text>
+              <Link href="/(auth)/sign-in" style={[styles.link, { color: p.tint }]}>
+                Sign in
+              </Link>
+            </View>
+          </Card>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -133,28 +135,31 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   hero: {
-    marginBottom: 28,
-    gap: 8,
+    marginBottom: 24,
+    gap: 14,
   },
   mascot: {
     alignSelf: 'flex-start',
-    marginBottom: 14,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
     lineHeight: 23,
   },
+  formCard: {
+    padding: 22,
+  },
+  cardTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    marginBottom: 18,
+  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 18,
   },
   link: {
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

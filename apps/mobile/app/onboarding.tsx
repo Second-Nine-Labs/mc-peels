@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Button, Chip, ErrorBanner, Field, LoadingView } from '@/components/ui';
+import { MascotMark } from '@/components/MascotMark';
+import { Button, Card, Chip, DisplayTitle, ErrorBanner, EyebrowChip, Field, LoadingView } from '@/components/ui';
 import { ApiError, api, getErrorMessage } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { usePalette } from '@/lib/theme';
@@ -119,11 +120,22 @@ export default function OnboardingScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.title, { color: p.onBg }]}>Set up your household</Text>
-          <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
-            Groceries in MC Peels are shared per household — dietary rules, preferred store, and
-            carts all live here.
-          </Text>
+          <View style={styles.hero}>
+            <View style={styles.mascot}>
+              <MascotMark size={60} />
+            </View>
+            <EyebrowChip label="Welcome to MC Peels" onCanvas />
+            <DisplayTitle
+              text="Set up your household"
+              emphasis="household"
+              size={34}
+              style={styles.heroTitle}
+            />
+            <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
+              Groceries in MC Peels are shared per household — dietary rules, preferred store, and
+              carts all live here.
+            </Text>
+          </View>
 
           <View style={styles.modeRow}>
             <Chip label="Create a household" selected={mode === 'create'} onPress={() => setMode('create')} />
@@ -145,46 +157,48 @@ export default function OnboardingScreen() {
 
           <ErrorBanner message={error} />
 
-          {mode === 'create' ? (
-            <>
-              <Field
-                labelColor={p.onBgMuted}
-                label="Household name"
-                value={name}
-                onChangeText={setName}
-                placeholder="e.g. Shaffer Household"
-              />
-              <Field
-                labelColor={p.onBgMuted}
-                label="Postal code"
-                value={postalCode}
-                onChangeText={setPostalCode}
-                placeholder="e.g. 10001"
-                autoCapitalize="characters"
-                helperText="Used to find Instacart retailers near you."
-              />
-              <Text style={[styles.fieldLabel, { color: p.onBgMuted }]}>Country</Text>
-              <View style={styles.modeRow}>
-                <Chip label="United States" selected={countryCode === 'US'} onPress={() => setCountryCode('US')} />
-                <Chip label="Canada" selected={countryCode === 'CA'} onPress={() => setCountryCode('CA')} />
-              </View>
-              <Button title="Create household" onPress={createHousehold} loading={submitting} />
-            </>
-          ) : (
-            <>
-              <Field
-                labelColor={p.onBgMuted}
-                label="Invite code"
-                value={inviteCode}
-                onChangeText={setInviteCode}
-                placeholder="8-character code"
-                autoCapitalize="characters"
-                autoCorrect={false}
-                helperText="Ask a household member to generate one from the Household tab."
-              />
-              <Button title="Join household" onPress={joinHousehold} loading={submitting} />
-            </>
-          )}
+          <Card elevated>
+            {mode === 'create' ? (
+              <>
+                <Field
+                  labelColor={p.textMuted}
+                  label="Household name"
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="e.g. Shaffer Household"
+                />
+                <Field
+                  labelColor={p.textMuted}
+                  label="Postal code"
+                  value={postalCode}
+                  onChangeText={setPostalCode}
+                  placeholder="e.g. 10001"
+                  autoCapitalize="characters"
+                  helperText="Used to find Instacart retailers near you."
+                />
+                <Text style={[styles.fieldLabel, { color: p.textMuted }]}>Country</Text>
+                <View style={styles.modeRow}>
+                  <Chip label="United States" selected={countryCode === 'US'} onPress={() => setCountryCode('US')} />
+                  <Chip label="Canada" selected={countryCode === 'CA'} onPress={() => setCountryCode('CA')} />
+                </View>
+                <Button title="Create household" onPress={createHousehold} loading={submitting} />
+              </>
+            ) : (
+              <>
+                <Field
+                  labelColor={p.textMuted}
+                  label="Invite code"
+                  value={inviteCode}
+                  onChangeText={setInviteCode}
+                  placeholder="8-character code"
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  helperText="Ask a household member to generate one from the Household tab."
+                />
+                <Button title="Join household" onPress={joinHousehold} loading={submitting} />
+              </>
+            )}
+          </Card>
 
           <Button title="Sign out" onPress={signOut} variant="ghost" style={styles.signOut} />
         </ScrollView>
@@ -246,11 +260,18 @@ function RetailerStep({ household }: { household: Household }) {
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={[styles.title, { color: p.onBg }]}>Pick your store</Text>
-        <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
-          Carts will be built at this retailer by default. You can change it any time in the
-          Household tab.
-        </Text>
+        <View style={styles.hero}>
+          <DisplayTitle
+            text="Pick your store"
+            emphasis="store"
+            size={34}
+            style={styles.heroTitle}
+          />
+          <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
+            Carts will be built at this retailer by default. You can change it any time in the
+            Household tab.
+          </Text>
+        </View>
 
         <ErrorBanner message={error ?? loadError} />
 
@@ -316,10 +337,14 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 8,
+  hero: {
+    gap: 12,
+  },
+  mascot: {
+    alignSelf: 'flex-start',
+  },
+  heroTitle: {
+    marginTop: 2,
   },
   subtitle: {
     fontSize: 15,

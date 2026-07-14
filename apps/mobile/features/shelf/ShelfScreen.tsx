@@ -23,49 +23,16 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useColorScheme,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DisplayTitle, EyebrowChip } from '@/components/ui';
 import type { Dish } from '@/features/eats/types';
 import { usePlan } from '@/features/eats/usePlan';
 import { api, getErrorMessage } from '@/lib/api';
 import type { CreateCartResponse, SavedRecipe } from '@/lib/types';
-
-// Tokens — the shelf is house-brand (warm paper, gold), not a costume.
-interface ShelfTokens {
-  canvas: string;
-  card: string;
-  ink: string;
-  muted: string;
-  hairline: string;
-  gold: string;
-  onGold: string;
-  dim: string;
-}
-
-const light: ShelfTokens = {
-  canvas: '#F7F5F0',
-  card: '#FFFFFF',
-  ink: '#1D2433',
-  muted: '#6E7686',
-  hairline: '#E7E4DB',
-  gold: '#FFC531',
-  onGold: '#1D2433',
-  dim: '#9AA1AF',
-};
-
-const dark: ShelfTokens = {
-  canvas: '#0B1626',
-  card: '#13233A',
-  ink: '#EAF2FE',
-  muted: '#97A6C2',
-  hairline: '#243953',
-  gold: '#FFC531',
-  onGold: '#20180A',
-  dim: '#5F6E8A',
-};
+import { usePalette, type Palette } from '@/lib/theme';
 
 const KITCHEN_THRESHOLD = 8;
 
@@ -146,7 +113,7 @@ export function ShelfScreen({
   onBack,
   onCartBuilt,
 }: ShelfScreenProps) {
-  const t = useColorScheme() === 'dark' ? dark : light;
+  const p = usePalette();
 
   const [recipes, setRecipes] = useState<SavedRecipe[] | null>(previewMode ? SAMPLE_RECIPES : null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -273,28 +240,30 @@ export function ShelfScreen({
   const loading = recipes === null;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: t.canvas }]} edges={['top']}>
+    <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
           {onBack ? (
-            <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={10}>
-              <Ionicons name="chevron-back" size={22} color={t.ink} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+              onPress={onBack}
+              hitSlop={10}
+              style={styles.backButton}
+            >
+              <Ionicons name="chevron-back" size={22} color={p.onBg} />
             </Pressable>
           ) : null}
-          <View style={styles.headerText}>
-            <Text style={[styles.title, { color: t.ink }]}>
-              <Text style={{ fontWeight: '300' }}>The </Text>
-              <Text style={{ fontWeight: '800' }}>shelf</Text>
-            </Text>
-            <Text style={[styles.subtitle, { color: t.muted }]}>
-              dishes you sent us — every one of them cartable
-            </Text>
-          </View>
+          <EyebrowChip label="Send a link, get a dish" onCanvas />
+          <DisplayTitle text="The shelf" emphasis="shelf" size={34} />
+          <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
+            dishes you sent us — every one of them cartable
+          </Text>
         </View>
 
-        <View style={[styles.pastePanel, { backgroundColor: t.card, borderColor: t.hairline }]}>
+        <View style={[styles.pastePanel, { backgroundColor: p.card }]}>
           <View style={styles.pasteRow}>
-            <Ionicons name="link-outline" size={18} color={t.muted} />
+            <Ionicons name="link-outline" size={18} color={p.textMuted} />
             <TextInput
               value={link}
               onChangeText={(value) => {
@@ -303,13 +272,13 @@ export function ShelfScreen({
                 setPullNote(null);
               }}
               placeholder="Paste a TikTok, pin, reel, or recipe link"
-              placeholderTextColor={t.muted}
+              placeholderTextColor={p.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType={Platform.OS === 'ios' ? 'url' : 'default'}
               editable={!pulling}
               onSubmitEditing={pullIn}
-              style={[styles.pasteInput, { color: t.ink }]}
+              style={[styles.pasteInput, { color: p.text }]}
             />
           </View>
           <Pressable
@@ -319,47 +288,47 @@ export function ShelfScreen({
             style={({ pressed }) => [
               styles.pullButton,
               {
-                backgroundColor: t.gold,
+                backgroundColor: p.accent,
                 opacity: pulling || link.trim().length === 0 ? 0.45 : pressed ? 0.85 : 1,
               },
             ]}
           >
             {pulling ? (
               <>
-                <ActivityIndicator size="small" color={t.onGold} />
-                <Text style={[styles.pullButtonText, { color: t.onGold }]}>Reading the recipe…</Text>
+                <ActivityIndicator size="small" color={p.onAccent} />
+                <Text style={[styles.pullButtonText, { color: p.onAccent }]}>Reading the recipe…</Text>
               </>
             ) : (
               <>
-                <Ionicons name="download-outline" size={16} color={t.onGold} />
-                <Text style={[styles.pullButtonText, { color: t.onGold }]}>Pull it in</Text>
+                <Ionicons name="download-outline" size={16} color={p.onAccent} />
+                <Text style={[styles.pullButtonText, { color: p.onAccent }]}>Pull it in</Text>
               </>
             )}
           </Pressable>
-          {pullError ? <Text style={[styles.pullError, { color: '#C2483B' }]}>{pullError}</Text> : null}
-          {pullNote ? <Text style={[styles.pullNote, { color: t.muted }]}>{pullNote}</Text> : null}
+          {pullError ? <Text style={[styles.pullError, { color: p.danger }]}>{pullError}</Text> : null}
+          {pullNote ? <Text style={[styles.pullNote, { color: p.textMuted }]}>{pullNote}</Text> : null}
         </View>
 
         {loading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={t.muted} />
+            <ActivityIndicator color={p.onBg} />
           </View>
         ) : loadError ? (
-          <View style={[styles.notice, { backgroundColor: t.card, borderColor: t.hairline }]}>
-            <Text style={[styles.noticeText, { color: t.muted }]}>{loadError}</Text>
+          <View style={[styles.notice, { backgroundColor: p.card }]}>
+            <Text style={[styles.noticeText, { color: p.textMuted }]}>{loadError}</Text>
             <Pressable accessibilityRole="button" onPress={() => void load()}>
-              <Text style={[styles.noticeAction, { color: t.ink }]}>Try again</Text>
+              <Text style={[styles.noticeAction, { color: p.text }]}>Try again</Text>
             </Pressable>
           </View>
         ) : sections.length === 0 ? (
-          <View style={[styles.notice, { backgroundColor: t.card, borderColor: t.hairline }]}>
-            <Text style={[styles.noticeTitle, { color: t.ink }]}>Nothing on the shelf yet</Text>
-            <Text style={[styles.noticeText, { color: t.muted }]}>
+          <View style={[styles.notice, { backgroundColor: p.card }]}>
+            <Text style={[styles.noticeTitle, { color: p.text }]}>Nothing on the shelf yet</Text>
+            <Text style={[styles.noticeText, { color: p.textMuted }]}>
               Send MC Peels a TikTok, a pin, or any recipe link and it becomes a dish here —
               ingredients ready to cart. Save enough of one cuisine and a kitchen opens on the
               block.
             </Text>
-            <Text style={[styles.noticeFootnote, { color: t.dim }]}>
+            <Text style={[styles.noticeFootnote, { color: p.textMuted }]}>
               Instagram links often arrive with the caption locked; those dishes get rebuilt and
               say so.
             </Text>
@@ -368,10 +337,10 @@ export function ShelfScreen({
           sections.map(([cuisine, list]) => (
             <View key={cuisine} style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionLabel, { color: t.muted }]}>
+                <Text style={[styles.sectionLabel, { color: p.onBg }]}>
                   {cuisineLabel(cuisine).toUpperCase()}
                 </Text>
-                <Text style={[styles.sectionProgress, { color: t.dim }]}>
+                <Text style={[styles.sectionProgress, { color: p.onBgMuted }]}>
                   {list.length >= KITCHEN_THRESHOLD
                     ? `${list.length} saved · enough to open a kitchen — soon`
                     : `${list.length} saved · ${KITCHEN_THRESHOLD - list.length} more and a kitchen opens`}
@@ -380,7 +349,7 @@ export function ShelfScreen({
               {list.map((recipe) => (
                 <RecipeRow
                   key={recipe.id}
-                  tokens={t}
+                  palette={p}
                   recipe={recipe}
                   selected={plan.selected.has(recipe.id)}
                   expanded={expanded.has(recipe.id)}
@@ -399,18 +368,18 @@ export function ShelfScreen({
       </ScrollView>
 
       {plan.chosen.length > 0 ? (
-        <View style={[styles.launchBand, { backgroundColor: t.card, borderColor: t.hairline }]}>
+        <View style={[styles.launchBand, { backgroundColor: p.card }]}>
           <View style={styles.launchMeta}>
-            <Text style={[styles.launchCount, { color: t.ink }]}>
+            <Text style={[styles.launchCount, { color: p.text }]}>
               {plan.chosen.length} {plan.chosen.length === 1 ? 'dish' : 'dishes'} ·{' '}
               {plan.plan.items.length} items
             </Text>
-            <Text style={[styles.launchShared, { color: t.muted }]}>
+            <Text style={[styles.launchShared, { color: p.textMuted }]}>
               {plan.plan.sharedCount > 0
                 ? `${plan.plan.sharedCount} shared ${plan.plan.sharedCount === 1 ? 'worker' : 'workers'} across dishes`
                 : 'no overlap — every item pulls one shift'}
             </Text>
-            {plan.error ? <Text style={[styles.launchError, { color: '#C2483B' }]}>{plan.error}</Text> : null}
+            {plan.error ? <Text style={[styles.launchError, { color: p.danger }]}>{plan.error}</Text> : null}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -418,13 +387,13 @@ export function ShelfScreen({
             disabled={plan.building}
             style={({ pressed }) => [
               styles.launchButton,
-              { backgroundColor: t.gold, opacity: plan.building ? 0.6 : pressed ? 0.85 : 1 },
+              { backgroundColor: p.accent, opacity: plan.building ? 0.6 : pressed ? 0.85 : 1 },
             ]}
           >
             {plan.building ? (
-              <ActivityIndicator size="small" color={t.onGold} />
+              <ActivityIndicator size="small" color={p.onAccent} />
             ) : (
-              <Text style={[styles.launchButtonText, { color: t.onGold }]}>Build the cart</Text>
+              <Text style={[styles.launchButtonText, { color: p.onAccent }]}>Build the cart</Text>
             )}
           </Pressable>
         </View>
@@ -436,7 +405,7 @@ export function ShelfScreen({
 // ---------------------------------------------------------------------------
 
 interface RecipeRowProps {
-  tokens: ShelfTokens;
+  palette: Palette;
   recipe: SavedRecipe;
   selected: boolean;
   expanded: boolean;
@@ -448,7 +417,7 @@ interface RecipeRowProps {
 }
 
 function RecipeRow({
-  tokens: t,
+  palette: p,
   recipe,
   selected,
   expanded,
@@ -462,7 +431,7 @@ function RecipeRow({
   const pantry = recipe.ingredients.filter((ingredient) => ingredient.pantry);
 
   return (
-    <View style={[styles.row, { backgroundColor: t.card, borderColor: t.hairline }]}>
+    <View style={[styles.row, { backgroundColor: p.card }]}>
       <View style={styles.rowMain}>
         <Pressable
           accessibilityRole="checkbox"
@@ -472,57 +441,57 @@ function RecipeRow({
           hitSlop={8}
           style={[
             styles.selectDot,
-            { borderColor: selected ? t.gold : t.hairline, backgroundColor: selected ? t.gold : 'transparent' },
+            { borderColor: selected ? p.accent : p.border, backgroundColor: selected ? p.accent : 'transparent' },
           ]}
         >
-          {selected ? <Ionicons name="checkmark" size={14} color={t.onGold} /> : null}
+          {selected ? <Ionicons name="checkmark" size={14} color={p.onAccent} /> : null}
         </Pressable>
 
         <Pressable accessibilityRole="button" onPress={onToggleExpand} style={styles.rowBody}>
           <View style={styles.rowTitleLine}>
-            <Text style={[styles.rowTitle, { color: t.ink }]} numberOfLines={1}>
+            <Text style={[styles.rowTitle, { color: p.text }]} numberOfLines={1}>
               {recipe.title}
             </Text>
             {recipe.sub ? (
-              <Text style={[styles.rowSub, { color: t.muted }]} numberOfLines={1}>
+              <Text style={[styles.rowSub, { color: p.textMuted }]} numberOfLines={1}>
                 {recipe.sub}
               </Text>
             ) : null}
           </View>
           <View style={styles.rowMetaLine}>
-            <Text style={[styles.rowMeta, { color: t.muted }]} numberOfLines={1}>
+            <Text style={[styles.rowMeta, { color: p.textMuted }]} numberOfLines={1}>
               serves {recipe.serves} · {recipe.minutes} min
               {recipe.heat !== null && recipe.heat > 0 ? ` · ${'🌶'.repeat(recipe.heat)}` : ''} · via{' '}
               {platformLabel(recipe.source_platform)}
               {recipe.creator ? ` · ${recipe.creator}` : ''}
             </Text>
             {recipe.provenance === 'reconstructed' ? (
-              <View style={[styles.rebuiltPill, { borderColor: t.hairline }]}>
-                <Text style={[styles.rebuiltPillText, { color: t.muted }]}>REBUILT</Text>
+              <View style={[styles.rebuiltPill, { borderColor: p.border }]}>
+                <Text style={[styles.rebuiltPillText, { color: p.textMuted }]}>REBUILT</Text>
               </View>
             ) : null}
           </View>
         </Pressable>
 
         <Pressable accessibilityRole="button" accessibilityLabel="Details" onPress={onToggleExpand} hitSlop={8}>
-          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={t.muted} />
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={p.textMuted} />
         </Pressable>
       </View>
 
       {expanded ? (
-        <View style={[styles.detail, { borderTopColor: t.hairline }]}>
+        <View style={[styles.detail, { borderTopColor: p.border }]}>
           {recipe.description ? (
-            <Text style={[styles.detailDescription, { color: t.ink }]}>{recipe.description}</Text>
+            <Text style={[styles.detailDescription, { color: p.text }]}>{recipe.description}</Text>
           ) : null}
           {recipe.notes.length > 0 ? (
-            <Text style={[styles.detailNotes, { color: t.dim }]}>{recipe.notes.join(' ')}</Text>
+            <Text style={[styles.detailNotes, { color: p.textMuted }]}>{recipe.notes.join(' ')}</Text>
           ) : null}
 
-          <Text style={[styles.detailLabel, { color: t.muted }]}>INGREDIENTS</Text>
+          <Text style={[styles.detailLabel, { color: p.textMuted }]}>INGREDIENTS</Text>
           {shopping.map((ingredient, index) => (
             <View key={`${ingredient.name}-${index}`} style={styles.ingredientLine}>
-              <Text style={[styles.ingredientName, { color: t.ink }]}>{ingredient.name}</Text>
-              <Text style={[styles.ingredientQty, { color: t.muted }]}>
+              <Text style={[styles.ingredientName, { color: p.text }]}>{ingredient.name}</Text>
+              <Text style={[styles.ingredientQty, { color: p.textMuted }]}>
                 {ingredient.quantity !== null
                   ? `${ingredient.quantity}${ingredient.unit ? ` ${ingredient.unit}` : ''}`
                   : 'to taste at the store'}
@@ -530,18 +499,18 @@ function RecipeRow({
             </View>
           ))}
           {pantry.length > 0 ? (
-            <Text style={[styles.pantryLine, { color: t.dim }]}>
+            <Text style={[styles.pantryLine, { color: p.textMuted }]}>
               assumed on hand: {pantry.map((ingredient) => ingredient.name).join(', ')}
             </Text>
           ) : null}
 
           {recipe.steps.length > 0 ? (
             <>
-              <Text style={[styles.detailLabel, { color: t.muted }]}>THE MOVES</Text>
+              <Text style={[styles.detailLabel, { color: p.textMuted }]}>THE MOVES</Text>
               {recipe.steps.map((step, index) => (
                 <View key={index} style={styles.stepLine}>
-                  <Text style={[styles.stepNumber, { color: t.dim }]}>{index + 1}</Text>
-                  <Text style={[styles.stepText, { color: t.ink }]}>{step}</Text>
+                  <Text style={[styles.stepNumber, { color: p.textMuted }]}>{index + 1}</Text>
+                  <Text style={[styles.stepText, { color: p.text }]}>{step}</Text>
                 </View>
               ))}
             </>
@@ -549,13 +518,13 @@ function RecipeRow({
 
           <View style={styles.detailActions}>
             <Pressable accessibilityRole="button" onPress={onOpenSource} style={styles.detailAction}>
-              <Ionicons name="open-outline" size={14} color={t.muted} />
-              <Text style={[styles.detailActionText, { color: t.muted }]}>Open the original</Text>
+              <Ionicons name="open-outline" size={14} color={p.textMuted} />
+              <Text style={[styles.detailActionText, { color: p.textMuted }]}>Open the original</Text>
             </Pressable>
             <Pressable accessibilityRole="button" onPress={onDelete} style={styles.detailAction}>
-              <Ionicons name="trash-outline" size={14} color={confirmingDelete ? '#C2483B' : t.muted} />
+              <Ionicons name="trash-outline" size={14} color={confirmingDelete ? p.danger : p.textMuted} />
               <Text
-                style={[styles.detailActionText, { color: confirmingDelete ? '#C2483B' : t.muted }]}
+                style={[styles.detailActionText, { color: confirmingDelete ? p.danger : p.textMuted }]}
               >
                 {confirmingDelete ? 'Tap again to remove' : 'Off the shelf'}
               </Text>
@@ -742,12 +711,17 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { paddingHorizontal: 20, paddingTop: 8 },
   scrollFoot: { height: 96 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
-  headerText: { flex: 1 },
-  title: { fontSize: 26, letterSpacing: 0.2 },
-  subtitle: { fontSize: 13, marginTop: 2 },
+  header: { marginBottom: 22, gap: 12 },
+  backButton: { alignSelf: 'flex-start' },
+  subtitle: { fontSize: 14, lineHeight: 20 },
 
-  pastePanel: { borderWidth: 1, borderRadius: 16, padding: 12, gap: 10, marginBottom: 20 },
+  pastePanel: {
+    borderRadius: 16,
+    padding: 12,
+    gap: 10,
+    marginBottom: 20,
+    boxShadow: '0px 12px 26px rgba(21, 34, 56, 0.10)',
+  },
   pasteRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pasteInput: { flex: 1, fontSize: 14.5, paddingVertical: 6 },
   pullButton: {
@@ -763,7 +737,12 @@ const styles = StyleSheet.create({
   pullNote: { fontSize: 12.5, lineHeight: 17 },
 
   loadingWrap: { paddingVertical: 48, alignItems: 'center' },
-  notice: { borderWidth: 1, borderRadius: 16, padding: 16, gap: 8 },
+  notice: {
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    boxShadow: '0px 12px 26px rgba(21, 34, 56, 0.10)',
+  },
   noticeTitle: { fontSize: 15.5, fontWeight: '800' },
   noticeText: { fontSize: 13.5, lineHeight: 19 },
   noticeFootnote: { fontSize: 12, lineHeight: 16 },
@@ -774,7 +753,12 @@ const styles = StyleSheet.create({
   sectionLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 1.6 },
   sectionProgress: { fontSize: 12 },
 
-  row: { borderWidth: 1, borderRadius: 14, marginBottom: 8, overflow: 'hidden' },
+  row: {
+    borderRadius: 16,
+    marginBottom: 10,
+    overflow: 'hidden',
+    boxShadow: '0px 8px 18px rgba(21, 34, 56, 0.08)',
+  },
   rowMain: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
   selectDot: {
     width: 24,
@@ -813,12 +797,12 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 12,
-    borderWidth: 1,
     borderRadius: 16,
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    boxShadow: '0px -6px 24px rgba(6, 25, 46, 0.18)',
   },
   launchMeta: { flex: 1, gap: 1 },
   launchCount: { fontSize: 14, fontWeight: '800' },

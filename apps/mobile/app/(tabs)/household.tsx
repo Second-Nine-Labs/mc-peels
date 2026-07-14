@@ -6,10 +6,11 @@ import {
   Button,
   Card,
   Chip,
+  DisplayTitle,
   ErrorBanner,
+  EyebrowChip,
   Field,
   LoadingView,
-  SectionTitle,
   SuccessBanner,
   TagInput,
 } from '@/components/ui';
@@ -219,11 +220,21 @@ export default function HouseholdScreen() {
       style={[styles.screen, { backgroundColor: p.background }]}
       contentContainerStyle={styles.container}
     >
+      <View style={styles.header}>
+        <EyebrowChip label="Your household" onCanvas />
+        <DisplayTitle
+          text="Set your kitchen’s rules."
+          emphasis="rules"
+          size={34}
+          style={styles.headerTitle}
+        />
+      </View>
+
       <ErrorBanner message={error} />
       <SuccessBanner message={success} />
 
-      <Card style={styles.section}>
-        <SectionTitle>Household</SectionTitle>
+      <Card elevated style={styles.section}>
+        <DisplayTitle text="Household" size={20} color={p.text} style={styles.cardTitle} />
         <Field label="Name" value={name} onChangeText={setName} />
         <Field
           label="Postal code"
@@ -246,8 +257,8 @@ export default function HouseholdScreen() {
         <Button title="Save household" onPress={saveHousehold} loading={savingHousehold} />
       </Card>
 
-      <Card style={styles.section}>
-        <SectionTitle>Preferred retailer</SectionTitle>
+      <Card elevated style={styles.section}>
+        <DisplayTitle text="Preferred retailer" size={20} color={p.text} style={styles.cardTitle} />
         <Text style={[styles.helperText, { color: p.textMuted }]}>
           Carts are built for this store. You can still change stores on Instacart at checkout.
         </Text>
@@ -271,8 +282,8 @@ export default function HouseholdScreen() {
         </View>
       </Card>
 
-      <Card style={styles.section}>
-        <SectionTitle>Dietary profile</SectionTitle>
+      <Card elevated style={styles.section}>
+        <DisplayTitle text="Dietary profile" size={20} color={p.text} style={styles.cardTitle} />
         <Text style={[styles.helperText, { color: p.textMuted }]}>
           Applied automatically to every request from anyone in the household.
         </Text>
@@ -339,8 +350,8 @@ export default function HouseholdScreen() {
         <Button title="Save dietary profile" onPress={saveProfile} loading={savingProfile} />
       </Card>
 
-      <Card style={styles.section}>
-        <SectionTitle>Members</SectionTitle>
+      <Card elevated style={styles.section}>
+        <DisplayTitle text="Members" size={20} color={p.text} style={styles.cardTitle} />
         {members.map((member) => (
           <View key={member.user_id} style={styles.memberRow}>
             <Text style={[styles.memberName, { color: p.text }]}>
@@ -368,8 +379,8 @@ export default function HouseholdScreen() {
         />
       </Card>
 
-      <Card style={styles.section}>
-        <SectionTitle>Connected services</SectionTitle>
+      <Card elevated style={styles.section}>
+        <DisplayTitle text="Connected services" size={20} color={p.text} style={styles.cardTitle} />
         <Text style={[styles.helperText, { color: p.textMuted }]}>
           Linked store accounts let MC Peels fill a cart for you there — you still review and pay
           on the store’s own site.
@@ -400,8 +411,8 @@ export default function HouseholdScreen() {
         )}
       </Card>
 
-      <Card style={styles.section}>
-        <SectionTitle>Agent access (MCP)</SectionTitle>
+      <Card elevated style={styles.section}>
+        <DisplayTitle text="Agent access (MCP)" size={20} color={p.text} style={styles.cardTitle} />
         <Text style={[styles.helperText, { color: p.textMuted }]}>
           Personal access tokens let an AI assistant (like Chief of Staff) build carts as you.
           Agents only ever get checkout links — a human always completes the purchase.
@@ -464,8 +475,18 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
+  header: {
+    gap: 12,
+    marginBottom: 2,
+  },
+  headerTitle: {
+    marginTop: 2,
+  },
   section: {
     gap: 4,
+  },
+  cardTitle: {
+    marginBottom: 8,
   },
   fieldLabel: {
     fontSize: 13,
