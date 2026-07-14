@@ -58,6 +58,7 @@ export default function HouseholdScreen() {
   const [tokenName, setTokenName] = useState('');
   const [newToken, setNewToken] = useState<string | null>(null);
   const [creatingToken, setCreatingToken] = useState(false);
+  const [connections, setConnections] = useState<Array<{ provider: string; connected_at: string }>>([]);
   const [loaded, setLoaded] = useState(false);
 
   const flash = (setter: (v: string | null) => void, message: string) => {
@@ -68,9 +69,11 @@ export default function HouseholdScreen() {
   const load = useCallback(async () => {
     if (!householdId) return;
     try {
-      const [detail, tokenList] = await Promise.all([
+      const [detail, tokenList, connectionList] = await Promise.all([
         api.getHousehold(householdId),
         api.listTokens().catch(() => ({ tokens: [] as TokenSummary[] })),
+        // Absent on pre-rails servers; the card just shows the empty state.
+        api.getConnections().catch(() => ({ connections: [] })),
       ]);
       setName(detail.household.name);
       setPostalCode(detail.household.postal_code);
@@ -82,6 +85,7 @@ export default function HouseholdScreen() {
         notes: detail.dietary_profile.notes ?? '',
       });
       setTokens(tokenList.tokens);
+      setConnections(connectionList.connections);
       setError(null);
       // Retailer list is best-effort; the picker just shows keys if it fails.
       api
@@ -192,6 +196,15 @@ export default function HouseholdScreen() {
     try {
       await api.deleteToken(id);
       setTokens((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const removeConnection = async (provider: string) => {
+    try {
+      await api.disconnectProvider(provider);
+      setConnections((prev) => prev.filter((c) => c.provider !== provider));
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -353,6 +366,38 @@ export default function HouseholdScreen() {
           onPress={generateInvite}
           loading={creatingInvite}
         />
+      </Card>
+
+      <Card style={styles.section}>
+        <SectionTitle>Connected services</SectionTitle>
+        <Text style={[styles.helperText, { color: p.textMuted }]}>
+          Linked store accounts let MC Peels fill a cart for you there — you still review and pay
+          on the store’s own site.
+        </Text>
+        {connections.length === 0 ? (
+          <Text style={[styles.helperText, { color: p.textMuted }]}>
+            Nothing linked yet. Open any cart and tap “Connect Kroger” in the price comparison.
+          </Text>
+        ) : (
+          connections.map((conn) => (
+            <View key={conn.provider} style={styles.memberRow}>
+              <View style={styles.tokenInfo}>
+                <Text style={[styles.memberName, { color: p.text }]}>
+                  {prettifyRetailerKey(conn.provider)}
+                </Text>
+                <Text style={[styles.memberMeta, { color: p.textMuted }]}>
+                  connected {formatDate(conn.connected_at)}
+                </Text>
+              </View>
+              <Button
+                title="Disconnect"
+                variant="danger"
+                onPress={() => removeConnection(conn.provider)}
+                style={styles.revokeButton}
+              />
+            </View>
+          ))
+        )}
       </Card>
 
       <Card style={styles.section}>

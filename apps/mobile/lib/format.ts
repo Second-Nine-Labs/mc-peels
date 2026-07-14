@@ -26,3 +26,20 @@ export function prettifyFilterValue(value: string): string {
     .map((word, index) => (index === 0 ? word.charAt(0).toUpperCase() + word.slice(1) : word))
     .join(' ');
 }
+
+/**
+ * 4832 -> "$48.32". Offer prices arrive as integer cents; only real quotes
+ * are ever formatted (null stays null — we never invent a number).
+ */
+export function formatCurrency(cents: number | null | undefined, currency = 'USD'): string {
+  if (cents === null || cents === undefined || Number.isNaN(cents)) return '';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100);
+}
+
+/** "2026-07-14T18:02:11Z" -> "6:02 PM" (quote freshness stamps). */
+export function formatTimeOfDay(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}

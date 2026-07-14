@@ -140,6 +140,8 @@ export interface CreateCartResult {
   instacartUrl: string;
   retailer: RetailerInfo | null;
   resolvedLineItems: ResolvedLineItem[];
+  /** Seeded fulfillment offers, one per enabled rail (parallel-rails plan). */
+  offers: import('./db/schema.js').CartOffer[];
   /**
    * Caller-facing notes: what the profile changed ("set bananas to organic"),
    * retailer fallbacks, allergen warnings, partial-success details.

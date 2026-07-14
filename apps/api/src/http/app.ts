@@ -5,7 +5,20 @@ import { z } from 'zod';
 import { verifySupabaseToken } from '../auth/supabase.js';
 import { createApiToken, listApiTokens, revokeApiToken } from '../auth/tokens.js';
 import { createCart, getCartWithItems, listRecentCarts, markCartOpened } from '../core/carts.js';
+import { deleteConnection, listConnections, saveConnection } from '../core/connections.js';
+import { krogerHandoff } from '../core/handoff.js';
+import { refreshOffers } from '../core/offers.js';
 import { AppError, notFound, unauthorized, validationError } from '../core/errors.js';
+import { getKrogerClient } from '../fulfillment/kroger/client.js';
+import {
+  buildAuthorizeUrl,
+  krogerRedirectUri,
+  signState,
+  validateReturnTo,
+  verifyState,
+  withResult,
+} from '../fulfillment/kroger/oauth.js';
+import { getProvider } from '../fulfillment/registry.js';
 import {
   createHousehold,
   createInvite,
@@ -25,6 +38,7 @@ import {
   cartSummaryJson,
   householdJson,
   lineItemJson,
+  offerJson,
   profileJson,
   recipeJson,
   retailerJson,
@@ -114,6 +128,33 @@ const createCartSchema = z.object({
   retailer_key: z.string().min(1).max(100).optional(),
 });
 
+const refreshOffersSchema = z.object({
+  providers: z.array(z.string().min(1).max(40)).max(10).optional(),
+  force: z.boolean().optional(),
+});
+
+/** Like body(), but tolerates an empty body (POSTs with no options). */
+async function optionalBody<T extends z.ZodTypeAny>(
+  c: { req: { text(): Promise<string> } },
+  schema: T,
+): Promise<z.infer<T>> {
+  const raw = await c.req.text();
+  if (raw.trim() === '') return schema.parse({});
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw validationError('Request body must be valid JSON');
+  }
+  const result = schema.safeParse(parsed);
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    const path = issue?.path.join('.') ?? '';
+    throw validationError(`${path ? `${path}: ` : ''}${issue?.message ?? 'Invalid request body'}`);
+  }
+  return result.data;
+}
+
 export function createApp() {
   const app = new Hono<Vars>();
 
@@ -148,6 +189,65 @@ export function createApp() {
 
   // MCP front door — authenticates with its own mcp_ bearer tokens.
   app.route('/mcp', mcpRoute);
+
+  // Provider account linking. Mounted OUTSIDE the bearer-authed sub-app:
+  // the OAuth callback arrives as a bare browser redirect. /start still
+  // authenticates — explicitly, inside the handler.
+  const connect = new Hono<Vars>();
+
+  connect.get('/kroger/start', async (c) => {
+    const header = c.req.header('Authorization');
+    if (!header?.startsWith('Bearer ')) throw unauthorized('Missing bearer token');
+    const user = await verifySupabaseToken(header.slice('Bearer '.length));
+
+    if (!getProvider('kroger')) {
+      throw validationError('Kroger is not enabled on this server.');
+    }
+    const returnToRaw = c.req.query('return_to');
+    if (!returnToRaw) throw validationError('return_to is required');
+    let returnTo: string;
+    try {
+      returnTo = validateReturnTo(returnToRaw);
+    } catch (err) {
+      throw validationError((err as Error).message);
+    }
+    const state = await signState({ uid: user.userId, returnTo });
+    return c.json({ authorize_url: buildAuthorizeUrl(state) });
+  });
+
+  connect.get('/kroger/callback', async (c) => {
+    const stateRaw = c.req.query('state');
+    if (!stateRaw) {
+      throw validationError('Missing state parameter');
+    }
+    // Identity + destination come from the signed state — tamper/expiry throws.
+    let state;
+    try {
+      state = await verifyState(stateRaw);
+    } catch {
+      throw validationError('Invalid or expired connect link — start over from the cart.');
+    }
+
+    const denied = c.req.query('error');
+    if (denied) {
+      return c.redirect(withResult(state.returnTo, 'error', denied), 302);
+    }
+    const code = c.req.query('code');
+    if (!code) {
+      return c.redirect(withResult(state.returnTo, 'error', 'missing_code'), 302);
+    }
+    try {
+      // redirect_uri must byte-match the one sent on /authorize.
+      const grant = await getKrogerClient().exchangeAuthCode(code, krogerRedirectUri());
+      await saveConnection(state.uid, 'kroger', grant);
+      return c.redirect(withResult(state.returnTo, 'connected'), 302);
+    } catch (err) {
+      console.error('Kroger code exchange failed:', err);
+      return c.redirect(withResult(state.returnTo, 'error', 'exchange_failed'), 302);
+    }
+  });
+
+  app.route('/api/v1/connect', connect);
 
   const api = new Hono<Vars>();
 
@@ -278,6 +378,7 @@ export function createApp() {
         instacart_url: result.instacartUrl,
         retailer: result.retailer ? retailerJson(result.retailer) : null,
         resolved_line_items: result.resolvedLineItems.map(lineItemJson),
+        offers: result.offers.map(offerJson),
         notes: result.notes,
       },
       201,
@@ -307,6 +408,55 @@ export function createApp() {
     const cart = await markCartOpened(c.get('userId'), uuidParam(c.req.param('id'), 'Cart'));
     if (!cart) throw notFound('Cart not found');
     return c.json(cartSummaryJson(cart));
+  });
+
+  api.post('/carts/:id/offers/refresh', async (c) => {
+    const input = await optionalBody(c, refreshOffersSchema);
+    const userId = c.get('userId');
+    const offers = await refreshOffers(userId, uuidParam(c.req.param('id'), 'Cart'), {
+      providers: input.providers,
+      force: input.force,
+    });
+    if (!offers) throw notFound('Cart not found');
+    const connections = await listConnections(userId);
+    return c.json({
+      offers: offers.map(offerJson),
+      connections: Object.fromEntries(connections.map((conn) => [conn.provider, true])),
+    });
+  });
+
+  api.post('/carts/:id/handoff/kroger', async (c) => {
+    const result = await krogerHandoff(c.get('userId'), uuidParam(c.req.param('id'), 'Cart'));
+    if (!result) throw notFound('Cart not found');
+    return c.json({
+      handoff_url: result.handoffUrl,
+      pushed_count: result.pushedCount,
+      skipped: result.skipped.map((s) => ({
+        line_item_id: s.lineItemId,
+        name: s.name,
+        reason: s.reason,
+      })),
+      notes: result.notes,
+    });
+  });
+
+  // Linked provider accounts ---------------------------------------------------
+
+  api.get('/connections', async (c) => {
+    const connections = await listConnections(c.get('userId'));
+    return c.json({
+      connections: connections.map((conn) => ({
+        provider: conn.provider,
+        connected_at: conn.connectedAt.toISOString(),
+      })),
+    });
+  });
+
+  api.delete('/connections/:provider', async (c) => {
+    const provider = c.req.param('provider').toLowerCase();
+    const removed = await deleteConnection(c.get('userId'), provider);
+    if (!removed) throw notFound('Connection not found');
+    return c.body(null, 204);
   });
 
   // Recipes (the shelf) -------------------------------------------------------------

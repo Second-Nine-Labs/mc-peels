@@ -171,11 +171,106 @@ Household carts feed, newest first:
 ```
 
 ### GET /api/v1/carts/:id
-Cart plus its line items (same resolved shape as POST response).
+Cart plus its line items (same resolved shape as POST response) plus `offers`
+(see below).
 
 ### POST /api/v1/carts/:id/opened
 Marks the cart `opened` (best-effort local status; Instacart does not report order
 state back — PRD section 7). Returns the cart.
+
+## Fulfillment offers (parallel rails + price comparison)
+
+Every cart carries one offer per enabled fulfillment service
+(`FULFILLMENT_PROVIDERS` csv on the server; csv order = display order).
+Honesty contract: `subtotal_cents` is present only when the service's API
+returned real per-store shelf prices for matched items — it is an **items
+subtotal**, never a checkout total, and services without a price API are
+`unpriced` (no numbers are ever estimated). Checkout is always completed by a
+human on the service.
+
+Offer shape (embedded in POST/GET cart responses and the refresh endpoint):
+
+```json
+{
+  "id": "uuid",
+  "provider": "kroger",
+  "display_name": "Kroger",
+  "capabilities": { "quote": true, "handoff": "account_cart_push" },
+  "status": "quoted | pending | unpriced | failed",
+  "handoff_url": "https://... | null",
+  "store": { "provider_store_id": "01400943", "name": "Kroger - ...", "chain": "KROGER" },
+  "subtotal_cents": 4832,
+  "promo_savings_cents": 315,
+  "currency": "USD",
+  "matched_count": 9,
+  "total_count": 11,
+  "item_matches": [
+    {
+      "line_item_id": "uuid | null",
+      "requested_name": "bananas",
+      "requested_quantity": 2,
+      "requested_unit": "lb",
+      "status": "matched | no_match | unpriced",
+      "confidence": "high | medium | low | null",
+      "product": { "product_id": "...", "upc": "...", "description": "Bananas", "size": "1 lb", "sold_by": "WEIGHT" },
+      "quantity": 1,
+      "unit_price_cents": 62,
+      "regular_price_cents": 62,
+      "promo_price_cents": null,
+      "line_total_cents": 62,
+      "promo_savings_cents": 0,
+      "warnings": ["Sized by weight/volume — confirm the size (1 lb) on Kroger."]
+    }
+  ],
+  "notes": [],
+  "quoted_at": "ISO | null",
+  "expires_at": "ISO | null"
+}
+```
+
+### POST /api/v1/carts/:id/offers/refresh
+Runs real quotes for the quote-capable services (Kroger). Body (optional):
+`{ "providers": ["kroger"], "force": false }`. Quotes fresher than 5 minutes
+are returned as-is unless `force`. Providers fail independently (a failed
+quote is `status: "failed"` with a note — the other offers are untouched).
+Returns `{ "offers": [...], "connections": { "kroger": true } }`.
+
+### POST /api/v1/carts/:id/handoff/kroger
+Pushes the quoted matches into the linked user's real Kroger basket
+(`PUT /v1/cart/add`, modality PICKUP) and returns where to finish:
+
+```json
+{
+  "handoff_url": "https://www.kroger.com/cart",
+  "pushed_count": 9,
+  "skipped": [{ "line_item_id": "uuid", "name": "saffron", "reason": "no_match | unpriced | no_upc" }],
+  "notes": ["Review and pay on Kroger — MC Peels never handles payment."]
+}
+```
+
+Errors: `409 conflict` (no quoted Kroger offer yet), `409 not_connected`
+(no linked Kroger account — start the connect flow), `502 upstream_error`.
+
+## Provider connections (linked accounts)
+
+Tokens are AES-256-GCM encrypted at rest and never serialized to clients.
+
+### GET /api/v1/connections
+`{ "connections": [{ "provider": "kroger", "connected_at": "ISO" }] }`
+
+### DELETE /api/v1/connections/:provider
+Unlinks. 204, or 404 when nothing was linked.
+
+### GET /api/v1/connect/kroger/start?return_to=<url>
+Bearer-authed. Validates `return_to` (mcpeels:// and localhost always allowed;
+otherwise `CONNECT_RETURN_ORIGINS`) and returns `{ "authorize_url": "..." }`
+for the client to navigate to (scope `cart.basic:write` only). State is a
+10-minute JWT bound to the calling user.
+
+### GET /api/v1/connect/kroger/callback?code&state
+Unauthenticated (browser redirect from Kroger). Verifies state, exchanges the
+code, stores the encrypted grant, and 302s to
+`<return_to>?kroger=connected` (or `?kroger=error&reason=...`).
 
 ## Recipes (the shelf)
 

@@ -5,6 +5,7 @@ import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BananaRain } from '@/components/BananaRain';
 import { MascotMark } from '@/components/MascotMark';
+import { OffersSection } from '@/components/offers';
 import {
   Button,
   ErrorBanner,
@@ -18,7 +19,11 @@ import { api, getErrorMessage } from '@/lib/api';
 import { getRememberedCart } from '@/lib/cart-cache';
 import { formatDate, prettifyFilterValue, prettifyRetailerKey } from '@/lib/format';
 import { usePalette } from '@/lib/theme';
-import type { CartDetailResponse, CartStatus, ResolvedLineItem } from '@/lib/types';
+import type { CartDetailResponse, CartStatus, Offer, ResolvedLineItem } from '@/lib/types';
+
+// Price comparison is live by default; EXPO_PUBLIC_PRICE_COMPARE=0 is the
+// kill switch back to the single Instacart button (SOVIET_BOOK pattern).
+const PRICE_COMPARE_OFF = process.env.EXPO_PUBLIC_PRICE_COMPARE === '0';
 
 interface CartView {
   id: string;
@@ -29,6 +34,7 @@ interface CartView {
   requestText: string | null;
   createdAt: string | undefined;
   lineItems: ResolvedLineItem[];
+  offers: Offer[];
   notes: string[];
 }
 
@@ -61,6 +67,7 @@ function toView(id: string, detail: CartDetailResponse | null): CartView | null 
     requestText: flat.request_text ?? null,
     createdAt: flat.created_at,
     lineItems,
+    offers: detail?.offers ?? remembered?.offers ?? [],
     notes: detail?.notes ?? remembered?.notes ?? [],
   };
 }
@@ -159,7 +166,7 @@ export default function CartDetailScreen() {
             <Text style={[styles.requestText, { color: p.onBgMuted }]}>“{cart.requestText}”</Text>
           ) : null}
 
-          {cart.instacartUrl ? (
+          {PRICE_COMPARE_OFF && cart.instacartUrl ? (
             <View style={styles.checkout}>
               <Button
                 title="Open in Instacart"
@@ -181,6 +188,21 @@ export default function CartDetailScreen() {
           <View style={styles.sheetMascot}>
             <MascotMark size={64} />
           </View>
+
+          {!PRICE_COMPARE_OFF ? (
+            <View style={styles.section}>
+              <OffersSection
+                cartId={cart.id}
+                initialOffers={cart.offers}
+                onInstacartOpen={openInInstacart}
+                instacartOpening={opening}
+              />
+            </View>
+          ) : null}
+
+          {!PRICE_COMPARE_OFF && cart.notes.length > 0 ? (
+            <View style={[styles.divider, { backgroundColor: p.border }]} />
+          ) : null}
 
           {cart.notes.length > 0 ? (
             <View style={styles.section}>

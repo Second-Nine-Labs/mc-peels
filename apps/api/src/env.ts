@@ -11,6 +11,19 @@ const envSchema = z.object({
   INSTACART_ENV: z.enum(['development', 'production']).default('development'),
   APP_BASE_URL: z.string().url().optional(),
   PORT: z.coerce.number().default(3000),
+  // Fulfillment rails. CSV in display order; default keeps existing deploys
+  // Instacart-only until the flag is flipped (no code deploy needed).
+  FULFILLMENT_PROVIDERS: z.string().default('instacart'),
+  KROGER_CLIENT_ID: z.string().optional(),
+  KROGER_CLIENT_SECRET: z.string().optional(),
+  KROGER_BASE_URL: z.string().url().default('https://api.kroger.com'),
+  /** base64, 32 bytes (openssl rand -base64 32). Validated at first use. */
+  TOKEN_ENCRYPTION_KEY: z.string().optional(),
+  /** Public origin of THIS API — the base for OAuth redirect_uris. */
+  API_PUBLIC_URL: z.string().url().optional(),
+  /** Origins allowed as post-OAuth return destinations (besides mcpeels:// and localhost). */
+  CONNECT_RETURN_ORIGINS: z.string().default('https://mc-peels.secondninelabs.com'),
+  QUOTE_CACHE_TTL_MINUTES: z.coerce.number().default(360),
 });
 
 export type Env = z.infer<typeof envSchema>;

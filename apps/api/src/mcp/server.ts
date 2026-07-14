@@ -11,8 +11,11 @@ import { z } from 'zod';
 import { createCart, getCartWithItems, listRecentCarts } from '../core/carts.js';
 import { AppError } from '../core/errors.js';
 import { getHouseholdContext } from '../core/households.js';
+import { refreshOffers } from '../core/offers.js';
 import { ingestRecipe, listRecipes } from '../core/recipes.js';
 import { listRetailers } from '../core/retailers.js';
+import type { CartOffer } from '../db/schema.js';
+import { providerMeta } from '../fulfillment/registry.js';
 import {
   cartDetailJson,
   cartSummaryJson,
@@ -27,6 +30,32 @@ const ALLERGEN_CAVEAT =
   'Instacart health filters are preference signals for item selection, not safety ' +
   'guarantees: they do not certify any product is free of an allergen. The human ' +
   'review at Instacart checkout is the final safety gate. Never imply otherwise.';
+
+const PRICE_HONESTY_NOTE =
+  'Quotes are real shelf prices at the named store for the matched items only — an ' +
+  'items subtotal, never a checkout total (taxes/fees/substitutions happen on the ' +
+  'service). Services without a price API are honestly "unpriced" — never estimate ' +
+  'their totals. A human always reviews and pays on the service.';
+
+/** Compact per-provider view for agents (full item_matches stay in the app). */
+function offerSummaryJson(o: CartOffer) {
+  const meta = providerMeta(o.provider);
+  return {
+    provider: o.provider,
+    display_name: meta.displayName,
+    handoff: meta.capabilities.handoff,
+    status: o.status,
+    store_name: o.store?.name ?? null,
+    subtotal_cents: o.subtotalCents,
+    promo_savings_cents: o.promoSavingsCents,
+    currency: o.currency,
+    matched_count: o.matchedCount,
+    total_count: o.totalCount,
+    handoff_url: o.handoffUrl,
+    quoted_at: o.quotedAt?.toISOString() ?? null,
+    notes: o.notes,
+  };
+}
 
 function jsonResult(data: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
@@ -157,7 +186,46 @@ export function buildMcpServer(userId: string): McpServer {
       try {
         const cart = await getCartWithItems(userId, args.cart_id);
         if (!cart) return toolError(new AppError('not_found', 'Cart not found', 404));
-        return jsonResult(cartDetailJson(cart));
+        // Offers are compacted for agents; the full match detail lives in the app.
+        return jsonResult({
+          ...cartDetailJson(cart),
+          offers: cart.offers.map(offerSummaryJson),
+        });
+      } catch (err) {
+        return toolError(err);
+      }
+    },
+  );
+
+  server.registerTool(
+    'mcpeels_compare_prices',
+    {
+      title: 'Compare fulfillment services for a cart',
+      description:
+        'Fetches real price quotes for a cart across the enabled fulfillment services ' +
+        '(e.g. Kroger returns per-store shelf prices; Instacart/DoorDash/Uber Eats expose ' +
+        'no price API and appear honestly "unpriced" with handoff links). Returns one ' +
+        'offer per service with an items subtotal, promo savings, and how many items ' +
+        'were priced. NEVER present a subtotal as a guaranteed checkout total, and ' +
+        'never estimate a number for an unpriced service. A human completes every ' +
+        'purchase on the service itself.',
+      inputSchema: {
+        cart_id: z.string().uuid(),
+        force: z
+          .boolean()
+          .optional()
+          .describe('Re-quote even when a fresh quote (under 5 minutes old) exists'),
+      },
+    },
+    async (args) => {
+      try {
+        const offers = await refreshOffers(userId, args.cart_id, { force: args.force });
+        if (!offers) return toolError(new AppError('not_found', 'Cart not found', 404));
+        return jsonResult({
+          cart_id: args.cart_id,
+          offers: offers.map(offerSummaryJson),
+          note: PRICE_HONESTY_NOTE,
+        });
       } catch (err) {
         return toolError(err);
       }
