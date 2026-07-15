@@ -23,11 +23,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MascotMark } from '@/components/MascotMark';
+import type { SavedRecipe } from '@/lib/types';
 
 import { DishTile, PosterCard } from './art';
 import { KITCHEN_COSTUMES } from './costumes';
+import { costumeForShelfKitchen } from './costumes/factory';
+import type { KitchenCostume } from './costume';
+import { OPEN_THRESHOLD, type KitchenTease } from './genesis';
 import { FEATURED_PICKS, RESTAURANTS, searchEats } from './restaurants';
 import type { Restaurant, RestaurantId } from './types';
+import { useShelfKitchens } from './useShelfKitchens';
 
 interface HomeTokens {
   canvas: string;
@@ -85,6 +90,10 @@ function tonightIndex(count: number): number {
 export interface HomeScreenProps {
   /** Household name for the greeting; omitted in the signed-out preview. */
   householdName?: string;
+  /** Household id — lets the home derive shelf-born kitchens. */
+  householdId?: string;
+  /** Sample shelf for the signed-out showcase (no network touched). */
+  previewShelf?: SavedRecipe[];
   previewMode?: boolean;
   onOpenRestaurant: (id: RestaurantId, dishId?: string) => void;
   onOpenAsk?: () => void;
@@ -93,6 +102,8 @@ export interface HomeScreenProps {
 
 export function HomeScreen({
   householdName,
+  householdId,
+  previewShelf,
   previewMode = false,
   onOpenRestaurant,
   onOpenAsk,
@@ -102,6 +113,7 @@ export function HomeScreen({
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const results = useMemo(() => searchEats(query), [query]);
+  const genesis = useShelfKitchens({ householdId, previewRecipes: previewShelf });
 
   const feature = FEATURED_PICKS[tonightIndex(FEATURED_PICKS.length)];
   const railPicks = FEATURED_PICKS.filter((pick) => pick.dish.id !== feature?.dish.id);
@@ -212,6 +224,16 @@ export function HomeScreen({
                   restaurant={restaurant}
                   onPress={() => onOpenRestaurant(restaurant.id)}
                 />
+              ))}
+              {genesis.kitchens.map(({ cuisine, restaurant }) => (
+                <ShelfStorefront
+                  key={restaurant.id}
+                  costume={costumeForShelfKitchen(cuisine, restaurant)}
+                  onPress={() => onOpenRestaurant(restaurant.id)}
+                />
+              ))}
+              {genesis.teases.map((tease) => (
+                <TeaseCard key={tease.cuisine} tease={tease} tokens={t} onPress={onOpenShelf} />
               ))}
             </View>
 
@@ -408,6 +430,85 @@ function Storefront({ restaurant, onPress }: { restaurant: Restaurant; onPress: 
       ]}
     >
       {body}
+    </Pressable>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shelf-born kitchens: bespoke face when the costume brings one (山城),
+// else a generic tokens-based front. Teases count down to opening.
+
+function ShelfStorefront({ costume, onPress }: { costume: KitchenCostume; onPress: () => void }) {
+  const { restaurant, tokens } = costume;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${restaurant.name}`}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.frontWrap,
+        { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] },
+      ]}
+    >
+      {costume.renderStorefront ? (
+        costume.renderStorefront()
+      ) : (
+        <View style={[styles.front, { backgroundColor: tokens.canvas }]}>
+          <View style={[styles.shelfOpened, { backgroundColor: '#F2B01E' }]}>
+            <Text style={styles.shelfOpenedText}>OPENED FROM YOUR SHELF</Text>
+          </View>
+          <Text style={[styles.frontTitleHeavy, { color: tokens.onHero }]} numberOfLines={1}>
+            {restaurant.name}
+          </Text>
+          <Text style={[styles.frontSub, { color: tokens.onHeroSoft }]} numberOfLines={1}>
+            {restaurant.tagline}
+          </Text>
+          <Text style={[styles.frontMeta, { color: tokens.onHeroSoft }]}>
+            {restaurant.meta.toUpperCase()}
+          </Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+function TeaseCard({
+  tease,
+  tokens: t,
+  onPress,
+}: {
+  tease: KitchenTease;
+  tokens: HomeTokens;
+  onPress?: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${tease.label} kitchen — ${tease.needed} more saves to open`}
+      onPress={onPress}
+      disabled={!onPress}
+      style={({ pressed }) => [
+        styles.tease,
+        { borderColor: t.hairline, backgroundColor: t.card, opacity: pressed ? 0.85 : 1 },
+      ]}
+    >
+      <View style={styles.teaseRow}>
+        <Text style={[styles.teaseTitle, { color: t.ink }]}>{tease.label} kitchen</Text>
+        <Text style={[styles.teaseCount, { color: t.muted }]}>
+          {tease.saved} of {OPEN_THRESHOLD} saved
+        </Text>
+      </View>
+      <View style={[styles.teaseTrack, { backgroundColor: t.hairline }]}>
+        <View
+          style={[
+            styles.teaseFill,
+            { backgroundColor: t.gold, width: `${(tease.saved / OPEN_THRESHOLD) * 100}%` },
+          ]}
+        />
+      </View>
+      <Text style={[styles.teaseHint, { color: t.muted }]}>
+        {tease.needed} more {tease.needed === 1 ? 'save' : 'saves'} on the shelf and it opens
+      </Text>
     </Pressable>
   );
 }
@@ -636,6 +737,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
+  shelfOpened: {
+    position: 'absolute',
+    top: 12,
+    left: 18,
+    borderRadius: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  shelfOpenedText: { color: '#1D2433', fontSize: 8, fontWeight: '800', letterSpacing: 1.2 },
+  tease: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderRadius: 18,
+    padding: 16,
+    gap: 8,
+  },
+  teaseRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  teaseTitle: { fontSize: 15, fontWeight: '800' },
+  teaseCount: { fontSize: 11, fontWeight: '600' },
+  teaseTrack: { height: 6, borderRadius: 999, overflow: 'hidden' },
+  teaseFill: { height: 6, borderRadius: 999 },
+  teaseHint: { fontSize: 11.5 },
 
   // Z5
   strip: {

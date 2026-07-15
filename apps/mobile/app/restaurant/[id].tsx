@@ -1,24 +1,38 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { LoadingView } from '@/components/ui';
 import { KitchenScreen } from '@/features/eats/KitchenScreen';
 import { KITCHEN_COSTUMES } from '@/features/eats/costumes';
+import { useDerivedKitchen } from '@/features/eats/useShelfKitchens';
 import { rememberCartResult } from '@/lib/cart-cache';
 import { useSession } from '@/lib/session';
 
 /**
  * The doorway to a restaurant. Every kitchen renders through the shared
- * KitchenScreen chassis wearing its costume from the rack; the shared
- * contract (household, deep-linked dish, cart hand-off) is wired here once.
- * Cart hand-off matches the Ask and Book flows: remember the resolved
- * items, land on the standard cart detail for the Instacart link.
+ * KitchenScreen chassis wearing its costume from the rack — the static trio
+ * plus any kitchen the Shelf has minted (`shelf-<cuisine>` ids, derived from
+ * the household's saves). The shared contract (household, deep-linked dish,
+ * cart hand-off) is wired here once. Cart hand-off matches the Ask and Book
+ * flows: remember the resolved items, land on the standard cart detail for
+ * the Instacart link.
  */
 export default function RestaurantRoute() {
   const { id, dish } = useLocalSearchParams<{ id: string; dish?: string }>();
   const router = useRouter();
   const { membership } = useSession();
 
-  const costume = id ? KITCHEN_COSTUMES[id] : undefined;
+  const derived = useDerivedKitchen(id, membership?.household_id);
+  const costume = (id ? KITCHEN_COSTUMES[id] : undefined) ?? derived.costume ?? undefined;
+
+  if (!costume && derived.loading) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <LoadingView message="Opening the kitchen…" />
+      </>
+    );
+  }
 
   return (
     <>

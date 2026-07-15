@@ -105,8 +105,27 @@ function FallbackTile({ restaurant, dish, size, radius = 10 }: DishTileProps) {
     );
   }
 
-  // La Milpa (and any future kitchen until it declares its own motif):
-  // rotating fiesta grounds with a papel-picado notch and a heavy initial.
+  // Shelf-born kitchens: a neutral plate — banana-gold ground, cream plate,
+  // navy initial. Reads on the night menu (山城) and the house paper alike.
+  if (restaurant.id.startsWith('shelf-')) {
+    return (
+      <View style={[base, { backgroundColor: '#F2B01E' }]}>
+        <View style={styles.center}>
+          <View
+            style={[
+              styles.plate,
+              { width: size * 0.66, height: size * 0.66, borderRadius: size },
+            ]}
+          >
+            <Text style={[styles.plateInitial, { fontSize: size * 0.3 }]}>{initial}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // La Milpa: rotating fiesta grounds with a papel-picado notch and a heavy
+  // initial.
   const fiesta = ['#E84B8A', '#159F94', '#8A4FD0', '#F2A007'];
   const ground = fiesta[dish.name.length % fiesta.length];
   return (
@@ -451,6 +470,12 @@ const styles = StyleSheet.create({
   },
   stampInitial: { fontWeight: '900', letterSpacing: 1 },
   leaf: { position: 'absolute', transform: [{ rotate: '45deg' }], opacity: 0.9 },
+  plate: {
+    backgroundColor: '#FFF7E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plateInitial: { color: '#1D2433', fontWeight: '900' },
   serifInitial: { fontFamily: 'Georgia', fontStyle: 'italic', fontWeight: '700' },
   picadoRow: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row' },
   heavyInitial: { fontWeight: '900', letterSpacing: 1 },

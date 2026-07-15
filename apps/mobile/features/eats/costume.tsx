@@ -71,6 +71,12 @@ export interface KitchenCostume {
   /** Optional line above the first section (Столовая's typed date line). */
   headerLine?: () => string;
 
+  /**
+   * Optional bespoke storefront face for the home's THE KITCHENS list.
+   * Without it, shelf-born kitchens get the generic tokens-based face.
+   */
+  renderStorefront?: () => ReactNode;
+
   /** Short mark for the sticky bar ('№ 7', 'greenhouse', 'LA MILPA'). */
   barMark: string;
   /** One-word course-chip labels keyed by section; defaults to section.label. */

@@ -5,8 +5,19 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { HomeScreen } from '@/features/eats/HomeScreen';
 import { KitchenScreen } from '@/features/eats/KitchenScreen';
 import { KITCHEN_COSTUMES } from '@/features/eats/costumes';
+import { costumeForShelfKitchen } from '@/features/eats/costumes/factory';
+import { deriveGenesis } from '@/features/eats/genesis';
+import { PREVIEW_SHELF } from '@/features/eats/preview-shelf';
 import type { RestaurantId } from '@/features/eats/types';
 import { ShelfScreen } from '@/features/shelf/ShelfScreen';
+
+/** The showcase's minted kitchen — 山城, derived from the sample shelf. */
+const PREVIEW_MINTED = (() => {
+  const kitchen = deriveGenesis(PREVIEW_SHELF).kitchens.find(
+    (entry) => entry.cuisine === 'sichuan-chongqing',
+  );
+  return kitchen ? costumeForShelfKitchen(kitchen.cuisine, kitchen.restaurant) : null;
+})();
 
 /**
  * Signed-out showcase of the Eats experience — the auth gate exempts this
@@ -15,13 +26,14 @@ import { ShelfScreen } from '@/features/shelf/ShelfScreen';
  * here can read or write household data.
  */
 
-type View_ = 'home' | 'shelf' | RestaurantId;
+type View_ = 'home' | 'shelf' | 'shelf-sichuan-chongqing' | RestaurantId;
 
 const STOPS: Array<{ key: View_; label: string }> = [
   { key: 'home', label: 'Home' },
   { key: 'stolovaya-7', label: '№ 7' },
   { key: 'greenhouse', label: 'greenhouse' },
   { key: 'la-milpa', label: 'La Milpa' },
+  { key: 'shelf-sichuan-chongqing', label: '山城' },
   { key: 'shelf', label: 'the shelf' },
 ];
 
@@ -64,9 +76,16 @@ export default function EatsPreviewScreen() {
       </View>
 
       {view === 'home' ? (
-        <HomeScreen previewMode onOpenRestaurant={open} onOpenShelf={() => open('shelf')} />
+        <HomeScreen
+          previewMode
+          previewShelf={PREVIEW_SHELF}
+          onOpenRestaurant={open}
+          onOpenShelf={() => open('shelf')}
+        />
       ) : view === 'shelf' ? (
         <ShelfScreen previewMode onBack={home} />
+      ) : view === 'shelf-sichuan-chongqing' && PREVIEW_MINTED ? (
+        <KitchenScreen costume={PREVIEW_MINTED} previewMode initialDishId={dishId} onBack={home} />
       ) : (
         <KitchenScreen
           costume={KITCHEN_COSTUMES[view]}

@@ -11,6 +11,7 @@ export default function HomeTab() {
   return (
     <HomeScreen
       householdName={membership?.household.name}
+      householdId={membership?.household_id}
       onOpenRestaurant={(id, dishId) =>
         router.push({ pathname: '/restaurant/[id]', params: { id, ...(dishId ? { dish: dishId } : {}) } })
       }
