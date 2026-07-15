@@ -366,7 +366,14 @@ function MatchList({ matches }: { matches: OfferItemMatch[] }) {
   const p = usePalette();
   return (
     <View style={[styles.matchList, { borderTopColor: p.border }]}>
-      {matches.map((m, index) => (
+      {matches.map((m, index) => {
+        // On promo when the effective (shown) price undercuts the regular price.
+        const onPromo =
+          m.status === 'matched' &&
+          m.promo_price_cents !== null &&
+          m.regular_price_cents !== null &&
+          m.promo_price_cents < m.regular_price_cents;
+        return (
         <View key={`${m.requested_name}-${index}`} style={styles.matchRow}>
           <View style={styles.matchRowHeader}>
             <Text style={[styles.matchName, { color: p.text }]} numberOfLines={1}>
@@ -374,12 +381,19 @@ function MatchList({ matches }: { matches: OfferItemMatch[] }) {
             </Text>
             {m.status === 'matched' && m.line_total_cents !== null ? (
               <View style={styles.priceCell}>
-                <Text style={[styles.matchPrice, { color: p.text }]}>
+                <Text style={styles.matchPrice}>
                   {m.quantity > 1 ? `${m.quantity} × ` : ''}
-                  {formatCurrency(m.unit_price_cents)}
+                  {onPromo ? (
+                    <Text style={[styles.strikePrice, { color: p.textMuted }]}>
+                      {formatCurrency(m.regular_price_cents)}{' '}
+                    </Text>
+                  ) : null}
+                  <Text style={{ color: onPromo ? p.success : p.text }}>
+                    {formatCurrency(m.unit_price_cents)}
+                  </Text>
                 </Text>
                 {formatUnitPrice(m.unit_price_cents, m.measure_quantity, m.measure_unit) ? (
-                  <Text style={[styles.unitPrice, { color: p.textMuted }]}>
+                  <Text style={[styles.unitPrice, { color: onPromo ? p.success : p.textMuted }]}>
                     {formatUnitPrice(m.unit_price_cents, m.measure_quantity, m.measure_unit)}
                   </Text>
                 ) : null}
@@ -413,7 +427,8 @@ function MatchList({ matches }: { matches: OfferItemMatch[] }) {
             </Text>
           ))}
         </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -551,6 +566,11 @@ const styles = StyleSheet.create({
   matchPrice: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  strikePrice: {
+    fontSize: 12.5,
+    fontWeight: '400',
+    textDecorationLine: 'line-through',
   },
   unitPrice: {
     fontSize: 11.5,
