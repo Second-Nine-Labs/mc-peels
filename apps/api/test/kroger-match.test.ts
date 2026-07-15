@@ -186,6 +186,23 @@ describe('matchItem + rollup', () => {
     expect(m.promo_savings_cents).toBe(60);
   });
 
+  it('carries parsed measure fields for unit pricing', () => {
+    const m = matchItem(item({ name: 'cheddar cheese' }), [
+      candidate({ product_id: 'ch', description: 'Cheddar Cheese', size: '8 oz (227 g)', regular_cents: 499 }),
+    ]);
+    expect(m.measure_quantity).toBe(8);
+    expect(m.measure_unit).toBe('oz');
+    // unit_price_cents / measure_quantity = 499/8 ≈ 62.4¢ per oz (client formats).
+  });
+
+  it('leaves measure fields null when the size is unparseable', () => {
+    const m = matchItem(item({ name: 'gift basket' }), [
+      candidate({ product_id: 'gb', description: 'Gift Basket', size: 'assorted', regular_cents: 1999 }),
+    ]);
+    expect(m.measure_quantity).toBeNull();
+    expect(m.measure_unit).toBeNull();
+  });
+
   it('returns no_match below the confidence floor', () => {
     const m = matchItem(item({ name: 'saffron threads' }), [
       candidate({ product_id: 'x', description: 'Chocolate Cake Mix', brand: 'Duncan' }),
