@@ -1,18 +1,17 @@
 /**
- * The Eats home — MC Peels' front door, redrawn calm.
+ * The Eats home — tonight, staged.
  *
- * The loud brand-blue canvas steps back to warm paper; the banana keeps its
- * job as the mark, not the wallpaper. One search field covers every menu —
- * dish names, ingredients, tags, restaurant names — and results say *why*
- * they matched. Below it: tonight's picks across kitchens, then the three
- * restaurants as brand cards, each wearing its own face. The Ask flow stays
- * one tap away; this screen is the browse path, not a replacement for it.
+ * One thing dominates: tonight's feature, a full-bleed poster wearing its
+ * kitchen's whole costume (backdrop, art, voice), rotating deterministically
+ * by day across the featured dishes. Under it: the rest of tonight's picks
+ * as an art rail, the kitchens as storefronts (doors into worlds, not
+ * banners), and one quiet concierge strip for Ask + the Shelf. Search
+ * demotes to a masthead icon — a ~30-dish catalog doesn't earn a hero pill.
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import {
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,10 +24,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MascotMark } from '@/components/MascotMark';
 
+import { DishTile, PosterCard } from './art';
+import { KITCHEN_COSTUMES } from './costumes';
 import { FEATURED_PICKS, RESTAURANTS, searchEats } from './restaurants';
 import type { Restaurant, RestaurantId } from './types';
-
-const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, serif' });
 
 interface HomeTokens {
   canvas: string;
@@ -38,16 +37,22 @@ interface HomeTokens {
   hairline: string;
   gold: string;
   onGold: string;
+  strip: string;
+  onStrip: string;
+  onStripMuted: string;
 }
 
 const light: HomeTokens = {
-  canvas: '#F7F5F0',
+  canvas: '#F5F2EA',
   card: '#FFFFFF',
   ink: '#1D2433',
   muted: '#6E7686',
   hairline: '#E7E4DB',
   gold: '#FFC531',
   onGold: '#1D2433',
+  strip: '#1D2433',
+  onStrip: '#EAF2FE',
+  onStripMuted: '#97A6C2',
 };
 
 const dark: HomeTokens = {
@@ -58,7 +63,24 @@ const dark: HomeTokens = {
   hairline: '#243953',
   gold: '#FFC531',
   onGold: '#20180A',
+  strip: '#13233A',
+  onStrip: '#EAF2FE',
+  onStripMuted: '#97A6C2',
 };
+
+const WEEKDAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+
+/** Pinboard rhythm — tall next to short, cycling so columns stay uneven. */
+const WALL_HEIGHTS = [196, 168, 182, 204, 172, 190];
+
+/** Tonight's feature — deterministic by date, cycling the featured picks. */
+function tonightIndex(count: number): number {
+  if (count === 0) return 0;
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((now.getTime() - start.getTime()) / 86_400_000);
+  return dayOfYear % count;
+}
 
 export interface HomeScreenProps {
   /** Household name for the greeting; omitted in the signed-out preview. */
@@ -77,91 +99,113 @@ export function HomeScreen({
   onOpenShelf,
 }: HomeScreenProps) {
   const t = useColorScheme() === 'dark' ? dark : light;
+  const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const results = useMemo(() => searchEats(query), [query]);
-  const searching = query.trim().length > 0;
+
+  const feature = FEATURED_PICKS[tonightIndex(FEATURED_PICKS.length)];
+  const railPicks = FEATURED_PICKS.filter((pick) => pick.dish.id !== feature?.dish.id);
+
+  const closeSearch = () => {
+    setSearching(false);
+    setQuery('');
+  };
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.canvas }]} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {/* ---- Z1 · masthead — small, search demoted to a glyph ---- */}
         <View style={styles.masthead}>
-          <MascotMark size={34} />
-          <View>
-            <Text style={[styles.wordmark, { color: t.ink }]}>MC PEELS</Text>
-            <Text style={[styles.wordmarkSub, { color: t.muted }]}>
-              {householdName ? `cooking for ${householdName}` : 'the grocery concierge'}
-            </Text>
+          <View style={styles.brand}>
+            <MascotMark size={30} />
+            <View>
+              <Text style={[styles.wordmark, { color: t.ink }]}>MC PEELS</Text>
+              <Text style={[styles.wordmarkSub, { color: t.muted }]}>
+                {householdName ? `cooking for ${householdName}` : 'the grocery concierge'}
+              </Text>
+            </View>
           </View>
-        </View>
-
-        <Text style={[styles.greeting, { color: t.ink }]}>
-          <Text style={{ fontWeight: '300' }}>What sounds </Text>
-          <Text style={{ fontWeight: '800' }}>good tonight?</Text>
-        </Text>
-
-        <View style={[styles.search, { backgroundColor: t.card, borderColor: t.hairline }]}>
-          <Ionicons name="search-outline" size={18} color={t.muted} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search dishes, ingredients, or restaurants"
-            placeholderTextColor={t.muted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={[styles.searchInput, { color: t.ink }]}
-          />
-          {searching ? (
-            <Pressable accessibilityLabel="Clear search" onPress={() => setQuery('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color={t.muted} />
-            </Pressable>
-          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={searching ? 'Close search' : 'Search the menus'}
+            onPress={() => (searching ? closeSearch() : setSearching(true))}
+            style={[styles.searchGlyph, { backgroundColor: t.card }]}
+          >
+            <Ionicons name={searching ? 'close' : 'search-outline'} size={17} color={t.ink} />
+          </Pressable>
         </View>
 
         {searching ? (
-          <SearchResults
-            tokens={t}
-            results={results}
-            onOpenRestaurant={onOpenRestaurant}
-          />
+          <>
+            <View style={[styles.search, { backgroundColor: t.card, borderColor: t.hairline }]}>
+              <Ionicons name="search-outline" size={17} color={t.muted} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                autoFocus
+                placeholder="Dishes, ingredients, or kitchens"
+                placeholderTextColor={t.muted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[styles.searchInput, { color: t.ink }]}
+              />
+            </View>
+            <SearchResults tokens={t} results={results} onOpenRestaurant={onOpenRestaurant} />
+          </>
         ) : (
           <>
-            <Text style={[styles.sectionLabel, { color: t.muted }]}>TONIGHT'S PICKS</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.rail}
-              style={styles.railWrap}
-            >
-              {FEATURED_PICKS.map(({ dish, restaurant }) => (
-                <Pressable
-                  key={dish.id}
-                  accessibilityRole="button"
-                  onPress={() => onOpenRestaurant(restaurant.id, dish.id)}
-                  style={({ pressed }) => [
-                    styles.pick,
-                    { backgroundColor: t.card, borderColor: t.hairline, opacity: pressed ? 0.8 : 1 },
-                  ]}
-                >
-                  {/* Typographic tile until dish photography lands. */}
-                  <View style={[styles.pickTile, { backgroundColor: restaurant.accent }]}>
-                    <Text style={[styles.pickInitial, { color: restaurant.onAccent }]}>
-                      {dish.name.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <Text style={[styles.pickName, { color: t.ink }]} numberOfLines={2}>
-                    {dish.name}
-                  </Text>
-                  <Text style={[styles.pickMeta, { color: t.muted }]} numberOfLines={1}>
-                    {restaurant.name} · {dish.minutes} min
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+            {/* ---- Z2 · tonight's feature — the whole thesis ---- */}
+            {feature ? (
+              <FeatureHero
+                restaurant={feature.restaurant}
+                dishName={feature.dish.name}
+                dishSub={feature.dish.sub}
+                minutes={feature.dish.minutes}
+                description={feature.dish.description}
+                onPress={() => onOpenRestaurant(feature.restaurant.id, feature.dish.id)}
+              />
+            ) : null}
 
-            <Text style={[styles.sectionLabel, { color: t.muted }]}>RESTAURANTS</Text>
-            <View style={styles.restaurants}>
+            {/* ---- Z3 · the poster wall — every pick is a tiny poster,
+                 tall-next-to-short like a pinboard, each in its kitchen's
+                 own template (ration card / seed packet / lotería card) ---- */}
+            {railPicks.length > 0 ? (
+              <>
+                <Text style={[styles.sectionLabel, { color: t.muted }]}>MORE FOR TONIGHT</Text>
+                <View style={styles.wall}>
+                  {[0, 1].map((column) => (
+                    <View key={column} style={styles.wallColumn}>
+                      {railPicks
+                        .filter((_, index) => index % 2 === column)
+                        .map(({ dish, restaurant }, rowIndex) => (
+                          <Pressable
+                            key={dish.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${dish.name} at ${restaurant.name}`}
+                            onPress={() => onOpenRestaurant(restaurant.id, dish.id)}
+                            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+                          >
+                            <PosterCard
+                              restaurant={restaurant}
+                              dish={dish}
+                              height={WALL_HEIGHTS[(column + rowIndex * 2) % WALL_HEIGHTS.length]}
+                            />
+                            <Text style={[styles.wallMeta, { color: t.muted }]} numberOfLines={1}>
+                              {restaurant.name} · {dish.minutes} min
+                            </Text>
+                          </Pressable>
+                        ))}
+                    </View>
+                  ))}
+                </View>
+              </>
+            ) : null}
+
+            {/* ---- Z4 · the kitchens — storefronts, not banners ---- */}
+            <Text style={[styles.sectionLabel, { color: t.muted }]}>THE KITCHENS</Text>
+            <View style={styles.storefronts}>
               {RESTAURANTS.map((restaurant) => (
-                <BrandCard
+                <Storefront
                   key={restaurant.id}
                   restaurant={restaurant}
                   onPress={() => onOpenRestaurant(restaurant.id)}
@@ -169,55 +213,40 @@ export function HomeScreen({
               ))}
             </View>
 
-            <Pressable
-              accessibilityRole="button"
-              onPress={onOpenShelf}
-              disabled={!onOpenShelf}
-              style={({ pressed }) => [
-                styles.askCard,
-                { backgroundColor: t.card, borderColor: t.hairline, opacity: pressed ? 0.85 : 1 },
-              ]}
-            >
-              <View style={[styles.askBadge, { backgroundColor: t.gold }]}>
-                <Ionicons name="download-outline" size={18} color={t.onGold} />
-              </View>
-              <View style={styles.askBody}>
-                <Text style={[styles.askTitle, { color: t.ink }]}>The shelf</Text>
-                <Text style={[styles.askText, { color: t.muted }]}>
-                  {previewMode
-                    ? 'Send MC Peels a TikTok, a pin, or any recipe link — it becomes a dish you can cart.'
-                    : 'Paste a TikTok, a pin, or any recipe link — it becomes a dish you can cart. Enough of one cuisine and a kitchen opens.'}
-                </Text>
-              </View>
-              {onOpenShelf ? (
-                <Ionicons name="chevron-forward" size={18} color={t.muted} />
-              ) : null}
-            </Pressable>
-
-            <Pressable
-              accessibilityRole="button"
-              onPress={onOpenAsk}
-              disabled={!onOpenAsk}
-              style={({ pressed }) => [
-                styles.askCard,
-                { backgroundColor: t.card, borderColor: t.hairline, opacity: pressed ? 0.85 : 1 },
-              ]}
-            >
-              <View style={[styles.askBadge, { backgroundColor: t.gold }]}>
-                <Ionicons name="sparkles" size={18} color={t.onGold} />
-              </View>
-              <View style={styles.askBody}>
-                <Text style={[styles.askTitle, { color: t.ink }]}>Or just say it</Text>
-                <Text style={[styles.askText, { color: t.muted }]}>
-                  {previewMode
-                    ? 'Plain-language carts live on the Ask tab of the real app.'
-                    : 'Type a request in plain language — we build the cart with your household rules.'}
-                </Text>
-              </View>
-              {onOpenAsk ? (
-                <Ionicons name="chevron-forward" size={18} color={t.muted} />
-              ) : null}
-            </Pressable>
+            {/* ---- Z5 · the concierge strip — the superpower, stated once ---- */}
+            <View style={[styles.strip, { backgroundColor: t.strip }]}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onOpenAsk}
+                disabled={!onOpenAsk}
+                style={({ pressed }) => [styles.stripMain, { opacity: pressed ? 0.8 : 1 }]}
+              >
+                <View style={[styles.stripDot, { backgroundColor: t.gold }]}>
+                  <Ionicons name="sparkles" size={14} color={t.onGold} />
+                </View>
+                <View style={styles.stripBody}>
+                  <Text style={[styles.stripTitle, { color: t.onStrip }]}>
+                    Or just tell MC Peels
+                  </Text>
+                  <Text style={[styles.stripText, { color: t.onStripMuted }]} numberOfLines={2}>
+                    {previewMode
+                      ? 'Plain-language carts live on the Ask tab of the real app.'
+                      : 'Say it in plain words — the cart builds with your household rules.'}
+                  </Text>
+                </View>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={onOpenShelf}
+                disabled={!onOpenShelf}
+                style={({ pressed }) => [
+                  styles.stripShelf,
+                  { borderColor: t.onStripMuted, opacity: pressed ? 0.8 : 1 },
+                ]}
+              >
+                <Text style={[styles.stripShelfText, { color: t.onStrip }]}>the shelf →</Text>
+              </Pressable>
+            </View>
 
             <Text style={[styles.footnote, { color: t.muted }]}>
               Menus become Instacart carts — you review and pay there. MC Peels never handles
@@ -227,6 +256,157 @@ export function HomeScreen({
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Z2 — tonight's feature. The kitchen's own costume dresses the box: its
+// backdrop, its anchored art, its hero text colors. The home only stages it.
+
+interface FeatureHeroProps {
+  restaurant: Restaurant;
+  dishName: string;
+  dishSub?: string;
+  minutes: number;
+  description: string;
+  onPress: () => void;
+}
+
+function FeatureHero({ restaurant, dishName, dishSub, minutes, description, onPress }: FeatureHeroProps) {
+  const costume = KITCHEN_COSTUMES[restaurant.id];
+  const day = WEEKDAYS[new Date().getDay()];
+  if (!costume) return null;
+  const { tokens } = costume;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Tonight: ${dishName} at ${restaurant.name}`}
+      onPress={onPress}
+      style={({ pressed }) => [styles.hero, { opacity: pressed ? 0.92 : 1 }]}
+    >
+      <View style={StyleSheet.absoluteFill}>{costume.renderHeroBackdrop()}</View>
+      {costume.renderHeroArt ? (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {costume.renderHeroArt()}
+        </View>
+      ) : null}
+      <View style={styles.heroInner}>
+        <View style={[styles.heroDay, { borderColor: tokens.onHeroSoft }]}>
+          <Text style={[styles.heroDayText, { color: tokens.onHero }]}>
+            {day} · TONIGHT'S TABLE
+          </Text>
+        </View>
+        <View style={styles.heroFoot}>
+          <Text style={[styles.heroEyebrow, { color: tokens.onHeroSoft }]} numberOfLines={1}>
+            {restaurant.name.toUpperCase()} · {minutes} MIN
+          </Text>
+          <Text
+            style={[
+              styles.heroDish,
+              { color: tokens.onHero },
+              // Long names step down instead of truncating — poster type, not ellipses.
+              dishName.length > 20
+                ? styles.heroDishLong
+                : dishName.length > 12
+                  ? styles.heroDishMid
+                  : null,
+            ]}
+            numberOfLines={2}
+          >
+            {dishName}
+          </Text>
+          {dishSub ? (
+            <Text style={[styles.heroSub, { color: tokens.onHeroSoft }]} numberOfLines={1}>
+              {dishSub}
+            </Text>
+          ) : null}
+          <Text style={[styles.heroDesc, { color: tokens.onHeroSoft }]} numberOfLines={2}>
+            {description}
+          </Text>
+          {/* accent/onAccent is the one guaranteed-contrast pair in every costume */}
+          <View style={[styles.heroCta, { backgroundColor: tokens.accent }]}>
+            <Text style={[styles.heroCtaText, { color: tokens.onAccent }]}>
+              Open the kitchen →
+            </Text>
+          </View>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Z4 — storefronts. Each kitchen's face at full volume on neutral ground;
+// brand islands, not app surfaces (they keep their colors in both themes).
+
+function Storefront({ restaurant, onPress }: { restaurant: Restaurant; onPress: () => void }) {
+  const body =
+    restaurant.id === 'stolovaya-7' ? (
+      <View style={[styles.front, { backgroundColor: '#2E509F' }]}>
+        <View style={styles.frontStolovayaRule} />
+        <View style={styles.frontStolovayaRing} />
+        <Text style={[styles.frontTitleHeavy, { color: '#F2E8D5' }]}>СТОЛОВАЯ № 7</Text>
+        <Text style={[styles.frontSub, { color: 'rgba(242, 232, 213, 0.8)' }]}>
+          Canteen No. 7 — {restaurant.cuisine.toLowerCase()}
+        </Text>
+        <Text style={[styles.frontMeta, { color: 'rgba(242, 232, 213, 0.65)' }]}>
+          {restaurant.meta.toUpperCase()}
+        </Text>
+      </View>
+    ) : restaurant.id === 'greenhouse' ? (
+      <View style={[styles.front, styles.frontGreenhouse]}>
+        <Text style={styles.frontTitleSerif}>greenhouse</Text>
+        <Text style={[styles.frontSub, { color: '#7C8074' }]}>{restaurant.tagline}</Text>
+        <Text style={[styles.frontMeta, { color: '#4E5D43' }]}>
+          {restaurant.meta.toUpperCase()}
+        </Text>
+        <View style={styles.frontLeaf} />
+        <View style={[styles.frontLeaf, styles.frontLeafSmall]} />
+      </View>
+    ) : (
+      <View style={[styles.front, { backgroundColor: '#F2A007' }]}>
+        <View style={styles.frontPicadoRow}>
+          {['#E84B8A', '#159F94', '#FBF3E4', '#8A4FD0', '#E84B8A', '#159F94', '#FBF3E4', '#8A4FD0'].map(
+            (color, index) => (
+              <View
+                key={index}
+                style={{
+                  width: 0,
+                  height: 0,
+                  borderLeftWidth: 9,
+                  borderRightWidth: 9,
+                  borderTopWidth: 14,
+                  borderLeftColor: 'transparent',
+                  borderRightColor: 'transparent',
+                  borderTopColor: color,
+                }}
+              />
+            ),
+          )}
+        </View>
+        <Text style={[styles.frontTitleHeavy, styles.frontMilpaTitle]}>LA MILPA</Text>
+        <Text style={[styles.frontSub, { color: '#241430' }]}>
+          {restaurant.sub} — {restaurant.cuisine.toLowerCase()}
+        </Text>
+        <Text style={[styles.frontMeta, { color: 'rgba(36, 20, 48, 0.7)' }]}>
+          {restaurant.meta.toUpperCase()}
+        </Text>
+      </View>
+    );
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${restaurant.name}`}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.frontWrap,
+        { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] },
+      ]}
+    >
+      {body}
+    </Pressable>
   );
 }
 
@@ -280,6 +460,7 @@ function SearchResults({ tokens: t, results, onOpenRestaurant }: SearchResultsPr
             { backgroundColor: t.card, borderColor: t.hairline, opacity: pressed ? 0.8 : 1 },
           ]}
         >
+          <DishTile restaurant={restaurant} dish={dish} size={38} radius={8} />
           <View style={styles.resultBody}>
             <Text style={[styles.resultName, { color: t.ink }]}>{dish.name}</Text>
             <Text style={[styles.resultMeta, { color: t.muted }]}>
@@ -288,9 +469,7 @@ function SearchResults({ tokens: t, results, onOpenRestaurant }: SearchResultsPr
             </Text>
           </View>
           <View style={[styles.resultChip, { borderColor: restaurant.accent }]}>
-            <Text style={[styles.resultChipText, { color: t.muted }]}>
-              {dish.minutes} min
-            </Text>
+            <Text style={[styles.resultChipText, { color: t.muted }]}>{dish.minutes} min</Text>
           </View>
         </Pressable>
       ))}
@@ -299,105 +478,192 @@ function SearchResults({ tokens: t, results, onOpenRestaurant }: SearchResultsPr
 }
 
 // ---------------------------------------------------------------------------
-// Brand cards — each restaurant's face on neutral ground. These keep their
-// own colors in both themes; they are brand islands, not app surfaces.
-
-function BrandCard({ restaurant, onPress }: { restaurant: Restaurant; onPress: () => void }) {
-  const body =
-    restaurant.id === 'stolovaya-7' ? (
-      <View style={[styles.brand, { backgroundColor: '#2E509F' }]}>
-        <View style={styles.brandStolovayaRule} />
-        <Text style={[styles.brandTitleHeavy, { color: '#F2E8D5' }]}>СТОЛОВАЯ № 7</Text>
-        <Text style={[styles.brandSub, { color: 'rgba(242, 232, 213, 0.8)' }]}>
-          Canteen No. 7 — {restaurant.cuisine.toLowerCase()}
-        </Text>
-        <Text style={[styles.brandMeta, { color: 'rgba(242, 232, 213, 0.65)' }]}>
-          {restaurant.meta.toUpperCase()}
-        </Text>
-      </View>
-    ) : restaurant.id === 'greenhouse' ? (
-      <View style={[styles.brand, styles.brandGreenhouse]}>
-        <Text style={styles.brandTitleSerif}>greenhouse</Text>
-        <Text style={[styles.brandSub, { color: '#7C8074' }]}>{restaurant.tagline}</Text>
-        <Text style={[styles.brandMeta, { color: '#4E5D43' }]}>
-          {restaurant.meta.toUpperCase()}
-        </Text>
-        <View style={styles.brandLeaf} />
-      </View>
-    ) : (
-      <View style={[styles.brand, { backgroundColor: '#F2A007' }]}>
-        <View style={styles.brandPicadoRow}>
-          {['#E84B8A', '#159F94', '#FBF3E4', '#8A4FD0', '#E84B8A', '#159F94'].map(
-            (color, index) => (
-              <View
-                key={index}
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderLeftWidth: 8,
-                  borderRightWidth: 8,
-                  borderTopWidth: 13,
-                  borderLeftColor: 'transparent',
-                  borderRightColor: 'transparent',
-                  borderTopColor: color,
-                }}
-              />
-            ),
-          )}
-        </View>
-        <Text style={[styles.brandTitleHeavy, styles.brandMilpaTitle]}>LA MILPA</Text>
-        <Text style={[styles.brandSub, { color: '#241430' }]}>
-          {restaurant.sub} — {restaurant.cuisine.toLowerCase()}
-        </Text>
-        <Text style={[styles.brandMeta, { color: 'rgba(36, 20, 48, 0.7)' }]}>
-          {restaurant.meta.toUpperCase()}
-        </Text>
-      </View>
-    );
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${restaurant.name}`}
-      onPress={onPress}
-      style={({ pressed }) => [styles.brandWrap, { opacity: pressed ? 0.85 : 1 }]}
-    >
-      {body}
-    </Pressable>
-  );
-}
-
-// ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 32,
     maxWidth: 620,
     width: '100%',
     alignSelf: 'center',
   },
+
+  // Z1
   masthead: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  wordmark: { fontSize: 12, fontWeight: '800', letterSpacing: 2.2 },
+  wordmarkSub: { fontSize: 11, marginTop: 1 },
+  searchGlyph: {
+    width: 34,
+    height: 34,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0px 2px 8px rgba(29, 36, 51, 0.14)',
+  },
+
+  // Z2
+  hero: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    minHeight: 300,
+    marginBottom: 22,
+    boxShadow: '0px 16px 30px rgba(20, 16, 12, 0.28)',
+  },
+  heroInner: { flex: 1, justifyContent: 'space-between', padding: 16 },
+  heroDay: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderRadius: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'rgba(20, 16, 12, 0.30)',
+  },
+  heroDayText: { fontSize: 8.5, fontWeight: '800', letterSpacing: 2 },
+  heroFoot: { marginTop: 74 },
+  heroEyebrow: { fontSize: 9, fontWeight: '800', letterSpacing: 2, maxWidth: '64%' },
+  heroDish: {
+    fontSize: 34,
+    fontWeight: '900',
+    letterSpacing: 0.4,
+    lineHeight: 37,
+    marginTop: 5,
+    maxWidth: '64%',
+    textTransform: 'uppercase',
+  },
+  heroDishMid: { fontSize: 27, lineHeight: 30 },
+  heroDishLong: { fontSize: 22, lineHeight: 25 },
+  heroSub: { fontSize: 10.5, fontWeight: '700', letterSpacing: 1.4, marginTop: 3, maxWidth: '64%' },
+  heroDesc: { fontSize: 12, lineHeight: 17, marginTop: 8, maxWidth: '68%' },
+  heroCta: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    marginTop: 12,
+  },
+  heroCtaText: { fontSize: 12, fontWeight: '800' },
+
+  // Z3
+  sectionLabel: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.6,
+    marginBottom: 10,
+  },
+  wall: { flexDirection: 'row', gap: 10, marginBottom: 22 },
+  wallColumn: { flex: 1, gap: 12 },
+  wallMeta: { fontSize: 10.5, marginTop: 5, paddingHorizontal: 2 },
+
+  // Z4
+  storefronts: { gap: 12, marginBottom: 22 },
+  frontWrap: {
+    borderRadius: 18,
+    overflow: 'hidden',
+    boxShadow: '0px 10px 24px rgba(29, 36, 51, 0.20)',
+  },
+  front: { padding: 18, minHeight: 148, justifyContent: 'flex-end', gap: 3 },
+  frontStolovayaRule: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 6,
+    backgroundColor: '#C8332B',
+  },
+  frontStolovayaRing: {
+    position: 'absolute',
+    right: -28,
+    top: -34,
+    width: 130,
+    height: 130,
+    borderRadius: 999,
+    borderWidth: 22,
+    borderColor: 'rgba(242, 232, 213, 0.14)',
+  },
+  frontGreenhouse: {
+    backgroundColor: '#F1F3E8',
+    borderWidth: 1,
+    borderColor: '#DDE1CC',
+  },
+  frontTitleHeavy: { fontSize: 24, fontWeight: '900', letterSpacing: 1 },
+  frontMilpaTitle: {
+    color: '#241430',
+    textShadowColor: '#E84B8A',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
+  },
+  frontTitleSerif: {
+    fontFamily: 'Georgia',
+    fontStyle: 'italic',
+    fontSize: 28,
+    color: '#4E5D43',
+  },
+  frontSub: { fontSize: 13, lineHeight: 18 },
+  frontMeta: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2, marginTop: 5 },
+  frontLeaf: {
+    position: 'absolute',
+    right: 20,
+    top: 22,
+    width: 30,
+    height: 30,
+    backgroundColor: '#7A8C6E',
+    borderTopLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    transform: [{ rotate: '45deg' }],
+  },
+  frontLeafSmall: {
+    right: 54,
+    top: 40,
+    width: 16,
+    height: 16,
+    borderTopLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    opacity: 0.55,
+  },
+  frontPicadoRow: {
+    position: 'absolute',
+    top: 0,
+    left: 14,
+    flexDirection: 'row',
+    gap: 6,
+  },
+
+  // Z5
+  strip: {
+    borderRadius: 16,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
-    marginBottom: 20,
   },
-  wordmark: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 2.2,
+  stripMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  stripDot: {
+    width: 30,
+    height: 30,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  wordmarkSub: {
-    fontSize: 12,
-    marginTop: 1,
+  stripBody: { flex: 1, gap: 1 },
+  stripTitle: { fontSize: 13, fontWeight: '800' },
+  stripText: { fontSize: 11, lineHeight: 15 },
+  stripShelf: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
   },
-  greeting: {
-    fontSize: 30,
-    lineHeight: 36,
-    marginBottom: 16,
-  },
+  stripShelfText: { fontSize: 11.5, fontWeight: '700' },
+  footnote: { fontSize: 11.5, lineHeight: 16, textAlign: 'center', marginTop: 20 },
+
+  // Search
   search: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -405,205 +671,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 16,
-    minHeight: 50,
-    marginBottom: 22,
+    minHeight: 48,
+    marginBottom: 14,
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    paddingVertical: 12,
-  },
-  sectionLabel: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    letterSpacing: 1.4,
-    marginBottom: 10,
-  },
-  railWrap: {
-    marginHorizontal: -20,
-    marginBottom: 24,
-  },
-  rail: {
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  pick: {
-    width: 152,
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 8,
-    gap: 6,
-  },
-  pickTile: {
-    height: 88,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pickInitial: {
-    fontSize: 40,
-    fontWeight: '900',
-    opacity: 0.9,
-  },
-  pickName: {
-    fontSize: 13.5,
-    fontWeight: '700',
-    lineHeight: 17,
-    paddingHorizontal: 2,
-  },
-  pickMeta: {
-    fontSize: 11,
-    paddingHorizontal: 2,
-    paddingBottom: 2,
-  },
-  restaurants: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  brandWrap: {
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  brand: {
-    padding: 18,
-    minHeight: 118,
-    justifyContent: 'center',
-    gap: 3,
-  },
-  brandStolovayaRule: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 5,
-    backgroundColor: '#C8332B',
-  },
-  brandGreenhouse: {
-    backgroundColor: '#F1F3E8',
-    borderWidth: 1,
-    borderColor: '#DDE1CC',
-    borderRadius: 20,
-  },
-  brandTitleHeavy: {
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-  brandMilpaTitle: {
-    color: '#241430',
-    textShadowColor: '#E84B8A',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 0,
-  },
-  brandTitleSerif: {
-    fontFamily: SERIF,
-    fontStyle: 'italic',
-    fontSize: 26,
-    color: '#4E5D43',
-  },
-  brandSub: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  brandMeta: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    marginTop: 5,
-  },
-  brandLeaf: {
-    position: 'absolute',
-    right: 20,
-    top: 24,
-    width: 26,
-    height: 26,
-    backgroundColor: '#7A8C6E',
-    borderTopLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    transform: [{ rotate: '45deg' }],
-  },
-  brandPicadoRow: {
-    position: 'absolute',
-    top: 0,
-    left: 12,
-    flexDirection: 'row',
-    gap: 5,
-  },
-  askCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
-  },
-  askBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  askBody: {
-    flex: 1,
-    gap: 2,
-  },
-  askTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  askText: {
-    fontSize: 12.5,
-    lineHeight: 17,
-  },
-  footnote: {
-    fontSize: 12,
-    lineHeight: 17,
-    textAlign: 'center',
-    marginTop: 24,
-  },
-  results: {
-    gap: 8,
-  },
+  searchInput: { flex: 1, fontSize: 15, paddingVertical: 12 },
+  results: { gap: 8 },
   resultRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     borderWidth: 1,
     borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  resultDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  resultBody: {
-    flex: 1,
-    gap: 1,
-  },
-  resultName: {
-    fontSize: 14.5,
-    fontWeight: '700',
-  },
-  resultMeta: {
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  resultChip: {
-    borderWidth: 1.5,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  resultChipText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-  },
-  emptyResult: {
-    fontSize: 13.5,
-    lineHeight: 19,
-    paddingVertical: 12,
-  },
+  resultDot: { width: 10, height: 10, borderRadius: 5 },
+  resultBody: { flex: 1, gap: 1 },
+  resultName: { fontSize: 14.5, fontWeight: '700' },
+  resultMeta: { fontSize: 12, lineHeight: 16 },
+  resultChip: { borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  resultChipText: { fontSize: 10.5, fontWeight: '700' },
+  emptyResult: { fontSize: 13.5, lineHeight: 19, paddingVertical: 12 },
 });
