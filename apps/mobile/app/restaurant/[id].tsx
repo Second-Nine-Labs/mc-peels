@@ -1,37 +1,31 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { GreenhouseScreen } from '@/features/eats/GreenhouseScreen';
-import { LaMilpaScreen } from '@/features/eats/LaMilpaScreen';
-import { StolovayaScreen } from '@/features/eats/StolovayaScreen';
-import type { RestaurantScreenProps } from '@/features/eats/types';
+import { KitchenScreen } from '@/features/eats/KitchenScreen';
+import { KITCHEN_COSTUMES } from '@/features/eats/costumes';
 import { rememberCartResult } from '@/lib/cart-cache';
 import { useSession } from '@/lib/session';
 
 /**
- * The doorway to a restaurant. Each id maps to its own fully-costumed screen;
- * the shared contract (household, deep-linked dish, cart hand-off) is wired
- * here once. Cart hand-off matches the Ask and Book flows: remember the
- * resolved items, land on the standard cart detail for the Instacart link.
+ * The doorway to a restaurant. Every kitchen renders through the shared
+ * KitchenScreen chassis wearing its costume from the rack; the shared
+ * contract (household, deep-linked dish, cart hand-off) is wired here once.
+ * Cart hand-off matches the Ask and Book flows: remember the resolved
+ * items, land on the standard cart detail for the Instacart link.
  */
-const SCREENS: Record<string, (props: RestaurantScreenProps) => React.JSX.Element> = {
-  'stolovaya-7': StolovayaScreen,
-  greenhouse: GreenhouseScreen,
-  'la-milpa': LaMilpaScreen,
-};
-
 export default function RestaurantRoute() {
   const { id, dish } = useLocalSearchParams<{ id: string; dish?: string }>();
   const router = useRouter();
   const { membership } = useSession();
 
-  const Screen = id ? SCREENS[id] : undefined;
+  const costume = id ? KITCHEN_COSTUMES[id] : undefined;
 
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      {Screen ? (
-        <Screen
+      {costume ? (
+        <KitchenScreen
+          costume={costume}
           householdId={membership?.household_id}
           initialDishId={dish}
           onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}

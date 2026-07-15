@@ -2,10 +2,9 @@ import { Stack } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { GreenhouseScreen } from '@/features/eats/GreenhouseScreen';
 import { HomeScreen } from '@/features/eats/HomeScreen';
-import { LaMilpaScreen } from '@/features/eats/LaMilpaScreen';
-import { StolovayaScreen } from '@/features/eats/StolovayaScreen';
+import { KitchenScreen } from '@/features/eats/KitchenScreen';
+import { KITCHEN_COSTUMES } from '@/features/eats/costumes';
 import type { RestaurantId } from '@/features/eats/types';
 import { ShelfScreen } from '@/features/shelf/ShelfScreen';
 
@@ -68,12 +67,13 @@ export default function EatsPreviewScreen() {
         <HomeScreen previewMode onOpenRestaurant={open} onOpenShelf={() => open('shelf')} />
       ) : view === 'shelf' ? (
         <ShelfScreen previewMode onBack={home} />
-      ) : view === 'stolovaya-7' ? (
-        <StolovayaScreen previewMode initialDishId={dishId} onBack={home} />
-      ) : view === 'greenhouse' ? (
-        <GreenhouseScreen previewMode initialDishId={dishId} onBack={home} />
       ) : (
-        <LaMilpaScreen previewMode initialDishId={dishId} onBack={home} />
+        <KitchenScreen
+          costume={KITCHEN_COSTUMES[view]}
+          previewMode
+          initialDishId={dishId}
+          onBack={home}
+        />
       )}
     </View>
   );

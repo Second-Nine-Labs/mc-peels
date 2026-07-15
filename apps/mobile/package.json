@@ -41,7 +41,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "gen:eats-art": "node scripts/gen-eats-art.mjs"
   },
   "private": true
 }
