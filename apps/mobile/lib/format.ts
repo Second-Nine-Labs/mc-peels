@@ -36,6 +36,32 @@ export function formatCurrency(cents: number | null | undefined, currency = 'USD
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(cents / 100);
 }
 
+/**
+ * Per-unit price from a SKU price + parsed size, e.g. (123, 6, "ct") -> "$0.21/ct".
+ * The GroceryChop move: makes a 6-count pack comparable to a dozen at a glance.
+ * Returns "" when the size wasn't parseable (never a guessed rate).
+ */
+export function formatUnitPrice(
+  skuPriceCents: number | null | undefined,
+  measureQuantity: number | null | undefined,
+  measureUnit: string | null | undefined,
+): string {
+  if (
+    skuPriceCents === null ||
+    skuPriceCents === undefined ||
+    !measureQuantity ||
+    measureQuantity <= 0 ||
+    !measureUnit
+  ) {
+    return '';
+  }
+  const perUnit = skuPriceCents / measureQuantity / 100;
+  // Only genuinely tiny rates (e.g. $/ml, $/g) need a 3rd digit to avoid $0.00;
+  // common cases like ~10¢/oz stay at the cleaner 2 digits.
+  const digits = perUnit < 0.02 ? 3 : 2;
+  return `$${perUnit.toFixed(digits)}/${measureUnit}`;
+}
+
 /** "2026-07-14T18:02:11Z" -> "6:02 PM" (quote freshness stamps). */
 export function formatTimeOfDay(iso: string | null | undefined): string {
   if (!iso) return '';

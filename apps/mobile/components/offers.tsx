@@ -18,7 +18,7 @@ import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'r
 
 import { Button } from '@/components/ui';
 import { ApiError, api, getErrorMessage } from '@/lib/api';
-import { formatCurrency, formatTimeOfDay } from '@/lib/format';
+import { formatCurrency, formatTimeOfDay, formatUnitPrice } from '@/lib/format';
 import { startKrogerConnect } from '@/lib/kroger-connect';
 import { usePalette } from '@/lib/theme';
 import type { Offer, OfferItemMatch } from '@/lib/types';
@@ -373,10 +373,17 @@ function MatchList({ matches }: { matches: OfferItemMatch[] }) {
               {m.requested_name}
             </Text>
             {m.status === 'matched' && m.line_total_cents !== null ? (
-              <Text style={[styles.matchPrice, { color: p.text }]}>
-                {m.quantity > 1 ? `${m.quantity} × ` : ''}
-                {formatCurrency(m.unit_price_cents)}
-              </Text>
+              <View style={styles.priceCell}>
+                <Text style={[styles.matchPrice, { color: p.text }]}>
+                  {m.quantity > 1 ? `${m.quantity} × ` : ''}
+                  {formatCurrency(m.unit_price_cents)}
+                </Text>
+                {formatUnitPrice(m.unit_price_cents, m.measure_quantity, m.measure_unit) ? (
+                  <Text style={[styles.unitPrice, { color: p.textMuted }]}>
+                    {formatUnitPrice(m.unit_price_cents, m.measure_quantity, m.measure_unit)}
+                  </Text>
+                ) : null}
+              </View>
             ) : (
               <View style={[styles.chip, { backgroundColor: p.chip }]}>
                 <Text style={[styles.chipText, { color: p.textMuted }]}>not priced</Text>
@@ -538,9 +545,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  priceCell: {
+    alignItems: 'flex-end',
+  },
   matchPrice: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  unitPrice: {
+    fontSize: 11.5,
+    marginTop: 1,
   },
   matchProduct: {
     flex: 1,

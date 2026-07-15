@@ -9,6 +9,7 @@
 
 import type { OfferItemMatch } from '../../db/schema.js';
 import { normalizeText, tokenize } from '../normalize.js';
+import { parseMeasure } from '../unit-price.js';
 import type { KrogerCandidate, KrogerProduct } from './api-types.js';
 
 /** Kroger's minimum filter.term length. */
@@ -234,6 +235,7 @@ export function matchItem(item: MatchableItem, candidates: KrogerCandidate[]): O
   const unitCents = effectiveCents(c);
   const promoActive =
     c.promo_cents !== null && c.regular_cents !== null && c.promo_cents < c.regular_cents;
+  const measure = parseMeasure(c.size);
 
   return {
     ...base,
@@ -253,6 +255,8 @@ export function matchItem(item: MatchableItem, candidates: KrogerCandidate[]): O
     promo_price_cents: c.promo_cents,
     line_total_cents: unitCents * quantity,
     promo_savings_cents: promoActive ? (c.regular_cents! - c.promo_cents!) * quantity : 0,
+    measure_quantity: measure?.quantity ?? null,
+    measure_unit: measure?.unit ?? null,
     warnings,
   };
 }

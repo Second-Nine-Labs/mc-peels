@@ -219,6 +219,8 @@ Offer shape (embedded in POST/GET cart responses and the refresh endpoint):
       "promo_price_cents": null,
       "line_total_cents": 62,
       "promo_savings_cents": 0,
+      "measure_quantity": 1,
+      "measure_unit": "lb",
       "warnings": ["Sized by weight/volume — confirm the size (1 lb) on Kroger."]
     }
   ],

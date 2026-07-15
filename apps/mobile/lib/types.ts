@@ -210,6 +210,9 @@ export interface OfferItemMatch {
   promo_price_cents: number | null;
   line_total_cents: number | null;
   promo_savings_cents: number;
+  /** Parsed package size for unit pricing; absent on pre-unit-pricing offers. */
+  measure_quantity?: number | null;
+  measure_unit?: string | null;
   warnings: string[];
 }
 

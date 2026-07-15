@@ -267,6 +267,10 @@ export type OfferItemMatch = {
   promo_price_cents: number | null;
   line_total_cents: number | null;
   promo_savings_cents: number;
+  /** Parsed package size for unit pricing: unit_price_cents / measure_quantity
+   *  = price per measure_unit (e.g. $/lb, $/ct). Null when size is unparseable. */
+  measure_quantity?: number | null;
+  measure_unit?: string | null;
   warnings: string[];
 };
 
