@@ -183,7 +183,9 @@ export function HomeScreen({
                             accessibilityRole="button"
                             accessibilityLabel={`${dish.name} at ${restaurant.name}`}
                             onPress={() => onOpenRestaurant(restaurant.id, dish.id)}
-                            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+                            style={({ pressed }) => [
+                              { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
+                            ]}
                           >
                             <PosterCard
                               restaurant={restaurant}
