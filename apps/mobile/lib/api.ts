@@ -32,6 +32,7 @@ import type {
   ShelfResponse,
   TokensResponse,
   UpdateHouseholdBody,
+  UsualsResponse,
 } from './types';
 
 const API_ORIGIN = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
@@ -159,6 +160,9 @@ export const api = {
     request<CartsResponse>('/carts', { query: params }),
 
   getCart: (cartId: string) => request<CartDetailResponse>(`/carts/${cartId}`),
+
+  getUsuals: (params: { household_id?: string; limit?: number } = {}) =>
+    request<UsualsResponse>('/usuals', { query: params }),
 
   markCartOpened: (cartId: string) =>
     request<CartDetailResponse>(`/carts/${cartId}/opened`, { method: 'POST' }),

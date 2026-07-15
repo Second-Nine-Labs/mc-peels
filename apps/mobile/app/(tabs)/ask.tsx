@@ -23,6 +23,7 @@ import { api, getErrorMessage } from '@/lib/api';
 import { rememberCartResult } from '@/lib/cart-cache';
 import { useSession } from '@/lib/session';
 import { usePalette } from '@/lib/theme';
+import type { UsualItem } from '@/lib/types';
 
 const EXAMPLES = [
   'Organic bananas, blueberries, and grass-fed beef',
@@ -50,7 +51,32 @@ export default function AskScreen() {
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
+  const [usuals, setUsuals] = useState<UsualItem[]>([]);
   const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // The household's recurring items (best-effort; hidden when there are none).
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getUsuals({ household_id: membership?.household_id })
+      .then((r) => {
+        if (!cancelled) setUsuals(r.usuals);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [membership?.household_id]);
+
+  // Tap a usual to append it to the request (deduped, comma-joined).
+  const addUsual = useCallback((name: string) => {
+    setText((prev) => {
+      const trimmed = prev.trim();
+      const parts = trimmed ? trimmed.split(',').map((s) => s.trim().toLowerCase()) : [];
+      if (parts.includes(name.toLowerCase())) return prev;
+      return trimmed ? `${trimmed}, ${name}` : name;
+    });
+  }, []);
 
   // --- easter eggs ---
   const [party, setParty] = useState(0); // bump to drop a banana rain
@@ -193,6 +219,24 @@ export default function AskScreen() {
             disabled={!text.trim()}
           />
 
+          {usuals.length > 0 ? (
+            <>
+              <Text style={[styles.examplesLabel, { color: p.onBgMuted }]}>Your usuals</Text>
+              <View style={styles.usuals}>
+                {usuals.map((u) => (
+                  <Pressable
+                    key={u.name}
+                    onPress={() => addUsual(u.name)}
+                    style={[styles.usualChip, { backgroundColor: p.card, borderColor: p.border }]}
+                  >
+                    <Ionicons name="add" size={15} color={p.tint} />
+                    <Text style={[styles.usualText, { color: p.text }]}>{u.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
+
           <Text style={[styles.examplesLabel, { color: p.onBgMuted }]}>Try something like</Text>
           <View style={styles.examples}>
             {EXAMPLES.map((example) => (
@@ -260,6 +304,25 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginTop: 28,
     marginBottom: 10,
+  },
+  usuals: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  usualChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingLeft: 8,
+    paddingRight: 12,
+    paddingVertical: 7,
+  },
+  usualText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   examples: {
     gap: 8,

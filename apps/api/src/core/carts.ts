@@ -4,7 +4,7 @@
  * build Instacart link -> persist -> hand off the checkout URL.
  */
 
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { ParserError, parseRequest, parseStructuredItems } from '../ai/parser.js';
 import { getDb, schema } from '../db/client.js';
 import type { Cart, CartOffer, LineItem } from '../db/schema.js';
@@ -267,6 +267,37 @@ export async function getCartWithItems(
     lineItems: items.map(rowToResolvedItem),
     offers,
   };
+}
+
+export interface UsualItem {
+  name: string;
+  count: number;
+}
+
+/**
+ * A household's recurring items — the same name ordered across ≥2 carts,
+ * most-frequent first. Powers the "Your usuals" one-tap re-add on the Ask
+ * screen. Grouped case/whitespace-insensitively; the representative name is
+ * the most common exact spelling (Postgres mode()).
+ */
+export async function listUsualItems(
+  userId: string,
+  opts: { householdId?: string; limit?: number } = {},
+): Promise<UsualItem[]> {
+  const ctx = await getHouseholdContext(userId, opts.householdId);
+  const limit = Math.min(Math.max(opts.limit ?? 8, 1), 24);
+  const rows = await getDb()
+    .select({
+      name: sql<string>`mode() within group (order by ${schema.lineItems.name})`,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(schema.lineItems)
+    .where(eq(schema.lineItems.householdId, ctx.household.id))
+    .groupBy(sql`lower(btrim(${schema.lineItems.name}))`)
+    .having(sql`count(*) >= 2`)
+    .orderBy(sql`count(*) desc`, sql`max(${schema.lineItems.createdAt}) desc`)
+    .limit(limit);
+  return rows.map((r) => ({ name: r.name, count: Number(r.count) }));
 }
 
 export async function listRecentCarts(

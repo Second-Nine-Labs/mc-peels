@@ -267,6 +267,16 @@ export interface KrogerHandoffResponse {
   notes: string[];
 }
 
+/** A household's recurring item, for the Ask screen's "Your usuals" row. */
+export interface UsualItem {
+  name: string;
+  count: number;
+}
+
+export interface UsualsResponse {
+  usuals: UsualItem[];
+}
+
 export type CartStatus = 'created' | 'opened' | 'expired';
 
 export interface CartSummary {

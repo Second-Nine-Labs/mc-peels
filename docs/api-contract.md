@@ -178,6 +178,15 @@ Cart plus its line items (same resolved shape as POST response) plus `offers`
 Marks the cart `opened` (best-effort local status; Instacart does not report order
 state back — PRD section 7). Returns the cart.
 
+### GET /api/v1/usuals?household_id=uuid&limit=8
+The household's recurring items — item names ordered across ≥2 carts, grouped
+case/whitespace-insensitively, most-frequent first (recency breaks ties).
+Powers the Ask screen's one-tap "Your usuals". `limit` optional (default 8, max 24).
+
+```json
+{ "usuals": [{ "name": "organic bananas", "count": 3 }, { "name": "blueberries", "count": 3 }] }
+```
+
 ## Fulfillment offers (parallel rails + price comparison)
 
 Every cart carries one offer per enabled fulfillment service

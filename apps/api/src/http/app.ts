@@ -4,7 +4,13 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
 import { verifySupabaseToken } from '../auth/supabase.js';
 import { createApiToken, listApiTokens, revokeApiToken } from '../auth/tokens.js';
-import { createCart, getCartWithItems, listRecentCarts, markCartOpened } from '../core/carts.js';
+import {
+  createCart,
+  getCartWithItems,
+  listRecentCarts,
+  listUsualItems,
+  markCartOpened,
+} from '../core/carts.js';
 import { deleteConnection, listConnections, saveConnection } from '../core/connections.js';
 import { krogerHandoff } from '../core/handoff.js';
 import { refreshOffers } from '../core/offers.js';
@@ -402,6 +408,20 @@ export function createApp() {
     const cart = await getCartWithItems(c.get('userId'), uuidParam(c.req.param('id'), 'Cart'));
     if (!cart) throw notFound('Cart not found');
     return c.json(cartDetailJson(cart));
+  });
+
+  // The household's recurring items — one-tap re-add on the Ask screen.
+  api.get('/usuals', async (c) => {
+    const limitRaw = c.req.query('limit');
+    const limit = limitRaw === undefined ? undefined : Number(limitRaw);
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
+      throw validationError('limit must be a positive integer');
+    }
+    const usuals = await listUsualItems(c.get('userId'), {
+      householdId: uuidQuery(c.req.query('household_id'), 'household_id'),
+      limit,
+    });
+    return c.json({ usuals });
   });
 
   api.post('/carts/:id/opened', async (c) => {
