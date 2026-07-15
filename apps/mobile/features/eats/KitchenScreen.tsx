@@ -20,7 +20,16 @@
  * launch, deep links — is byte-for-byte the old flow.
  */
 
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Easing,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -57,6 +66,38 @@ export function KitchenScreen({
   const menuTop = useRef(0);
   const didDeepLink = useRef(false);
 
+  // The walk-in: one 0→1 value staggers the hero settle, the letterhead
+  // rise, and the menu fade; the badge (stamp) thunks in on its own late
+  // beat. Single-value interpolation is the pattern that animates reliably
+  // on react-native-web (see MascotMark).
+  const enter = useRef(new Animated.Value(0)).current;
+  const badgeIn = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(enter, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+    Animated.timing(badgeIn, {
+      toValue: 1,
+      duration: 380,
+      delay: 320,
+      easing: Easing.out(Easing.back(1.7)),
+      useNativeDriver: false,
+    }).start();
+  }, [enter, badgeIn]);
+
+  const heroScale = enter.interpolate({ inputRange: [0, 1], outputRange: [1.05, 1] });
+  const titleRise = enter.interpolate({ inputRange: [0, 1], outputRange: [16, 0] });
+  const titleFade = enter.interpolate({ inputRange: [0, 0.55, 1], outputRange: [0, 0.6, 1] });
+  const menuRise = enter.interpolate({ inputRange: [0, 1], outputRange: [22, 0] });
+  const menuFade = enter.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 0.15, 1] });
+  const badgeScale = badgeIn.interpolate({ inputRange: [0, 1], outputRange: [1.5, 1] });
+
+  // The order bar slides up on the first selection instead of popping.
+  const orderIn = useRef(new Animated.Value(0)).current;
+
   const { selected, toggle, chosen, plan, building, error, launch } = usePlan({
     dishes: restaurant.dishes,
     householdId,
@@ -64,6 +105,17 @@ export function KitchenScreen({
     signedOutMessage: voice.signedOut,
     onCartBuilt,
   });
+
+  const hasPlan = chosen.length > 0;
+  useEffect(() => {
+    Animated.timing(orderIn, {
+      toValue: hasPlan ? 1 : 0,
+      duration: 280,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [hasPlan, orderIn]);
+  const orderRise = orderIn.interpolate({ inputRange: [0, 1], outputRange: [96, 0] });
 
   const sections = useMemo(
     () =>
@@ -108,11 +160,16 @@ export function KitchenScreen({
       >
         {/* ---- Z1 · hero — the costume owns this box entirely ---- */}
         <View style={styles.hero}>
-          <View style={StyleSheet.absoluteFill}>{costume.renderHeroBackdrop()}</View>
+          <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: heroScale }] }]}>
+            {costume.renderHeroBackdrop()}
+          </Animated.View>
           {costume.renderHeroArt ? (
-            <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Animated.View
+              style={[StyleSheet.absoluteFill, { opacity: titleFade }]}
+              pointerEvents="none"
+            >
               {costume.renderHeroArt()}
-            </View>
+            </Animated.View>
           ) : null}
           <View style={styles.heroContent}>
             {onBack ? (
@@ -128,12 +185,18 @@ export function KitchenScreen({
             ) : (
               <View style={styles.backSpacer} />
             )}
-            <View style={styles.heroTitle}>
+            <Animated.View
+              style={[styles.heroTitle, { opacity: titleFade, transform: [{ translateY: titleRise }] }]}
+            >
               {costume.renderHeroTitle()}
               {costume.renderHeroBadge ? (
-                <View style={styles.heroBadge}>{costume.renderHeroBadge()}</View>
+                <Animated.View
+                  style={[styles.heroBadge, { opacity: badgeIn, transform: [{ scale: badgeScale }] }]}
+                >
+                  {costume.renderHeroBadge()}
+                </Animated.View>
               ) : null}
-            </View>
+            </Animated.View>
           </View>
         </View>
 
@@ -171,8 +234,11 @@ export function KitchenScreen({
         </View>
 
         {/* ---- Z3 · the menu ---- */}
-        <View
-          style={[styles.menu, { backgroundColor: t.paper }]}
+        <Animated.View
+          style={[
+            styles.menu,
+            { backgroundColor: t.paper, opacity: menuFade, transform: [{ translateY: menuRise }] },
+          ]}
           onLayout={(e) => {
             menuTop.current = e.nativeEvent.layout.y;
           }}
@@ -235,12 +301,17 @@ export function KitchenScreen({
               {voice.footnote}
             </Text>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* ---- Z4 · the order bar — pinned, one thumb away ---- */}
       {chosen.length > 0 ? (
-        <View style={[styles.order, { backgroundColor: t.order }]}>
+        <Animated.View
+          style={[
+            styles.order,
+            { backgroundColor: t.order, opacity: orderIn, transform: [{ translateY: orderRise }] },
+          ]}
+        >
           {error ? (
             <View style={[styles.scrub, { backgroundColor: t.accent }]}>
               <Text style={[styles.scrubText, { color: t.onAccent }]}>{error}</Text>
@@ -272,7 +343,7 @@ export function KitchenScreen({
               </Text>
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       ) : null}
     </SafeAreaView>
   );
