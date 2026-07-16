@@ -1,0 +1,56 @@
+<!--
+  MC Peels — password recovery email.
+  Paste into: Supabase Dashboard → Authentication → Email Templates → "Reset Password"
+  Subject line: Reset your MC Peels password
+
+  Inline styles + table layout on purpose: email clients ignore <style> blocks
+  and Outlook still lays out with tables. No remote images — most clients
+  block them by default, so the branding is typographic. No emoji, ever.
+-->
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">Tap to set a new password &mdash; the link works once, then it&rsquo;s gone.</div>
+<div style="background-color:#EDF5FE;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;">
+          <tr>
+            <td style="background-color:#208AEF;border-radius:16px 16px 0 0;padding:26px 32px;">
+              <div style="color:#FFFFFF;font-size:21px;font-weight:800;letter-spacing:-0.3px;">MC Peels</div>
+              <div style="color:#D5EAFF;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-top:2px;">By Second 9 Labs</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color:#FFFFFF;border-radius:0 0 16px 16px;padding:36px 32px;">
+              <h1 style="margin:0 0 12px;color:#152238;font-size:26px;font-weight:800;letter-spacing:-0.5px;">Set a new password.</h1>
+              <p style="margin:0 0 24px;color:#5C6B85;font-size:15px;line-height:23px;">
+                Someone &mdash; hopefully you &mdash; asked to reset the password for this MC&nbsp;Peels account.
+                Tap the button and pick a new one. The link works once and expires in an hour.
+              </p>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background-color:#FFC531;border-radius:999px;">
+                    <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 30px;color:#152238;font-size:16px;font-weight:700;text-decoration:none;">Set a new password</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:24px 0 0;color:#5C6B85;font-size:13px;line-height:20px;">
+                Button not cooperating? Paste this into your browser:<br>
+                <a href="{{ .ConfirmationURL }}" style="color:#208AEF;word-break:break-all;">{{ .ConfirmationURL }}</a>
+              </p>
+              <div style="margin-top:28px;background-color:#FFF3D0;border-radius:12px;padding:14px 16px;">
+                <p style="margin:0;color:#152238;font-size:13px;line-height:20px;">
+                  Didn&rsquo;t ask for this? Ignore it and nothing changes &mdash; your password stays exactly as it was.
+                </p>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 8px;text-align:center;color:#5C6B85;font-size:12px;">
+              &copy; 2026 Second 9 Labs &mdash; a tool from the kitchen
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</div>
