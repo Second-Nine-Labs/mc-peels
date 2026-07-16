@@ -205,6 +205,11 @@ export const recipes = pgTable(
     confidence: text('confidence').notNull().default('medium'),
     /** Extraction + resolver notes, surfaced to the human. Never silently dropped. */
     notes: jsonb('notes').$type<string[]>().notNull().default([]),
+    /** Generated dish art (lane 2): public URL in the eats-art storage bucket. */
+    artUrl: text('art_url'),
+    /** none | pending | ok | failed — art pipeline lifecycle for this save. */
+    artStatus: text('art_status').notNull().default('none'),
+    artUpdatedAt: timestamp('art_updated_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

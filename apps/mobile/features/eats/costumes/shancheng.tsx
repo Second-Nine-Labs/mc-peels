@@ -194,9 +194,10 @@ export function shanchengCostume(restaurant: Restaurant): KitchenCostume {
     barMark: '山城',
     chipLabel: (_key, label) => label.split(' ')[0].toLowerCase(),
 
-    // Heat + clock — the stall's shorthand: '🌶🌶🌶 · 20 min'.
+    // Heat + clock — the stall's shorthand: '◆◆◆ · 20 min'. Typographic
+    // diamonds, never emoji (house rule).
     dishMeta: (dish) =>
-      [dish.heat && dish.heat > 0 ? '🌶'.repeat(dish.heat) : null, `${dish.minutes} min`]
+      [dish.heat && dish.heat > 0 ? '◆'.repeat(dish.heat) : null, `${dish.minutes} min`]
         .filter(Boolean)
         .join(' · '),
   };

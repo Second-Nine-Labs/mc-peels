@@ -39,6 +39,8 @@ export interface Dish {
   gost?: string;
   /** The house voice — babushka, nutritionist, abuela. One line. */
   note?: string;
+  /** Generated art URL (shelf-minted dishes) — bundled manifest art wins. */
+  artUrl?: string | null;
   ingredients: CanonIngredient[];
 }
 

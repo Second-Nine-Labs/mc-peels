@@ -24,6 +24,14 @@ const envSchema = z.object({
   /** Origins allowed as post-OAuth return destinations (besides mcpeels:// and localhost). */
   CONNECT_RETURN_ORIGINS: z.string().default('https://mc-peels.secondninelabs.com'),
   QUOTE_CACHE_TTL_MINUTES: z.coerce.number().default(360),
+  // Kitchen art (lane 2): generate-on-ingest dish tiles. Both keys optional —
+  // the pipeline no-ops with status 'unconfigured' until they exist, and the
+  // app keeps its designed fallback tiles.
+  GEMINI_API_KEY: z.string().optional(),
+  GEMINI_IMAGE_MODEL: z.string().default('gemini-2.5-flash-image'),
+  /** Service-role key — storage writes only ever happen server-side. */
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  EATS_ART_BUCKET: z.string().default('eats-art'),
 });
 
 export type Env = z.infer<typeof envSchema>;

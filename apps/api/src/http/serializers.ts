@@ -121,6 +121,8 @@ export function recipeJson(r: Recipe) {
     provenance: r.provenance,
     confidence: r.confidence,
     notes: r.notes,
+    art_url: r.artUrl,
+    art_status: r.artStatus,
     created_at: r.createdAt.toISOString(),
   };
 }

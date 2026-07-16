@@ -16,6 +16,21 @@ import { cuisineForKitchenId, deriveGenesis, type Genesis } from './genesis';
 
 const EMPTY: Genesis = { kitchens: [], teases: [] };
 
+/** Once per app session per save — nudge the API to generate missing art.
+ * Fire-and-forget: results land in recipes.art_url and show on the next
+ * shelf fetch (screens refetch on focus). Failed saves are not re-kicked;
+ * rerolls are an explicit force on the endpoint. */
+const artKicked = new Set<string>();
+function kickArtGeneration(recipes: SavedRecipe[]): void {
+  for (const recipe of recipes) {
+    if (recipe.art_url || recipe.art_status === 'failed' || artKicked.has(recipe.id)) continue;
+    artKicked.add(recipe.id);
+    api.ensureRecipeArt(recipe.id).catch(() => {
+      // Art is a garnish — generation trouble never surfaces on the shelf.
+    });
+  }
+}
+
 export interface UseShelfKitchensOptions {
   householdId?: string;
   /** Preview surfaces pass sample recipes; no network is touched. */
@@ -32,7 +47,9 @@ export function useShelfKitchens({ householdId, previewRecipes }: UseShelfKitche
       api
         .listRecipes({ household_id: householdId })
         .then((data) => {
-          if (!cancelled) setFetched(data.recipes);
+          if (cancelled) return;
+          setFetched(data.recipes);
+          kickArtGeneration(data.recipes);
         })
         .catch(() => {
           // The shelf being unreachable never breaks the home — no kitchens, no teases.
@@ -71,6 +88,7 @@ export function useDerivedKitchen(
         .listRecipes({ household_id: householdId })
         .then((data) => {
           if (cancelled) return;
+          kickArtGeneration(data.recipes);
           const kitchen = deriveGenesis(data.recipes).kitchens.find(
             (entry) => entry.cuisine === cuisine,
           );
