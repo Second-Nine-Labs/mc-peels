@@ -21,6 +21,10 @@ import { usePalette } from '@/lib/theme';
 
 const BANANA = require('../../assets/brand/banana.png');
 const NAV_H = 60;
+// The "honest" band is a deliberately dark trust band — fixed colors, not
+// theme-derived, so it doesn't invert (and vanish) in dark mode.
+const HONEST_INK = '#152238';
+const HONEST_MUTED = 'rgba(213,234,255,0.78)';
 
 const REASSURANCE = ['You always check out yourself', 'we never see your card', 'filters, not guarantees'];
 
@@ -293,7 +297,7 @@ export default function SignInScreen() {
 
   // ---- Honest band ----
   const honest = (
-    <View style={[styles.section, { backgroundColor: p.text }]}>
+    <View style={[styles.section, { backgroundColor: HONEST_INK }]}>
       <View style={[styles.inner, wide && styles.honestRow]}>
         <View style={wide ? styles.honestLeft : styles.stack}>
           <View style={[styles.chipNavy, { borderColor: 'rgba(255,255,255,0.16)' }]}>
@@ -302,7 +306,7 @@ export default function SignInScreen() {
           <Text style={[styles.h2, styles.honestTitle]}>
             You&rsquo;re always the <Text style={{ color: p.accent }}>last</Text> set of eyes.
           </Text>
-          <Text style={[styles.sectionLede, { color: p.onBgMuted, marginTop: 12 }]}>
+          <Text style={[styles.sectionLede, { color: HONEST_MUTED, marginTop: 12 }]}>
             We&rsquo;re honest about what software can and can&rsquo;t promise &mdash; especially
             where it counts.
           </Text>
@@ -311,7 +315,7 @@ export default function SignInScreen() {
           {HONEST.map((h) => (
             <View key={h.title} style={styles.honestPoint}>
               <View style={[styles.honestCheck, { backgroundColor: p.accent }]}>
-                <Ionicons name="checkmark" size={15} color={p.text} />
+                <Ionicons name="checkmark" size={15} color={HONEST_INK} />
               </View>
               <View style={styles.flex1}>
                 <Text style={styles.honestPointTitle}>{h.title}</Text>
