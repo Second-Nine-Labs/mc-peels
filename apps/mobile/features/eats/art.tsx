@@ -38,10 +38,27 @@ export function dishArt(kitchenId: string, dishId: string) {
   return DISH_ART[`${kitchenId}/${dishId}`] ?? null;
 }
 
-/** Bundled manifest art wins; shelf-minted dishes fall back to the generated
- * tile the API cached (lane 2). Null keeps the designed fallback. */
+/**
+ * Generated art cached for the static trio, keyed by `${kitchenId}/${dishId}`.
+ * A module map (not state) because `artFor` runs deep in the tile tree;
+ * `useKitchenArt` populates it and bumps a version to re-render consumers.
+ */
+const REMOTE_KITCHEN_ART = new Map<string, string>();
+
+export function registerKitchenArt(kitchenId: string, map: Record<string, string>): void {
+  for (const [dishId, url] of Object.entries(map)) {
+    REMOTE_KITCHEN_ART.set(`${kitchenId}/${dishId}`, url);
+  }
+}
+
+/** Art resolution, in priority order — every restaurant, one path:
+ *   bundled manifest → generated kitchen tile → shelf recipe art → fallback. */
 function artFor(restaurant: Restaurant, dish: Dish): ImageSourcePropType | null {
-  return dishArt(restaurant.id, dish.id) ?? (dish.artUrl ? { uri: dish.artUrl } : null);
+  const manifest = dishArt(restaurant.id, dish.id);
+  if (manifest) return manifest;
+  const remote = REMOTE_KITCHEN_ART.get(`${restaurant.id}/${dish.id}`);
+  if (remote) return { uri: remote };
+  return dish.artUrl ? { uri: dish.artUrl } : null;
 }
 
 // ---------------------------------------------------------------------------

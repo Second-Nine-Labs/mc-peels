@@ -34,6 +34,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DishTile } from './art';
+import { useKitchenArt } from './useKitchenArt';
 import type { KitchenCostume } from './costume';
 import type { Dish, RestaurantScreenProps } from './types';
 import { usePlan } from './usePlan';
@@ -58,6 +59,10 @@ export function KitchenScreen({
 }: KitchenScreenProps) {
   const { restaurant, tokens: t, voice } = costume;
   const family = costume.mono ? MONO : undefined;
+
+  // Fetch + generate this kitchen's dish art (static trio; no-op for the
+  // signed-out showcase and for shelf-minted kitchens).
+  useKitchenArt(restaurant.id, restaurant.dishes, !previewMode);
 
   const [openId, setOpenId] = useState<string | null>(initialDishId ?? null);
   const scrollRef = useRef<ScrollView>(null);

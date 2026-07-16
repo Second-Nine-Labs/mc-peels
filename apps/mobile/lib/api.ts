@@ -19,6 +19,7 @@ import type {
   DietaryProfile,
   EnsureRecipeArtResponse,
   ErrorEnvelope,
+  KitchenArtResponse,
   Household,
   HouseholdDetailResponse,
   IngestRecipeBody,
@@ -198,6 +199,21 @@ export const api = {
   /** Kick (or check) generated art for a save; idempotent server-side. */
   ensureRecipeArt: (recipeId: string) =>
     request<EnsureRecipeArtResponse>(`/recipes/${recipeId}/art`, { method: 'POST' }),
+
+  /** Cached art for a static-trio kitchen: { dishId: publicUrl }. */
+  kitchenArt: (kitchenId: string) =>
+    request<KitchenArtResponse>(`/kitchens/${kitchenId}/art`),
+
+  /** Kick (or reroll) art for one static-trio dish; idempotent server-side. */
+  ensureKitchenDishArt: (
+    kitchenId: string,
+    dishId: string,
+    descriptor: { title: string; sub?: string; description?: string },
+  ) =>
+    request<EnsureRecipeArtResponse>(`/kitchens/${kitchenId}/dishes/${dishId}/art`, {
+      method: 'POST',
+      body: descriptor,
+    }),
 
   // MCP access tokens ------------------------------------------------------
   createToken: (name: string) =>

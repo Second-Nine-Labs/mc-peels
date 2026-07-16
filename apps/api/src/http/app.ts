@@ -36,7 +36,14 @@ import {
   putProfile,
   updateHousehold,
 } from '../core/households.js';
-import { artConfigured, ensureRecipeArt, ensureRecipeArtForUser } from '../art/pipeline.js';
+import {
+  artConfigured,
+  ensureKitchenDishArt,
+  ensureRecipeArt,
+  ensureRecipeArtForUser,
+  isArtSlug,
+  kitchenArtMap,
+} from '../art/pipeline.js';
 import { deleteRecipe, ingestRecipe, listRecipes } from '../core/recipes.js';
 import { listRetailers } from '../core/retailers.js';
 import { HEALTH_FILTERS } from '../types.js';
@@ -538,6 +545,35 @@ export function createApp() {
       { force },
     );
     if (!result) throw notFound('Recipe not found');
+    return c.json({ status: result.status, art_url: result.artUrl });
+  });
+
+  // Static-trio kitchen art — same engine as shelf saves, keyed by
+  // (kitchenId, dishId). The bucket is the record, so no household scope: the
+  // static menus are global. Auth is still required (the /api/v1 group).
+  api.get('/kitchens/:kitchenId/art', async (c) => {
+    const kitchenId = c.req.param('kitchenId');
+    if (!isArtSlug(kitchenId)) throw validationError('kitchen id must be a slug');
+    return c.json({ art: await kitchenArtMap(kitchenId) });
+  });
+
+  const ensureKitchenArtSchema = z.object({
+    title: z.string().min(1).max(200),
+    sub: z.string().max(200).optional(),
+    description: z.string().max(600).optional(),
+  });
+
+  // Ensure (or, with force=1, reroll) art for one static-trio dish. The client
+  // supplies the descriptor — the server has no static menu.
+  api.post('/kitchens/:kitchenId/dishes/:dishId/art', async (c) => {
+    const kitchenId = c.req.param('kitchenId');
+    const dishId = c.req.param('dishId');
+    if (!isArtSlug(kitchenId) || !isArtSlug(dishId)) {
+      throw validationError('kitchen id and dish id must be slugs');
+    }
+    const input = await body(c, ensureKitchenArtSchema);
+    const force = ['1', 'true'].includes(c.req.query('force') ?? '');
+    const result = await ensureKitchenDishArt(kitchenId, dishId, input, { force });
     return c.json({ status: result.status, art_url: result.artUrl });
   });
 

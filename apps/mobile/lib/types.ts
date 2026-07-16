@@ -356,6 +356,11 @@ export interface EnsureRecipeArtResponse {
   art_url: string | null;
 }
 
+/** Cached art for a static-trio kitchen: `{ dishId: publicUrl }`. */
+export interface KitchenArtResponse {
+  art: Record<string, string>;
+}
+
 export interface IngestRecipeBody {
   household_id?: string;
   url: string;
