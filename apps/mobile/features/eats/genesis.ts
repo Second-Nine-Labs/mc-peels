@@ -17,10 +17,27 @@ import type { SavedRecipe } from '@/lib/types';
 
 import type { Dish, MenuSection, Restaurant } from './types';
 
-/** Saves of one cuisine that open its kitchen. */
+/** Saves of one cuisine that open its kitchen — the earned threshold. */
 export const OPEN_THRESHOLD = 4;
+/**
+ * The gift threshold: a cuisine holding starter picks (onboarding's curated
+ * dishes, source_platform 'starter') opens at 3. Two thresholds on purpose —
+ * the first kitchen is handed over in thirty seconds of tapping; every
+ * kitchen after is earned from real saves.
+ */
+export const STARTER_OPEN_THRESHOLD = 3;
 /** Saves at which the home starts teasing the countdown. */
 export const TEASE_THRESHOLD = 2;
+
+/** The platform stamp starter picks carry (see the API's starter catalog). */
+export const STARTER_PLATFORM = 'starter';
+
+/** The threshold a given cuisine's pile must reach to open. */
+export function openThresholdFor(saved: SavedRecipe[]): number {
+  return saved.some((recipe) => recipe.source_platform === STARTER_PLATFORM)
+    ? STARTER_OPEN_THRESHOLD
+    : OPEN_THRESHOLD;
+}
 
 /** Cuisines that never coalesce into a kitchen. */
 const NEVER_A_KITCHEN = new Set(['other']);
@@ -128,14 +145,15 @@ export function deriveGenesis(recipes: SavedRecipe[]): Genesis {
   const teases: KitchenTease[] = [];
 
   for (const [cuisine, saved] of byCuisine) {
-    if (saved.length >= OPEN_THRESHOLD) {
+    const threshold = openThresholdFor(saved);
+    if (saved.length >= threshold) {
       kitchens.push({ cuisine, restaurant: toRestaurant(cuisine, saved) });
     } else if (saved.length >= TEASE_THRESHOLD) {
       teases.push({
         cuisine,
         label: cuisineLabel(cuisine),
         saved: saved.length,
-        needed: OPEN_THRESHOLD - saved.length,
+        needed: threshold - saved.length,
       });
     }
   }

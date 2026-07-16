@@ -29,7 +29,7 @@ import { DishTile, PosterCard } from './art';
 import { KITCHEN_COSTUMES } from './costumes';
 import { costumeForShelfKitchen } from './costumes/factory';
 import type { KitchenCostume } from './costume';
-import { OPEN_THRESHOLD, type KitchenTease } from './genesis';
+import type { KitchenTease } from './genesis';
 import { FEATURED_PICKS, RESTAURANTS, searchEats } from './restaurants';
 import type { Restaurant, RestaurantId } from './types';
 import { useShelfKitchens } from './useShelfKitchens';
@@ -98,6 +98,8 @@ export interface HomeScreenProps {
   onOpenRestaurant: (id: RestaurantId, dishId?: string) => void;
   onOpenAsk?: () => void;
   onOpenShelf?: () => void;
+  /** The starter-picker door, nudged until a first shelf kitchen exists. */
+  onOpenFirstKitchen?: () => void;
 }
 
 export function HomeScreen({
@@ -108,6 +110,7 @@ export function HomeScreen({
   onOpenRestaurant,
   onOpenAsk,
   onOpenShelf,
+  onOpenFirstKitchen,
 }: HomeScreenProps) {
   const t = useColorScheme() === 'dark' ? dark : light;
   const [searching, setSearching] = useState(false);
@@ -235,6 +238,30 @@ export function HomeScreen({
               {genesis.teases.map((tease) => (
                 <TeaseCard key={tease.cuisine} tease={tease} tokens={t} onPress={onOpenShelf} />
               ))}
+              {!previewMode &&
+              onOpenFirstKitchen &&
+              genesis.kitchens.length === 0 &&
+              genesis.teases.length === 0 ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={onOpenFirstKitchen}
+                  style={({ pressed }) => [
+                    styles.tease,
+                    { borderColor: t.hairline, backgroundColor: t.card, opacity: pressed ? 0.85 : 1 },
+                  ]}
+                >
+                  <View style={styles.teaseRow}>
+                    <Text style={[styles.teaseTitle, { color: t.ink }]}>Open your first kitchen</Text>
+                    <View style={[styles.stripDot, { backgroundColor: t.gold }]}>
+                      <Ionicons name="storefront-outline" size={14} color={t.onGold} />
+                    </View>
+                  </View>
+                  <Text style={[styles.teaseHint, { color: t.muted }]}>
+                    Pick three dishes you would actually eat — thirty seconds, and the kitchen
+                    arrives knowing how to shop.
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
 
             {/* ---- Z5 · the concierge strip — the superpower, stated once ---- */}
@@ -495,14 +522,15 @@ function TeaseCard({
       <View style={styles.teaseRow}>
         <Text style={[styles.teaseTitle, { color: t.ink }]}>{tease.label} kitchen</Text>
         <Text style={[styles.teaseCount, { color: t.muted }]}>
-          {tease.saved} of {OPEN_THRESHOLD} saved
+          {/* The tease knows its own finish line — starter cuisines open at 3, earned ones at 4. */}
+          {tease.saved} of {tease.saved + tease.needed} saved
         </Text>
       </View>
       <View style={[styles.teaseTrack, { backgroundColor: t.hairline }]}>
         <View
           style={[
             styles.teaseFill,
-            { backgroundColor: t.gold, width: `${(tease.saved / OPEN_THRESHOLD) * 100}%` },
+            { backgroundColor: t.gold, width: `${(tease.saved / (tease.saved + tease.needed)) * 100}%` },
           ]}
         />
       </View>

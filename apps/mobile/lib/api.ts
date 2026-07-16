@@ -30,7 +30,10 @@ import type {
   OffersRefreshBody,
   OffersRefreshResponse,
   RetailersResponse,
+  SeedStartersBody,
+  SeedStartersResponse,
   ShelfResponse,
+  StartersResponse,
   TokensResponse,
   UpdateHouseholdBody,
   UsualsResponse,
@@ -198,6 +201,12 @@ export const api = {
   /** Kick (or check) generated art for a save; idempotent server-side. */
   ensureRecipeArt: (recipeId: string) =>
     request<EnsureRecipeArtResponse>(`/recipes/${recipeId}/art`, { method: 'POST' }),
+
+  // Starters (onboarding's first stock) --------------------------------------
+  getStarters: () => request<StartersResponse>('/recipes/starters'),
+
+  seedStarters: (body: SeedStartersBody) =>
+    request<SeedStartersResponse>('/recipes/starters', { method: 'POST', body }),
 
   // MCP access tokens ------------------------------------------------------
   createToken: (name: string) =>

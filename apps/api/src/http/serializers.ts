@@ -4,6 +4,7 @@
 
 import type { CartOffer, Household, Recipe } from '../db/schema.js';
 import type { CartDetail, CartSummary } from '../core/carts.js';
+import type { StarterDish } from '../core/starters.js';
 import { providerMeta } from '../fulfillment/registry.js';
 import type { DietaryProfileRules, ResolvedLineItem, RetailerInfo } from '../types.js';
 
@@ -93,6 +94,27 @@ export function offerJson(o: CartOffer) {
     notes: o.notes,
     quoted_at: o.quotedAt?.toISOString() ?? null,
     expires_at: o.expiresAt?.toISOString() ?? null,
+  };
+}
+
+export function starterJson(s: StarterDish) {
+  return {
+    id: s.id,
+    title: s.title,
+    sub: s.sub,
+    description: s.description,
+    cuisine: s.cuisine,
+    dish_type: s.dishType,
+    serves: s.serves,
+    minutes: s.minutes,
+    heat: s.heat,
+    ingredients: s.ingredients.map((i) => ({
+      name: i.name,
+      quantity: i.quantity ?? null,
+      unit: i.unit ?? null,
+      pantry: i.pantry === true,
+    })),
+    steps: s.steps,
   };
 }
 

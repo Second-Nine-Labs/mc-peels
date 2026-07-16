@@ -343,6 +343,25 @@ kitchen-genesis meter):
 ### DELETE /api/v1/recipes/:id
 Removes a recipe from the shelf. `204` on success.
 
+### GET /api/v1/recipes/starters
+The starter catalog — onboarding's curated first stock (~30 dishes across six
+cuisines, ingredients already cartable). Returns `{ "starters": [ ... ] }` in
+the recipe shape minus household fields.
+
+### POST /api/v1/recipes/starters
+Seeds picked starters onto the household shelf as real recipes
+(`source_platform: "starter"`, deduped on `mcpeels://starter/<id>` so
+re-picks are harmless). Body:
+
+```json
+{ "household_id": "uuid (optional if single membership)", "starter_ids": ["xiaomian", "laziji", "mapo-tofu"] }
+```
+
+Returns `201` (`200` when everything was already on the shelf) with
+`{ "recipes": [ ... ], "already_saved": 0 }`. Genesis note: a cuisine holding
+starter picks opens its kitchen at 3 saves (the onboarding gift); organic
+cuisines open at 4 (earned).
+
 ## MCP access tokens
 
 Personal access tokens let MCP clients (e.g. Chief of Staff) act as the user.

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -13,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MascotMark } from '@/components/MascotMark';
 import { Button, Card, Chip, DisplayTitle, ErrorBanner, EyebrowChip, Field, LoadingView } from '@/components/ui';
+import { StarterPicker } from '@/features/eats/StarterPicker';
 import { ApiError, api, getErrorMessage } from '@/lib/api';
 import { useSession } from '@/lib/session';
 import { usePalette } from '@/lib/theme';
@@ -52,9 +54,11 @@ export default function OnboardingScreen() {
   // Join form
   const [inviteCode, setInviteCode] = useState('');
 
-  // Retailer step (after create). We hold off on refreshMe() until this step
-  // finishes, otherwise the auth gate would navigate away immediately.
+  // Steps after create: retailer, then the starter picker. We hold off on
+  // refreshMe() until the flow finishes, otherwise the auth gate would
+  // navigate away immediately.
   const [createdHousehold, setCreatedHousehold] = useState<Household | null>(null);
+  const [pickingKitchen, setPickingKitchen] = useState(false);
 
   const createHousehold = async () => {
     if (submitting) return;
@@ -109,8 +113,11 @@ export default function OnboardingScreen() {
     }
   };
 
+  if (createdHousehold && pickingKitchen) {
+    return <KitchenStep household={createdHousehold} />;
+  }
   if (createdHousehold) {
-    return <RetailerStep household={createdHousehold} />;
+    return <RetailerStep household={createdHousehold} onDone={() => setPickingKitchen(true)} />;
   }
 
   return (
@@ -210,9 +217,8 @@ export default function OnboardingScreen() {
 // ---------------------------------------------------------------------------
 // Step 2 after creating: pick a preferred retailer (skippable).
 
-function RetailerStep({ household }: { household: Household }) {
+function RetailerStep({ household, onDone }: { household: Household; onDone: () => void }) {
   const p = usePalette();
-  const { refreshMe } = useSession();
 
   const [retailers, setRetailers] = useState<Retailer[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -246,7 +252,7 @@ function RetailerStep({ household }: { household: Household }) {
       if (retailerKey) {
         await api.updateHousehold(household.id, { preferred_retailer_key: retailerKey });
       }
-      await refreshMe(); // Auth gate routes to the tabs.
+      onDone(); // Next: stock the first kitchen. refreshMe() waits for that step.
     } catch (err) {
       setError(getErrorMessage(err));
       setFinishing(false);
@@ -323,6 +329,44 @@ function RetailerStep({ household }: { household: Household }) {
         />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Step 3: stock the first kitchen (skippable). The gift threshold — three
+// starter picks of one cuisine — mints a kitchen before the tabs ever load.
+
+function KitchenStep({ household }: { household: Household }) {
+  const router = useRouter();
+  const { refreshMe } = useSession();
+  const [error, setError] = useState<string | null>(null);
+
+  /** refreshMe lets the auth gate route to the tabs; `after` can then steer
+   * deeper (e.g. straight into the freshly opened kitchen). */
+  const settle = async (after?: () => void) => {
+    try {
+      await refreshMe();
+      after?.();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <View style={styles.flex}>
+      {error ? <ErrorBanner message={error} /> : null}
+      <StarterPicker
+        householdId={household.id}
+        onSkip={() => void settle()}
+        onGoHome={() => void settle()}
+        onWalkIn={(kitchenId) =>
+          void settle(() => {
+            router.replace('/(tabs)');
+            router.push({ pathname: '/restaurant/[id]', params: { id: kitchenId } });
+          })
+        }
+      />
+    </View>
   );
 }
 

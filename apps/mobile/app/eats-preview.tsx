@@ -8,6 +8,8 @@ import { KITCHEN_COSTUMES } from '@/features/eats/costumes';
 import { costumeForShelfKitchen } from '@/features/eats/costumes/factory';
 import { deriveGenesis } from '@/features/eats/genesis';
 import { PREVIEW_SHELF } from '@/features/eats/preview-shelf';
+import { PREVIEW_STARTERS } from '@/features/eats/preview-starters';
+import { StarterPicker } from '@/features/eats/StarterPicker';
 import type { RestaurantId } from '@/features/eats/types';
 import { ShelfScreen } from '@/features/shelf/ShelfScreen';
 
@@ -26,7 +28,7 @@ const PREVIEW_MINTED = (() => {
  * here can read or write household data.
  */
 
-type View_ = 'home' | 'shelf' | 'shelf-sichuan-chongqing' | RestaurantId;
+type View_ = 'home' | 'shelf' | 'shelf-sichuan-chongqing' | 'first-kitchen' | RestaurantId;
 
 const STOPS: Array<{ key: View_; label: string }> = [
   { key: 'home', label: 'Home' },
@@ -35,6 +37,7 @@ const STOPS: Array<{ key: View_; label: string }> = [
   { key: 'la-milpa', label: 'La Milpa' },
   { key: 'shelf-sichuan-chongqing', label: '山城' },
   { key: 'shelf', label: 'the shelf' },
+  { key: 'first-kitchen', label: 'first kitchen' },
 ];
 
 export default function EatsPreviewScreen() {
@@ -84,6 +87,16 @@ export default function EatsPreviewScreen() {
         />
       ) : view === 'shelf' ? (
         <ShelfScreen previewMode onBack={home} />
+      ) : view === 'first-kitchen' ? (
+        <StarterPicker
+          previewMode
+          previewStarters={PREVIEW_STARTERS}
+          onBack={home}
+          onGoHome={home}
+          onWalkIn={(kitchenId) =>
+            open(kitchenId === 'shelf-sichuan-chongqing' ? 'shelf-sichuan-chongqing' : 'home')
+          }
+        />
       ) : view === 'shelf-sichuan-chongqing' && PREVIEW_MINTED ? (
         <KitchenScreen costume={PREVIEW_MINTED} previewMode initialDishId={dishId} onBack={home} />
       ) : (
