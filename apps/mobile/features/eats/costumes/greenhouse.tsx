@@ -9,7 +9,7 @@
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import type { KitchenCostume } from '../costume';
-import { GREENHOUSE } from '../data/greenhouse';
+import type { Restaurant } from '../types';
 
 const SERIF = Platform.select({ ios: 'Georgia', android: 'serif', default: 'Georgia, serif' });
 
@@ -39,8 +39,11 @@ function Leaf({ size, color, rotate = '45deg' }: { size: number; color: string; 
   );
 }
 
-export const GREENHOUSE_COSTUME: KitchenCostume = {
-  restaurant: GREENHOUSE,
+/** The greenhouse skin — foundation, ready for a fresh/healthy cuisine (not
+ * yet wired into the factory: no natural cuisine key fits it today). */
+export function greenhouseCostume(restaurant: Restaurant): KitchenCostume {
+  return {
+  restaurant,
 
   tokens: {
     canvas: CANVAS,
@@ -104,7 +107,7 @@ export const GREENHOUSE_COSTUME: KitchenCostume = {
       </View>
       <Text style={styles.wordmark}>greenhouse</Text>
       <Text style={styles.tagline}>eat like the sun is out — market-fresh, macro-honest</Text>
-      <Text style={styles.heroMeta}>{GREENHOUSE.meta.toUpperCase()}</Text>
+      <Text style={styles.heroMeta}>{restaurant.meta.toUpperCase()}</Text>
     </View>
   ),
 
@@ -123,7 +126,8 @@ export const GREENHOUSE_COSTUME: KitchenCostume = {
       .filter(Boolean)
       .join(' · ')
       .toUpperCase(),
-};
+  };
+}
 
 const styles = StyleSheet.create({
   wall: { backgroundColor: CANVAS, overflow: 'hidden' },

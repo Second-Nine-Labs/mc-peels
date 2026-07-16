@@ -10,7 +10,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { POSTERS, Stamp } from './soviet';
 
 import type { KitchenCostume } from '../costume';
-import { STOLOVAYA } from '../data/stolovaya';
+import type { Restaurant } from '../types';
 
 const PAPER = '#F2E8D5';
 const INK = '#211C17';
@@ -44,8 +44,10 @@ function Stripes() {
   );
 }
 
-export const STOLOVAYA_COSTUME: KitchenCostume = {
-  restaurant: STOLOVAYA,
+/** The Soviet canteen skin — dresses any minted post-Soviet kitchen. */
+export function stolovayaCostume(restaurant: Restaurant): KitchenCostume {
+  return {
+  restaurant,
   mono: true,
 
   tokens: {
@@ -114,8 +116,9 @@ export const STOLOVAYA_COSTUME: KitchenCostume = {
   // One-word chips: 'ПЕРВЫЕ БЛЮДА' → 'первые'.
   chipLabel: (_key, label) => label.split(' ')[0].toLowerCase(),
 
-  dishMeta: (dish) => dish.gost ?? null,
-};
+  dishMeta: (dish) => dish.gost ?? `${dish.minutes} min`,
+  };
+}
 
 const styles = StyleSheet.create({
   stripeField: {

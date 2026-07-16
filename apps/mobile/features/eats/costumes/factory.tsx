@@ -11,13 +11,51 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import type { KitchenCostume } from '../costume';
 import type { Restaurant } from '../types';
+import { laMilpaCostume } from './lamilpa';
 import { shanchengCostume } from './shancheng';
+import { stolovayaCostume } from './stolovaya';
 
 type CostumeBuilder = (restaurant: Restaurant) => KitchenCostume;
 
+// Curated skins for cuisines with a strong visual tradition. Everything else
+// wears the house look. (greenhouseCostume exists as foundation but has no
+// natural cuisine key yet, so it isn't wired here.)
 const FLAGSHIPS: Record<string, CostumeBuilder> = {
   'sichuan-chongqing': shanchengCostume,
+  'post-soviet': stolovayaCostume,
+  mexican: laMilpaCostume,
 };
+
+/** The thematic identity a flagship cuisine's kitchen takes on — its name,
+ * secondary, and tagline, so a minted kitchen reads as a *place* (山城,
+ * Столовая, La Milpa) rather than a bare cuisine label. Genesis applies it. */
+export interface FlagshipIdentity {
+  name: string;
+  sub: string;
+  tagline: string;
+}
+
+const FLAGSHIP_IDENTITY: Record<string, FlagshipIdentity> = {
+  'sichuan-chongqing': {
+    name: '山城',
+    sub: 'Mountain City',
+    tagline: 'chongqing night kitchen — 麻辣, always',
+  },
+  'post-soviet': {
+    name: 'Столовая',
+    sub: 'the canteen',
+    tagline: 'the menu is a decree, dinner is a plan',
+  },
+  mexican: {
+    name: 'La Milpa',
+    sub: 'cocina de mercado',
+    tagline: 'your saves, seated at the mercado',
+  },
+};
+
+export function flagshipIdentity(cuisine: string): FlagshipIdentity | null {
+  return FLAGSHIP_IDENTITY[cuisine] ?? null;
+}
 
 export function costumeForShelfKitchen(cuisine: string, restaurant: Restaurant): KitchenCostume {
   const flagship = FLAGSHIPS[cuisine];
