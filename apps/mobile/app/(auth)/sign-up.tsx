@@ -15,12 +15,14 @@ export default function SignUpScreen() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [existingAccount, setExistingAccount] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const signUp = async () => {
     if (loading) return;
     setError(null);
     setInfo(null);
+    setExistingAccount(false);
 
     if (!email.trim() || !password) {
       setError('Enter an email and a password.');
@@ -48,8 +50,16 @@ export default function SignUpScreen() {
     }
 
     if (!data.session) {
-      // Email confirmation is enabled on the Supabase project.
-      setInfo('Almost there — check your email to confirm your account, then sign in.');
+      // Email confirmation is enabled on the Supabase project. But if this
+      // address already has an account, Supabase returns an obfuscated user
+      // with an EMPTY identities array and sends no email (anti-enumeration)
+      // — so don't tell the real owner to watch an inbox nothing is coming to.
+      if ((data.user?.identities?.length ?? 0) === 0) {
+        setExistingAccount(true);
+        setError('This email already has an account — nothing new was sent. Sign in instead, or reset your password.');
+      } else {
+        setInfo('Almost there — check your email to confirm your account, then sign in.');
+      }
     }
     // If a session was returned, the auth gate in app/_layout.tsx routes onward.
   };
@@ -76,6 +86,13 @@ export default function SignUpScreen() {
             <Text style={[styles.cardTitle, { color: p.text }]}>Create your account.</Text>
 
             <ErrorBanner message={error} />
+            {existingAccount ? (
+              <View style={styles.resetRow}>
+                <Link href="/(auth)/forgot-password" style={[styles.link, { color: p.tint }]}>
+                  Reset your password
+                </Link>
+              </View>
+            ) : null}
             <SuccessBanner message={info} />
 
             <Field
@@ -158,6 +175,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 18,
+  },
+  resetRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   link: {
     fontWeight: '700',
