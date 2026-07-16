@@ -18,7 +18,17 @@ not on the allowlist and falls back to Site URL. Until 2026-07-16 the Site URL
 was the dev-era `http://localhost:3000` — which on TJ's machine is Third Brain's
 dev server, hence the one famous misfire.
 
+> **Done 2026-07-16** via Management API (PATCH /config/auth): Site URL and
+> both allowlist entries are live in prod.
+
 ## 2. Brand the emails (two pastes)
+
+> **Blocked on free tier (as of 2026-07-16):** Supabase rejects custom
+> templates/subjects while the project uses the default email provider —
+> `Email template modification is not available for free tier projects using
+> the default email provider.` Unlock is either custom SMTP (Resend free tier
+> + SPF/DKIM DNS on secondninelabs.com — which also fixes the From address)
+> or the Pro plan. The templates below are ready for the moment that lands.
 
 Supabase Dashboard → **MC-Peels** → Authentication → **Email Templates**:
 
