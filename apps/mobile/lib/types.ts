@@ -358,6 +358,37 @@ export interface ShelfResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Starters — onboarding's curated first stock
+
+export interface StarterDishWire {
+  id: string;
+  title: string;
+  sub: string | null;
+  description: string;
+  cuisine: string;
+  dish_type: string;
+  serves: number;
+  minutes: number;
+  heat: number | null;
+  ingredients: RecipeIngredientWire[];
+  steps: string[];
+}
+
+export interface StartersResponse {
+  starters: StarterDishWire[];
+}
+
+export interface SeedStartersBody {
+  household_id?: string;
+  starter_ids: string[];
+}
+
+export interface SeedStartersResponse {
+  recipes: SavedRecipe[];
+  already_saved: number;
+}
+
+// ---------------------------------------------------------------------------
 // MCP access tokens
 
 export interface CreatedTokenResponse {

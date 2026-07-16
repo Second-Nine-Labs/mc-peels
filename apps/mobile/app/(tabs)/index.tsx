@@ -17,6 +17,7 @@ export default function HomeTab() {
       }
       onOpenAsk={() => router.push('/(tabs)/ask')}
       onOpenShelf={() => router.push('/shelf')}
+      onOpenFirstKitchen={() => router.push('/first-kitchen')}
     />
   );
 }

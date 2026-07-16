@@ -29,7 +29,10 @@ import type {
   OffersRefreshBody,
   OffersRefreshResponse,
   RetailersResponse,
+  SeedStartersBody,
+  SeedStartersResponse,
   ShelfResponse,
+  StartersResponse,
   TokensResponse,
   UpdateHouseholdBody,
 } from './types';
@@ -189,6 +192,12 @@ export const api = {
 
   deleteRecipe: (recipeId: string) =>
     request<void>(`/recipes/${recipeId}`, { method: 'DELETE' }),
+
+  // Starters (onboarding's first stock) --------------------------------------
+  getStarters: () => request<StartersResponse>('/recipes/starters'),
+
+  seedStarters: (body: SeedStartersBody) =>
+    request<SeedStartersResponse>('/recipes/starters', { method: 'POST', body }),
 
   // MCP access tokens ------------------------------------------------------
   createToken: (name: string) =>

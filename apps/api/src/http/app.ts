@@ -30,6 +30,7 @@ import {
   updateHousehold,
 } from '../core/households.js';
 import { deleteRecipe, ingestRecipe, listRecipes } from '../core/recipes.js';
+import { STARTER_CATALOG, seedStarters } from '../core/starters.js';
 import { listRetailers } from '../core/retailers.js';
 import { HEALTH_FILTERS } from '../types.js';
 import { mcpRoute } from '../mcp/route.js';
@@ -42,6 +43,7 @@ import {
   profileJson,
   recipeJson,
   retailerJson,
+  starterJson,
 } from './serializers.js';
 
 type Vars = { Variables: { userId: string; email: string | null } };
@@ -109,6 +111,11 @@ const profileSchema = z.object({
 const ingestRecipeSchema = z.object({
   household_id: z.string().uuid().optional(),
   url: z.string().min(8).max(2048),
+});
+
+const seedStartersSchema = z.object({
+  household_id: z.string().uuid().optional(),
+  starter_ids: z.array(z.string().min(1).max(60)).min(1).max(60),
 });
 
 const createCartSchema = z.object({
@@ -488,6 +495,25 @@ export function createApp() {
       recipes: listing.recipes.map(recipeJson),
       cuisine_counts: listing.cuisineCounts,
     });
+  });
+
+  // The starter catalog — onboarding's first stock. Registered before the
+  // param route so 'starters' never reads as a recipe id.
+  api.get('/recipes/starters', (c) =>
+    c.json({ starters: STARTER_CATALOG.map(starterJson) }),
+  );
+
+  api.post('/recipes/starters', async (c) => {
+    const input = await body(c, seedStartersSchema);
+    const result = await seedStarters({
+      userId: c.get('userId'),
+      householdId: input.household_id,
+      starterIds: input.starter_ids,
+    });
+    return c.json(
+      { recipes: result.recipes.map(recipeJson), already_saved: result.alreadySaved },
+      result.alreadySaved === result.recipes.length ? 200 : 201,
+    );
   });
 
   api.delete('/recipes/:id', async (c) => {
