@@ -7,8 +7,9 @@
  * their screen files); this module only knows the shape of a menu.
  */
 
-import type { CanonIngredient } from '@/features/book/canon';
 import type { CreateCartResponse } from '@/lib/types';
+
+import type { DishIngredient } from './plan';
 
 export type RestaurantId = 'stolovaya-7' | 'greenhouse' | 'la-milpa';
 
@@ -41,7 +42,7 @@ export interface Dish {
   note?: string;
   /** Generated art URL (shelf-minted dishes) — bundled manifest art wins. */
   artUrl?: string | null;
-  ingredients: CanonIngredient[];
+  ingredients: DishIngredient[];
 }
 
 /** Every restaurant screen speaks this contract; the costume is its own. */

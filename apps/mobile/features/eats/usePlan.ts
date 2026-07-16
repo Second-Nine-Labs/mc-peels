@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { consolidatePlan, planToLineItems } from '@/features/book/canon';
+import { consolidatePlan, planToLineItems } from './plan';
 import { api, getErrorMessage } from '@/lib/api';
 import type { CreateCartResponse } from '@/lib/types';
 

@@ -23,7 +23,7 @@ const PREVIEW_MINTED = (() => {
 
 /**
  * Signed-out showcase of the Eats experience — the auth gate exempts this
- * segment (same deal as /book-preview). Static menus only: navigation stays
+ * segment (auth-gate exempt). Static menus only: navigation stays
  * inside the preview and every launch scrubs without a session, so nothing
  * here can read or write household data.
  */
