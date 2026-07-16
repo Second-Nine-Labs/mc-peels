@@ -11,7 +11,9 @@ import type { CreateCartResponse } from '@/lib/types';
 
 import type { DishIngredient } from './plan';
 
-export type RestaurantId = 'stolovaya-7' | 'greenhouse' | 'la-milpa';
+/** A kitchen id — `shelf-<cuisine>` for shelf-minted kitchens. Once the
+ * static trio, now any minted kitchen. */
+export type RestaurantId = string;
 
 export interface Dish {
   id: string;

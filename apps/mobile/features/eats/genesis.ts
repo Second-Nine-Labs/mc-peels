@@ -15,6 +15,7 @@
 
 import type { SavedRecipe } from '@/lib/types';
 
+import { flagshipIdentity } from './costumes/factory';
 import type { Dish, MenuSection, Restaurant } from './types';
 
 /** Saves of one cuisine that open its kitchen — the earned threshold. */
@@ -171,14 +172,17 @@ function toRestaurant(cuisine: string, saved: SavedRecipe[]): Restaurant {
   const sections = SECTIONS.filter((section) => present.has(section.key));
   const label = cuisineLabel(cuisine);
 
+  // Flagship cuisines take on a thematic identity (山城, Столовая, La Milpa);
+  // every other kitchen is named for its cuisine. Either way it's the user's,
+  // grown from their shelf.
+  const identity = flagshipIdentity(cuisine);
+
   return {
-    // Restaurant.id is typed to the static trio; derived ids ride the same
-    // rails deliberately (routes/costumes key by string).
-    id: kitchenIdForCuisine(cuisine) as Restaurant['id'],
-    name: label,
-    sub: 'from your shelf',
+    id: kitchenIdForCuisine(cuisine),
+    name: identity?.name ?? label,
+    sub: identity?.sub ?? 'from your shelf',
     cuisine: label.toLowerCase(),
-    tagline: 'your saves, seated at a table',
+    tagline: identity?.tagline ?? 'your saves, seated at a table',
     blurb: `Everything ${label} you saved, plated as a menu — every dish carts through your household rules.`,
     meta: `${dishes.length} dishes · opened from the shelf`,
     accent: '#FFC531',

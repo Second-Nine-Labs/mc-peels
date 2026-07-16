@@ -9,7 +9,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { KitchenCostume } from '../costume';
-import { LA_MILPA } from '../data/lamilpa';
+import type { Restaurant } from '../types';
 
 const PLUM = '#241430';
 const CREAM = '#FBF3E4';
@@ -45,8 +45,10 @@ function PicadoRow({ size = 10, colors = PICADO }: { size?: number; colors?: str
   );
 }
 
-export const LA_MILPA_COSTUME: KitchenCostume = {
-  restaurant: LA_MILPA,
+/** The mercado skin — dresses any minted Mexican kitchen. */
+export function laMilpaCostume(restaurant: Restaurant): KitchenCostume {
+  return {
+  restaurant,
 
   tokens: {
     canvas: MARIGOLD,
@@ -101,10 +103,8 @@ export const LA_MILPA_COSTUME: KitchenCostume = {
     <View>
       <Text style={styles.eyebrow}>EL MERCADO · DEL COMAL</Text>
       <Text style={styles.title}>LA MILPA</Text>
-      <Text style={styles.tagline}>
-        {LA_MILPA.sub} — {LA_MILPA.cuisine.toLowerCase()}
-      </Text>
-      <Text style={styles.heroMeta}>{LA_MILPA.meta.toUpperCase()}</Text>
+      <Text style={styles.tagline}>cocina de mercado — mexican market kitchen</Text>
+      <Text style={styles.heroMeta}>{restaurant.meta.toUpperCase()}</Text>
     </View>
   ),
 
@@ -121,7 +121,8 @@ export const LA_MILPA_COSTUME: KitchenCostume = {
     ].filter(Boolean);
     return parts.join(' · ');
   },
-};
+  };
+}
 
 const styles = StyleSheet.create({
   wall: { backgroundColor: MARIGOLD, overflow: 'hidden' },

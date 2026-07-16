@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { LoadingView } from '@/components/ui';
 import { KitchenScreen } from '@/features/eats/KitchenScreen';
-import { KITCHEN_COSTUMES } from '@/features/eats/costumes';
 import { useDerivedKitchen } from '@/features/eats/useShelfKitchens';
 import { rememberCartResult } from '@/lib/cart-cache';
 import { useSession } from '@/lib/session';
@@ -23,7 +22,7 @@ export default function RestaurantRoute() {
   const { membership } = useSession();
 
   const derived = useDerivedKitchen(id, membership?.household_id);
-  const costume = (id ? KITCHEN_COSTUMES[id] : undefined) ?? derived.costume ?? undefined;
+  const costume = derived.costume ?? undefined;
 
   if (!costume && derived.loading) {
     return (

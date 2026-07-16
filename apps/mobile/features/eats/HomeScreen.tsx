@@ -25,12 +25,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MascotMark } from '@/components/MascotMark';
 import type { SavedRecipe } from '@/lib/types';
 
-import { DishTile, PosterCard } from './art';
-import { KITCHEN_COSTUMES } from './costumes';
+import { DishTile } from './art';
 import { costumeForShelfKitchen } from './costumes/factory';
 import type { KitchenCostume } from './costume';
 import type { KitchenTease } from './genesis';
-import { FEATURED_PICKS, RESTAURANTS, searchEats } from './restaurants';
+import { searchEats } from './restaurants';
 import type { Restaurant, RestaurantId } from './types';
 import { useShelfKitchens } from './useShelfKitchens';
 
@@ -75,8 +74,6 @@ const dark: HomeTokens = {
 
 const WEEKDAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 
-/** Pinboard rhythm — tall next to short, cycling so columns stay uneven. */
-const WALL_HEIGHTS = [196, 168, 182, 204, 172, 190];
 
 /** Tonight's feature — deterministic by date, cycling the featured picks. */
 function tonightIndex(count: number): number {
@@ -115,11 +112,21 @@ export function HomeScreen({
   const t = useColorScheme() === 'dark' ? dark : light;
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
-  const results = useMemo(() => searchEats(query), [query]);
   const genesis = useShelfKitchens({ householdId, previewRecipes: previewShelf });
+  const kitchens = useMemo(() => genesis.kitchens.map((k) => k.restaurant), [genesis.kitchens]);
+  const results = useMemo(() => searchEats(query, kitchens), [query, kitchens]);
 
-  const feature = FEATURED_PICKS[tonightIndex(FEATURED_PICKS.length)];
-  const railPicks = FEATURED_PICKS.filter((pick) => pick.dish.id !== feature?.dish.id);
+  // Tonight's feature — a dish from the household's own kitchens, rotating by
+  // day. No kitchens yet → no feature; the "open your first kitchen" nudge
+  // carries the home instead.
+  const picks = useMemo(
+    () =>
+      genesis.kitchens.flatMap(({ cuisine, restaurant }) =>
+        restaurant.dishes.map((dish) => ({ dish, restaurant, cuisine })),
+      ),
+    [genesis.kitchens],
+  );
+  const feature = picks.length > 0 ? picks[tonightIndex(picks.length)] : undefined;
 
   const closeSearch = () => {
     setSearching(false);
@@ -169,9 +176,11 @@ export function HomeScreen({
           </>
         ) : (
           <>
-            {/* ---- Z2 · tonight's feature — the whole thesis ---- */}
+            {/* ---- Z2 · tonight's feature — a dish from your own kitchens,
+                 dressed in that kitchen's costume ---- */}
             {feature ? (
               <FeatureHero
+                costume={costumeForShelfKitchen(feature.cuisine, feature.restaurant)}
                 restaurant={feature.restaurant}
                 dishName={feature.dish.name}
                 dishSub={feature.dish.sub}
@@ -181,53 +190,12 @@ export function HomeScreen({
               />
             ) : null}
 
-            {/* ---- Z3 · the poster wall — every pick is a tiny poster,
-                 tall-next-to-short like a pinboard, each in its kitchen's
-                 own template (ration card / seed packet / lotería card) ---- */}
-            {railPicks.length > 0 ? (
-              <>
-                <Text style={[styles.sectionLabel, { color: t.muted }]}>MORE FOR TONIGHT</Text>
-                <View style={styles.wall}>
-                  {[0, 1].map((column) => (
-                    <View key={column} style={styles.wallColumn}>
-                      {railPicks
-                        .filter((_, index) => index % 2 === column)
-                        .map(({ dish, restaurant }, rowIndex) => (
-                          <Pressable
-                            key={dish.id}
-                            accessibilityRole="button"
-                            accessibilityLabel={`${dish.name} at ${restaurant.name}`}
-                            onPress={() => onOpenRestaurant(restaurant.id, dish.id)}
-                            style={({ pressed }) => [
-                              { opacity: pressed ? 0.9 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
-                            ]}
-                          >
-                            <PosterCard
-                              restaurant={restaurant}
-                              dish={dish}
-                              height={WALL_HEIGHTS[(column + rowIndex * 2) % WALL_HEIGHTS.length]}
-                            />
-                            <Text style={[styles.wallMeta, { color: t.muted }]} numberOfLines={1}>
-                              {restaurant.name} · {dish.minutes} min
-                            </Text>
-                          </Pressable>
-                        ))}
-                    </View>
-                  ))}
-                </View>
-              </>
+            {/* ---- Z4 · the kitchens — storefronts, not banners. Only the
+                 ones the household has grown; nothing pre-seeded ---- */}
+            {genesis.kitchens.length > 0 ? (
+              <Text style={[styles.sectionLabel, { color: t.muted }]}>YOUR KITCHENS</Text>
             ) : null}
-
-            {/* ---- Z4 · the kitchens — storefronts, not banners ---- */}
-            <Text style={[styles.sectionLabel, { color: t.muted }]}>THE KITCHENS</Text>
             <View style={styles.storefronts}>
-              {RESTAURANTS.map((restaurant) => (
-                <Storefront
-                  key={restaurant.id}
-                  restaurant={restaurant}
-                  onPress={() => onOpenRestaurant(restaurant.id)}
-                />
-              ))}
               {genesis.kitchens.map(({ cuisine, restaurant }) => (
                 <ShelfStorefront
                   key={restaurant.id}
@@ -315,6 +283,7 @@ export function HomeScreen({
 // backdrop, its anchored art, its hero text colors. The home only stages it.
 
 interface FeatureHeroProps {
+  costume: KitchenCostume;
   restaurant: Restaurant;
   dishName: string;
   dishSub?: string;
@@ -323,10 +292,8 @@ interface FeatureHeroProps {
   onPress: () => void;
 }
 
-function FeatureHero({ restaurant, dishName, dishSub, minutes, description, onPress }: FeatureHeroProps) {
-  const costume = KITCHEN_COSTUMES[restaurant.id];
+function FeatureHero({ costume, restaurant, dishName, dishSub, minutes, description, onPress }: FeatureHeroProps) {
   const day = WEEKDAYS[new Date().getDay()];
-  if (!costume) return null;
   const { tokens } = costume;
 
   return (
@@ -383,80 +350,6 @@ function FeatureHero({ restaurant, dishName, dishSub, minutes, description, onPr
           </View>
         </View>
       </View>
-    </Pressable>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Z4 — storefronts. Each kitchen's face at full volume on neutral ground;
-// brand islands, not app surfaces (they keep their colors in both themes).
-
-function Storefront({ restaurant, onPress }: { restaurant: Restaurant; onPress: () => void }) {
-  const body =
-    restaurant.id === 'stolovaya-7' ? (
-      <View style={[styles.front, { backgroundColor: '#2E509F' }]}>
-        <View style={styles.frontStolovayaRule} />
-        <View style={styles.frontStolovayaRing} />
-        <Text style={[styles.frontTitleHeavy, { color: '#F2E8D5' }]}>СТОЛОВАЯ № 7</Text>
-        <Text style={[styles.frontSub, { color: 'rgba(242, 232, 213, 0.8)' }]}>
-          Canteen No. 7 — {restaurant.cuisine.toLowerCase()}
-        </Text>
-        <Text style={[styles.frontMeta, { color: 'rgba(242, 232, 213, 0.65)' }]}>
-          {restaurant.meta.toUpperCase()}
-        </Text>
-      </View>
-    ) : restaurant.id === 'greenhouse' ? (
-      <View style={[styles.front, styles.frontGreenhouse]}>
-        <Text style={styles.frontTitleSerif}>greenhouse</Text>
-        <Text style={[styles.frontSub, { color: '#7C8074' }]}>{restaurant.tagline}</Text>
-        <Text style={[styles.frontMeta, { color: '#4E5D43' }]}>
-          {restaurant.meta.toUpperCase()}
-        </Text>
-        <View style={styles.frontLeaf} />
-        <View style={[styles.frontLeaf, styles.frontLeafSmall]} />
-      </View>
-    ) : (
-      <View style={[styles.front, { backgroundColor: '#F2A007' }]}>
-        <View style={styles.frontPicadoRow}>
-          {['#E84B8A', '#159F94', '#FBF3E4', '#8A4FD0', '#E84B8A', '#159F94', '#FBF3E4', '#8A4FD0'].map(
-            (color, index) => (
-              <View
-                key={index}
-                style={{
-                  width: 0,
-                  height: 0,
-                  borderLeftWidth: 9,
-                  borderRightWidth: 9,
-                  borderTopWidth: 14,
-                  borderLeftColor: 'transparent',
-                  borderRightColor: 'transparent',
-                  borderTopColor: color,
-                }}
-              />
-            ),
-          )}
-        </View>
-        <Text style={[styles.frontTitleHeavy, styles.frontMilpaTitle]}>LA MILPA</Text>
-        <Text style={[styles.frontSub, { color: '#241430' }]}>
-          {restaurant.sub} — {restaurant.cuisine.toLowerCase()}
-        </Text>
-        <Text style={[styles.frontMeta, { color: 'rgba(36, 20, 48, 0.7)' }]}>
-          {restaurant.meta.toUpperCase()}
-        </Text>
-      </View>
-    );
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${restaurant.name}`}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.frontWrap,
-        { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.99 : 1 }] },
-      ]}
-    >
-      {body}
     </Pressable>
   );
 }

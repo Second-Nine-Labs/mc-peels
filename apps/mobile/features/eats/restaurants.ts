@@ -1,30 +1,11 @@
 /**
- * The Eats registry — every imagined restaurant, plus cross-menu search.
- * Home searches here by dish name, tag, ingredient, or restaurant.
+ * Cross-kitchen search. There is no pre-built catalog anymore — every kitchen
+ * grows from the household's shelf — so search runs over the user's own
+ * kitchens: dish name, native sub, tag, or ingredient, each hit labeled with
+ * *why* it matched so results read like answers, not luck.
  */
 
-import { GREENHOUSE } from './data/greenhouse';
-import { LA_MILPA } from './data/lamilpa';
-import { STOLOVAYA } from './data/stolovaya';
-import type { Dish, Restaurant, RestaurantId } from './types';
-
-export const RESTAURANTS: Restaurant[] = [STOLOVAYA, GREENHOUSE, LA_MILPA];
-
-export function restaurantById(id: string | undefined): Restaurant | null {
-  return RESTAURANTS.find((restaurant) => restaurant.id === id) ?? null;
-}
-
-/** Featured dishes across every kitchen — the home "tonight's picks" rail. */
-export const FEATURED_PICKS: Array<{ dish: Dish; restaurant: Restaurant }> = RESTAURANTS.flatMap(
-  (restaurant) =>
-    restaurant.dishes
-      .filter((dish) => dish.featured)
-      .map((dish) => ({ dish, restaurant })),
-);
-
-// ---------------------------------------------------------------------------
-// Search: one needle, three menus. Matches are labeled with *why* they hit
-// (name, tag, or ingredient) so the results read like answers, not luck.
+import type { Dish, Restaurant } from './types';
 
 export interface DishHit {
   dish: Dish;
@@ -40,11 +21,11 @@ export interface EatsSearchResult {
 
 const MAX_DISH_HITS = 14;
 
-export function searchEats(query: string): EatsSearchResult {
+export function searchEats(query: string, kitchens: Restaurant[]): EatsSearchResult {
   const needle = query.trim().toLowerCase();
   if (!needle) return { restaurants: [], dishes: [] };
 
-  const restaurants = RESTAURANTS.filter((restaurant) =>
+  const restaurants = kitchens.filter((restaurant) =>
     [restaurant.name, restaurant.sub ?? '', restaurant.cuisine, restaurant.tagline]
       .join(' ')
       .toLowerCase()
@@ -52,7 +33,7 @@ export function searchEats(query: string): EatsSearchResult {
   );
 
   const dishes: DishHit[] = [];
-  for (const restaurant of RESTAURANTS) {
+  for (const restaurant of kitchens) {
     for (const dish of restaurant.dishes) {
       const hit = matchDish(dish, restaurant, needle);
       if (hit) dishes.push(hit);

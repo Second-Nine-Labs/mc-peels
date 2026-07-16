@@ -4,16 +4,15 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HomeScreen } from '@/features/eats/HomeScreen';
 import { KitchenScreen } from '@/features/eats/KitchenScreen';
-import { KITCHEN_COSTUMES } from '@/features/eats/costumes';
 import { costumeForShelfKitchen } from '@/features/eats/costumes/factory';
 import { deriveGenesis } from '@/features/eats/genesis';
 import { PREVIEW_SHELF } from '@/features/eats/preview-shelf';
 import { PREVIEW_STARTERS } from '@/features/eats/preview-starters';
 import { StarterPicker } from '@/features/eats/StarterPicker';
-import type { RestaurantId } from '@/features/eats/types';
 import { ShelfScreen } from '@/features/shelf/ShelfScreen';
 
-/** The showcase's minted kitchen — 山城, derived from the sample shelf. */
+/** The showcase's minted kitchen — 山城, grown from the sample shelf. Nothing
+ * here is pre-built; this is what the household grows on its own. */
 const PREVIEW_MINTED = (() => {
   const kitchen = deriveGenesis(PREVIEW_SHELF).kitchens.find(
     (entry) => entry.cuisine === 'sichuan-chongqing',
@@ -22,22 +21,18 @@ const PREVIEW_MINTED = (() => {
 })();
 
 /**
- * Signed-out showcase of the Eats experience — the auth gate exempts this
- * segment (auth-gate exempt). Static menus only: navigation stays
- * inside the preview and every launch scrubs without a session, so nothing
- * here can read or write household data.
+ * Signed-out showcase of the Eats experience (auth-gate exempt). No pre-built
+ * restaurants — the home grows from a sample shelf, so the showcase demos a
+ * minted kitchen (山城) and the "open your first kitchen" starter flow. Every
+ * launch scrubs without a session; nothing here reads or writes household data.
  */
-
-type View_ = 'home' | 'shelf' | 'shelf-sichuan-chongqing' | 'first-kitchen' | RestaurantId;
+type View_ = string;
 
 const STOPS: Array<{ key: View_; label: string }> = [
   { key: 'home', label: 'Home' },
-  { key: 'stolovaya-7', label: '№ 7' },
-  { key: 'greenhouse', label: 'greenhouse' },
-  { key: 'la-milpa', label: 'La Milpa' },
   { key: 'shelf-sichuan-chongqing', label: '山城' },
-  { key: 'shelf', label: 'the shelf' },
   { key: 'first-kitchen', label: 'first kitchen' },
+  { key: 'shelf', label: 'the shelf' },
 ];
 
 export default function EatsPreviewScreen() {
@@ -68,9 +63,7 @@ export default function EatsPreviewScreen() {
                 onPress={() => (stop.key === 'home' ? home() : open(stop.key))}
                 style={[styles.stop, active && styles.stopActive]}
               >
-                <Text style={[styles.stopText, active && styles.stopTextActive]}>
-                  {stop.label}
-                </Text>
+                <Text style={[styles.stopText, active && styles.stopTextActive]}>{stop.label}</Text>
               </Pressable>
             );
           })}
@@ -84,6 +77,7 @@ export default function EatsPreviewScreen() {
           previewShelf={PREVIEW_SHELF}
           onOpenRestaurant={open}
           onOpenShelf={() => open('shelf')}
+          onOpenFirstKitchen={() => open('first-kitchen')}
         />
       ) : view === 'shelf' ? (
         <ShelfScreen previewMode onBack={home} />
@@ -93,19 +87,12 @@ export default function EatsPreviewScreen() {
           previewStarters={PREVIEW_STARTERS}
           onBack={home}
           onGoHome={home}
-          onWalkIn={(kitchenId) =>
-            open(kitchenId === 'shelf-sichuan-chongqing' ? 'shelf-sichuan-chongqing' : 'home')
-          }
+          onWalkIn={(kitchenId) => open(kitchenId ?? 'home')}
         />
-      ) : view === 'shelf-sichuan-chongqing' && PREVIEW_MINTED ? (
+      ) : PREVIEW_MINTED ? (
         <KitchenScreen costume={PREVIEW_MINTED} previewMode initialDishId={dishId} onBack={home} />
       ) : (
-        <KitchenScreen
-          costume={KITCHEN_COSTUMES[view]}
-          previewMode
-          initialDishId={dishId}
-          onBack={home}
-        />
+        <HomeScreen previewMode previewShelf={PREVIEW_SHELF} onOpenRestaurant={open} onOpenShelf={() => open('shelf')} />
       )}
     </View>
   );
