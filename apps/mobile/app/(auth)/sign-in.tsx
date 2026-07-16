@@ -363,6 +363,9 @@ export default function SignInScreen() {
             onSubmitEditing={signIn}
           />
           <Button title="Sign in" onPress={signIn} loading={loading} />
+          <Link href="/(auth)/forgot-password" style={[styles.forgotLink, { color: p.tint }]}>
+            Forgot your password?
+          </Link>
           <View style={styles.switchRow}>
             <Text style={{ color: p.textMuted }}>New here? </Text>
             <Link href="/(auth)/sign-up" style={[styles.link, { color: p.tint }]}>
@@ -559,6 +562,7 @@ const styles = StyleSheet.create({
   },
   signInTitle: { fontSize: 24, fontWeight: '800', letterSpacing: -0.4, marginBottom: 18 },
   switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 18 },
+  forgotLink: { textAlign: 'center', fontWeight: '600', fontSize: 14, marginTop: 14 },
   link: { fontWeight: '700' },
 
   // Footer

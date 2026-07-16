@@ -38,6 +38,11 @@ function AuthGate({ children }: { children: ReactNode }) {
     // static menus only, launches scrub without a session.
     if (segments[0] === 'eats-preview') return;
 
+    // /reset-password is reached from a recovery email while signed out, and
+    // establishes a short-lived recovery session of its own. Never redirect
+    // into or out of it — it routes onward once the new password is saved.
+    if (segments[0] === 'reset-password') return;
+
     if (!session) {
       if (!inAuthGroup) router.replace('/(auth)/sign-in');
     } else if (!membership) {
@@ -84,6 +89,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="connect" options={{ headerShown: false }} />
+          <Stack.Screen name="reset-password" options={{ headerShown: false }} />
           <Stack.Screen name="cart/[id]" options={{ title: 'Cart' }} />
         </Stack>
       </AuthGate>
