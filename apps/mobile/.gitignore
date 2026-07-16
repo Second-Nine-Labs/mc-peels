@@ -47,3 +47,4 @@ example
 .env.*
 !.env.example
 .vercel
+.art-tmp/
