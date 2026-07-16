@@ -39,19 +39,6 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="book"
-        options={{
-          title: 'The Book',
-          headerShown: false,
-          // Playground is live for the household; EXPO_PUBLIC_SOVIET_BOOK=0
-          // is the kill switch that hides it from the tab bar again.
-          href: process.env.EXPO_PUBLIC_SOVIET_BOOK === '0' ? null : undefined,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="book-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="carts"
         options={{
           title: 'Carts',

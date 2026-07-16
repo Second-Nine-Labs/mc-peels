@@ -1,11 +1,10 @@
 /**
- * «Столовая № 7» — the Bureau's canteen. The menu IS the Book's canon: same
- * twelve dishes, same credited origins, re-served as a daily menu document.
- * Tone rules carry over: punch at bureaucracy and aesthetics, never at
- * hardship or people.
+ * «Столовая № 7» — the Bureau's canteen. Twelve dishes of the post-Soviet
+ * table, re-served as a daily menu document. Tone rules: punch at bureaucracy
+ * and aesthetics, never at hardship or people.
  */
 
-import { CANON, type CanonCategory } from '@/features/book/canon';
+import { CANON, type CanonCategory } from './stolovaya-canon';
 
 import type { Dish, Restaurant } from '../types';
 

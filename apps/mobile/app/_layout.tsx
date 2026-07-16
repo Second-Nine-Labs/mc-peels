@@ -30,10 +30,6 @@ function AuthGate({ children }: { children: ReactNode }) {
     // into or out of it.
     if (segments[0] === 'connect') return;
 
-    // /book-preview is the signed-out showcase of the Book (Soviet playground):
-    // static canon only, launch disabled without a session.
-    if (segments[0] === 'book-preview') return;
-
     // /eats-preview is the signed-out showcase of the Eats home + restaurants:
     // static menus only, launches scrub without a session.
     if (segments[0] === 'eats-preview') return;

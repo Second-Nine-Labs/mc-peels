@@ -7,8 +7,7 @@
 
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { Stamp } from '@/features/book/components';
-import { POSTERS } from '@/features/book/posters';
+import { POSTERS, Stamp } from './soviet';
 
 import type { KitchenCostume } from '../costume';
 import { STOLOVAYA } from '../data/stolovaya';
