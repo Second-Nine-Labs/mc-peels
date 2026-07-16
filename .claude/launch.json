@@ -24,6 +24,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["landing/server.mjs"],
       "port": 8092
+    },
+    {
+      "name": "mobile-web-preview-2",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "apps/mobile", "run", "web", "--", "--port", "8093"],
+      "port": 8093
     }
   ]
 }
