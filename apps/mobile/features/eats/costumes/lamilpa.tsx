@@ -112,12 +112,12 @@ export const LA_MILPA_COSTUME: KitchenCostume = {
   // One-word chips, mercado-lowercase.
   chipLabel: (_key, label) => label.split(' ')[0].toLowerCase(),
 
-  // Lotería number + heat, the bespoke card's corner line: 'Nº 12 · 🌶🌶'
-  // (heat 0 reads 'dulce', exactly like the bespoke HeatDots empty state).
+  // Lotería number + heat, the bespoke card's corner line: 'Nº 12 · ◆◆'
+  // (heat 0 reads 'dulce'). Typographic diamonds, never emoji (house rule).
   dishMeta: (dish) => {
     const parts = [
       dish.cardNo ? `Nº ${dish.cardNo}` : null,
-      dish.heat && dish.heat > 0 ? '🌶'.repeat(dish.heat) : 'dulce',
+      dish.heat && dish.heat > 0 ? '◆'.repeat(dish.heat) : 'dulce',
     ].filter(Boolean);
     return parts.join(' · ');
   },

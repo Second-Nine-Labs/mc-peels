@@ -17,6 +17,7 @@ import type {
   CreateHouseholdBody,
   CreatedTokenResponse,
   DietaryProfile,
+  EnsureRecipeArtResponse,
   ErrorEnvelope,
   Household,
   HouseholdDetailResponse,
@@ -32,6 +33,7 @@ import type {
   ShelfResponse,
   TokensResponse,
   UpdateHouseholdBody,
+  UsualsResponse,
 } from './types';
 
 const API_ORIGIN = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
@@ -160,6 +162,9 @@ export const api = {
 
   getCart: (cartId: string) => request<CartDetailResponse>(`/carts/${cartId}`),
 
+  getUsuals: (params: { household_id?: string; limit?: number } = {}) =>
+    request<UsualsResponse>('/usuals', { query: params }),
+
   markCartOpened: (cartId: string) =>
     request<CartDetailResponse>(`/carts/${cartId}/opened`, { method: 'POST' }),
 
@@ -189,6 +194,10 @@ export const api = {
 
   deleteRecipe: (recipeId: string) =>
     request<void>(`/recipes/${recipeId}`, { method: 'DELETE' }),
+
+  /** Kick (or check) generated art for a save; idempotent server-side. */
+  ensureRecipeArt: (recipeId: string) =>
+    request<EnsureRecipeArtResponse>(`/recipes/${recipeId}/art`, { method: 'POST' }),
 
   // MCP access tokens ------------------------------------------------------
   createToken: (name: string) =>

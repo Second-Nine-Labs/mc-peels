@@ -461,7 +461,7 @@ function RecipeRow({
           <View style={styles.rowMetaLine}>
             <Text style={[styles.rowMeta, { color: p.textMuted }]} numberOfLines={1}>
               serves {recipe.serves} · {recipe.minutes} min
-              {recipe.heat !== null && recipe.heat > 0 ? ` · ${'🌶'.repeat(recipe.heat)}` : ''} · via{' '}
+              {recipe.heat !== null && recipe.heat > 0 ? ` · ${'◆'.repeat(recipe.heat)}` : ''} · via{' '}
               {platformLabel(recipe.source_platform)}
               {recipe.creator ? ` · ${recipe.creator}` : ''}
             </Text>
@@ -542,6 +542,8 @@ function RecipeRow({
 
 const SAMPLE_RECIPES: SavedRecipe[] = [
   {
+    art_url: null,
+    art_status: 'none',
     id: 'sample-xiaomian',
     household_id: 'preview',
     source_url: 'https://www.tiktok.com/@mala.queen/video/1',
@@ -574,6 +576,8 @@ const SAMPLE_RECIPES: SavedRecipe[] = [
     created_at: '2026-07-10T00:00:00.000Z',
   },
   {
+    art_url: null,
+    art_status: 'none',
     id: 'sample-laziji',
     household_id: 'preview',
     source_url: 'https://www.tiktok.com/@mala.queen/video/2',
@@ -605,6 +609,8 @@ const SAMPLE_RECIPES: SavedRecipe[] = [
     created_at: '2026-07-09T00:00:00.000Z',
   },
   {
+    art_url: null,
+    art_status: 'none',
     id: 'sample-butter-chicken',
     household_id: 'preview',
     source_url: 'https://www.pinterest.com/pin/sample-butter-chicken',
@@ -638,6 +644,8 @@ const SAMPLE_RECIPES: SavedRecipe[] = [
     created_at: '2026-07-08T00:00:00.000Z',
   },
   {
+    art_url: null,
+    art_status: 'none',
     id: 'sample-mcmuffin',
     household_id: 'preview',
     source_url: 'https://www.instagram.com/reel/sample-breakfast',
@@ -669,6 +677,8 @@ const SAMPLE_RECIPES: SavedRecipe[] = [
     created_at: '2026-07-07T00:00:00.000Z',
   },
   {
+    art_url: null,
+    art_status: 'none',
     id: 'sample-hoagie',
     household_id: 'preview',
     source_url: 'https://blog.example/italian-hoagie',

@@ -1,10 +1,17 @@
+import { waitUntil } from '@vercel/functions';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
 import { verifySupabaseToken } from '../auth/supabase.js';
 import { createApiToken, listApiTokens, revokeApiToken } from '../auth/tokens.js';
-import { createCart, getCartWithItems, listRecentCarts, markCartOpened } from '../core/carts.js';
+import {
+  createCart,
+  getCartWithItems,
+  listRecentCarts,
+  listUsualItems,
+  markCartOpened,
+} from '../core/carts.js';
 import { deleteConnection, listConnections, saveConnection } from '../core/connections.js';
 import { krogerHandoff } from '../core/handoff.js';
 import { refreshOffers } from '../core/offers.js';
@@ -29,6 +36,7 @@ import {
   putProfile,
   updateHousehold,
 } from '../core/households.js';
+import { artConfigured, ensureRecipeArt, ensureRecipeArtForUser } from '../art/pipeline.js';
 import { deleteRecipe, ingestRecipe, listRecipes } from '../core/recipes.js';
 import { listRetailers } from '../core/retailers.js';
 import { HEALTH_FILTERS } from '../types.js';
@@ -404,6 +412,20 @@ export function createApp() {
     return c.json(cartDetailJson(cart));
   });
 
+  // The household's recurring items — one-tap re-add on the Ask screen.
+  api.get('/usuals', async (c) => {
+    const limitRaw = c.req.query('limit');
+    const limit = limitRaw === undefined ? undefined : Number(limitRaw);
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
+      throw validationError('limit must be a positive integer');
+    }
+    const usuals = await listUsualItems(c.get('userId'), {
+      householdId: uuidQuery(c.req.query('household_id'), 'household_id'),
+      limit,
+    });
+    return c.json({ usuals });
+  });
+
   api.post('/carts/:id/opened', async (c) => {
     const cart = await markCartOpened(c.get('userId'), uuidParam(c.req.param('id'), 'Cart'));
     if (!cart) throw notFound('Cart not found');
@@ -468,6 +490,16 @@ export function createApp() {
       householdId: input.household_id,
       url: input.url,
     });
+    // Lane 2 art: kick generate->judge->cache in the background so the save
+    // returns immediately. waitUntil keeps the serverless invocation alive on
+    // Vercel; in local dev the promise just runs on the long-lived server.
+    if (!result.alreadySaved && artConfigured()) {
+      waitUntil(
+        ensureRecipeArt(result.recipe.id).catch((err) =>
+          console.error('Background art generation failed:', err),
+        ),
+      );
+    }
     return c.json(
       { recipe: recipeJson(result.recipe), already_saved: result.alreadySaved },
       result.alreadySaved ? 200 : 201,
@@ -494,6 +526,19 @@ export function createApp() {
     const removed = await deleteRecipe(c.get('userId'), uuidParam(c.req.param('id'), 'Recipe'));
     if (!removed) throw notFound('Recipe not found');
     return c.body(null, 204);
+  });
+
+  // Ensure (or, with force=1, reroll) the generated art for one shelf save.
+  // Idempotent: existing art returns immediately with status 'exists'.
+  api.post('/recipes/:id/art', async (c) => {
+    const force = ['1', 'true'].includes(c.req.query('force') ?? '');
+    const result = await ensureRecipeArtForUser(
+      c.get('userId'),
+      uuidParam(c.req.param('id'), 'Recipe'),
+      { force },
+    );
+    if (!result) throw notFound('Recipe not found');
+    return c.json({ status: result.status, art_url: result.artUrl });
   });
 
   // MCP access tokens --------------------------------------------------------------

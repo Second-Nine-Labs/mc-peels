@@ -267,6 +267,16 @@ export interface KrogerHandoffResponse {
   notes: string[];
 }
 
+/** A household's recurring item, for the Ask screen's "Your usuals" row. */
+export interface UsualItem {
+  name: string;
+  count: number;
+}
+
+export interface UsualsResponse {
+  usuals: UsualItem[];
+}
+
 export type CartStatus = 'created' | 'opened' | 'expired';
 
 export interface CartSummary {
@@ -334,7 +344,16 @@ export interface SavedRecipe {
   provenance: RecipeProvenance;
   confidence: RecipeConfidence;
   notes: string[];
+  /** Generated dish art (public CDN URL) — null until the pipeline lands one. */
+  art_url: string | null;
+  /** none | pending | ok | failed. */
+  art_status: string;
   created_at: string;
+}
+
+export interface EnsureRecipeArtResponse {
+  status: 'ok' | 'exists' | 'failed' | 'unconfigured';
+  art_url: string | null;
 }
 
 export interface IngestRecipeBody {

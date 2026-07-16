@@ -13,6 +13,8 @@ const base = {
   provenance: 'transcribed' as const,
   confidence: 'high' as const,
   notes: [] as string[],
+  art_url: null,
+  art_status: 'none',
   created_at: '2026-07-01T00:00:00Z',
 };
 

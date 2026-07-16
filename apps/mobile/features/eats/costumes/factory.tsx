@@ -101,7 +101,7 @@ function houseCostume(restaurant: Restaurant): KitchenCostume {
     chipLabel: (_key, label) => label.split(' ')[0].toLowerCase(),
 
     dishMeta: (dish) =>
-      [dish.heat && dish.heat > 0 ? '🌶'.repeat(dish.heat) : null, `${dish.minutes} min`]
+      [dish.heat && dish.heat > 0 ? '◆'.repeat(dish.heat) : null, `${dish.minutes} min`]
         .filter(Boolean)
         .join(' · '),
   };

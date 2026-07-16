@@ -104,6 +104,7 @@ function toDish(recipe: SavedRecipe): Dish {
     minutes: recipe.minutes,
     heat: (recipe.heat ?? undefined) as Dish['heat'],
     note: recipe.creator ? `saved from ${recipe.creator}` : undefined,
+    artUrl: recipe.art_url,
     ingredients: recipe.ingredients.map((ingredient) => ({
       name: ingredient.name,
       quantity: ingredient.quantity ?? undefined,

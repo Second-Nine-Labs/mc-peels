@@ -11,7 +11,14 @@
  *     dense with type, borders, and texture, designed to be pinned.
  */
 
-import { Image, Platform, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+  type ImageSourcePropType,
+} from 'react-native';
 
 import { DISH_ART, KITCHEN_HEROES } from './art-manifest';
 import type { Dish, Restaurant } from './types';
@@ -31,6 +38,12 @@ export function dishArt(kitchenId: string, dishId: string) {
   return DISH_ART[`${kitchenId}/${dishId}`] ?? null;
 }
 
+/** Bundled manifest art wins; shelf-minted dishes fall back to the generated
+ * tile the API cached (lane 2). Null keeps the designed fallback. */
+function artFor(restaurant: Restaurant, dish: Dish): ImageSourcePropType | null {
+  return dishArt(restaurant.id, dish.id) ?? (dish.artUrl ? { uri: dish.artUrl } : null);
+}
+
 // ---------------------------------------------------------------------------
 
 interface DishTileProps {
@@ -45,7 +58,7 @@ interface DishTileProps {
  * fallback — a motif ground with the dish initial set like a menu ornament.
  */
 export function DishTile({ restaurant, dish, size, radius = 10 }: DishTileProps) {
-  const art = dishArt(restaurant.id, dish.id);
+  const art = artFor(restaurant, dish);
   if (art) {
     return (
       <Image
@@ -167,7 +180,7 @@ interface PosterCardProps {
 }
 
 export function PosterCard({ restaurant, dish, height }: PosterCardProps) {
-  const art = dishArt(restaurant.id, dish.id);
+  const art = artFor(restaurant, dish);
   if (art) {
     return (
       <View style={[posterStyles.frame, { height }]}>
@@ -254,7 +267,7 @@ export function PosterCard({ restaurant, dish, height }: PosterCardProps) {
             {dish.cardNo ?? '?'}
           </Text>
           <Text style={posterStyles.loteriaHeat}>
-            {dish.heat && dish.heat > 0 ? '🌶'.repeat(dish.heat) : 'dulce'}
+            {dish.heat && dish.heat > 0 ? '◆'.repeat(dish.heat) : 'dulce'}
           </Text>
         </View>
         <View style={[posterStyles.loteriaFigure, { backgroundColor: accent }]}>
