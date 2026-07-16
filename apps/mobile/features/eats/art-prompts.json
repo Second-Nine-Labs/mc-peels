@@ -1,0 +1,71 @@
+{
+  "stolovaya-7": {
+    "styleLock": "1960s Soviet propaganda-poster food illustration, flat ink printing style, bold black keyline, limited palette of faded red #C8332B, cream paper #F2E8D5, ochre and olive, slight misregistration and aged-paper grain, heroic composition from a low angle, no text, no lettering, no emoji",
+    "compress": "palette",
+    "hero": {
+      "subject": "a grand canteen table spread — borscht, khachapuri and plov among enamel pots, steam rising, seen from a heroic low angle"
+    },
+    "dishes": {
+      "plov": { "subject": "a heaped platter of Uzbek plov — lamb, matchstick carrots and rice crowned with a whole garlic head" },
+      "borscht": { "subject": "a steaming bowl of ruby borscht with a swirl of smetana and a sprig of dill" },
+      "pelmeni": { "subject": "a plate of pelmeni dumplings glossy with butter and black pepper, sour cream on the side" },
+      "syrniki": { "subject": "a stack of golden syrniki farmer-cheese pancakes with strawberry preserves and sour cream" },
+      "olivier": { "subject": "a cut-glass bowl of Olivier salad, neat vegetable cubes glossy with mayonnaise, dill on top" },
+      "vinaigrette": { "subject": "a bowl of vinaigrette beet salad — magenta cubes with green peas, pickles and onion" },
+      "golubtsy": { "subject": "cabbage rolls braised in tomato sauce in a battered enamel pan, sour cream spooned over" },
+      "grechka": { "subject": "a bowl of toasted buckwheat with mushrooms and onions, a pat of butter melting on top" },
+      "blini": { "subject": "a tall stack of thin blini with melting butter and a pot of preserves beside" },
+      "okroshka": { "subject": "a cold bowl of okroshka on kefir — radish, cucumber and dill floating, condensation on the bowl" },
+      "kotleti": { "subject": "two pan-fried kotleti cutlets beside a cloud of buttery mashed potatoes" },
+      "khachapuri": { "subject": "an adjaruli khachapuri bread boat with molten cheese and an egg yolk like a sun" }
+    }
+  },
+  "greenhouse": {
+    "styleLock": "bright overhead food photography on warm white marble, soft diffused morning window light, a sage-green linen napkin at the edge of frame, shallow depth of field, generous airy negative space, fresh and appetizing, no text, no lettering, no emoji",
+    "compress": "jpeg",
+    "hero": {
+      "subject": "a garden table seen from above with three fresh bowls, scattered herbs and citrus, hands just out of frame"
+    },
+    "dishes": {
+      "green-goddess-bowl": { "subject": "a green goddess bowl — kale, quinoa, fanned avocado, edamame and cucumber under a tahini drizzle" },
+      "avocado-tartine": { "subject": "an avocado tartine on dark sourdough with shaved radish, microgreens and lemon zest" },
+      "golden-glow-smoothie": { "subject": "a golden mango-turmeric smoothie in a tall ribbed glass, fresh ginger and lime beside" },
+      "miso-salmon-plate": { "subject": "a miso-glazed salmon fillet with a blistered lacquered glaze over brown rice and charred broccolini" },
+      "harvest-grain-bowl": { "subject": "a harvest grain bowl of farro, roasted sweet potato, crispy chickpeas, feta and dried cranberries" },
+      "cauliflower-shawarma-bowl": { "subject": "a bowl of spice-roasted cauliflower with charred edges over couscous, yogurt sauce and mint" },
+      "rainbow-crunch-salad": { "subject": "a rainbow crunch salad — shaved red cabbage, carrot ribbons, peppers, snap peas and almonds" },
+      "watermelon-mint-fresca": { "subject": "a glass of pink watermelon fresca with mint leaves, a lime wheel and chia specks, ice catching light" },
+      "overnight-oats": { "subject": "overnight oats in a glass jar layered with blueberries and walnuts, honey dripping from a dipper" },
+      "matcha-chia-pudding": { "subject": "a matcha chia pudding with layered coconut milk and sliced strawberries in a coupe glass" }
+    }
+  },
+  "la-milpa": {
+    "styleLock": "vibrant Mexican mercado-poster gouache illustration, flat saturated shapes in marigold #F2A007, rosa mexicano #E84B8A, teal #159F94 and deep plum #241430, thick paint texture, papel-picado energy, festive but composed, no text, no lettering, no emoji",
+    "compress": "palette",
+    "hero": {
+      "subject": "a night mercado food stall strung with papel picado, steam rising from the comal, warm bulb light"
+    },
+    "dishes": {
+      "elote": { "subject": "charred elote on a stick rolled in crema and cotija with chile dust and a lime wedge" },
+      "guacamole": { "subject": "a stone molcajete of chunky guacamole ringed with golden totopos" },
+      "chilaquiles": { "subject": "chilaquiles rojos crowned with a fried egg, a zigzag of crema and crumbled queso fresco" },
+      "tacos-al-pastor": { "subject": "three tacos al pastor with charred pineapple, white onion and cilantro on warm corn tortillas" },
+      "birria": { "subject": "birria tacos with a cheese pull beside a dark bowl of consomé, lime and onion scattered" },
+      "pozole": { "subject": "a wide bowl of red pozole with hominy, dressed with radish coins, shredded cabbage and lime" },
+      "tamales-verdes": { "subject": "tamales verdes in opened corn husks with salsa verde spooned over" },
+      "enchiladas-suizas": { "subject": "enchiladas suizas blistered under creamy tomatillo sauce and melted cheese in a clay dish" },
+      "horchata": { "subject": "a clay cup of horchata over ice with a cinnamon stick, condensation beading" },
+      "churros": { "subject": "churros dusted in cinnamon sugar leaning on a cup of thick dark drinking chocolate" }
+    }
+  },
+  "shelf-sichuan-chongqing": {
+    "styleLock": "dramatic dark food photography, deep plum-black night-market backdrop, red lantern glow from above, visible steam, glistening chili-oil sheen, hard cinematic rim light, rich and moody, no text, no lettering, no emoji",
+    "compress": "jpeg",
+    "hero": {
+      "subject": "a Chongqing night-market stall — steaming pots, hanging red lanterns, chili strings, mountain silhouettes behind"
+    },
+    "dishes": {
+      "_note": "Dish set is dynamic — minted from whatever the household saves. No static list here; runtime generation reads the saved recipe's name/description and reuses this kitchen's styleLock."
+    }
+  }
+}
