@@ -6,6 +6,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -220,6 +221,55 @@ export const recipes = pgTable(
   ],
 );
 
+// Generated kitchen identity (Stage 3). The Shelf mints kitchens from saves;
+// for cuisines without a hand-built flagship costume (山城 / Столовая / La
+// Milpa), an LLM writes the identity once — name, secondary, tagline, voice,
+// and a palette *seed* the client expands into premium tokens — and a hero
+// image generates async on top. Keyed by (household, cuisine) and locked at
+// first open so a kitchen's name doesn't drift as more of that cuisine saves.
+export type IdentityPalette = {
+  /** Light or dark ground; the client's palette engine ramps from here. */
+  mode: 'light' | 'dark';
+  /** Base hue 0-359 for the paper/ink ramp. */
+  hue: number;
+  /** Accent hue 0-359 for the kitchen's loud color. */
+  accentHue: number;
+};
+
+/** The kitchen's tongue — verbs woven into the chassis. Null → house defaults. */
+export type IdentityVoice = {
+  back: string;
+  launch: string;
+  add: string;
+  remove: string;
+};
+
+export const kitchenIdentities = pgTable(
+  'kitchen_identities',
+  {
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id, { onDelete: 'cascade' }),
+    cuisine: text('cuisine').notNull(),
+    name: text('name').notNull(),
+    /** Romanization / English secondary name for the home card. */
+    sub: text('sub').notNull(),
+    tagline: text('tagline').notNull(),
+    /** Ledger/mono voice (Столовая-like) vs the default sans. */
+    mono: boolean('mono').notNull().default(false),
+    palette: jsonb('palette').$type<IdentityPalette>().notNull(),
+    voice: jsonb('voice').$type<IdentityVoice>(),
+    /** Generated hero image (public CDN URL) — null until the pipeline lands one. */
+    heroUrl: text('hero_url'),
+    /** none | pending | ok | failed — hero image lifecycle. */
+    heroStatus: text('hero_status').notNull().default('none'),
+    heroUpdatedAt: timestamp('hero_updated_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.householdId, t.cuisine] })],
+);
+
 // Personal access tokens used by MCP clients (Chief of Staff) to act as a user.
 // Only a SHA-256 hash is stored; the plaintext is shown once at creation.
 export const apiTokens = pgTable(
@@ -379,6 +429,8 @@ export type LineItem = typeof lineItems.$inferSelect;
 export type HouseholdInvite = typeof householdInvites.$inferSelect;
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type Recipe = typeof recipes.$inferSelect;
+export type KitchenIdentity = typeof kitchenIdentities.$inferSelect;
+export type KitchenIdentityInsert = typeof kitchenIdentities.$inferInsert;
 export type CartOffer = typeof cartOffers.$inferSelect;
 export type ProviderConnection = typeof providerConnections.$inferSelect;
 export type ProviderLocation = typeof providerLocations.$inferSelect;

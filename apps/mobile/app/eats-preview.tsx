@@ -4,33 +4,41 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { HomeScreen } from '@/features/eats/HomeScreen';
 import { KitchenScreen } from '@/features/eats/KitchenScreen';
+import type { KitchenCostume } from '@/features/eats/costume';
 import { costumeForShelfKitchen } from '@/features/eats/costumes/factory';
 import { deriveGenesis } from '@/features/eats/genesis';
+import { PREVIEW_IDENTITIES } from '@/features/eats/preview-identities';
 import { PREVIEW_SHELF } from '@/features/eats/preview-shelf';
 import { PREVIEW_STARTERS } from '@/features/eats/preview-starters';
 import { StarterPicker } from '@/features/eats/StarterPicker';
 import { ShelfScreen } from '@/features/shelf/ShelfScreen';
 
-/** The showcase's minted kitchen — 山城, grown from the sample shelf. Nothing
- * here is pre-built; this is what the household grows on its own. */
-const PREVIEW_MINTED = (() => {
-  const kitchen = deriveGenesis(PREVIEW_SHELF).kitchens.find(
-    (entry) => entry.cuisine === 'sichuan-chongqing',
+/** The showcase's minted kitchens, grown from the sample shelf: 山城 (a
+ * hand-built flagship) and บ้านริมน้ำ (a *generated* Thai identity — bespoke
+ * palette + voice + procedural hero). Nothing here is pre-built; this is what
+ * the household grows on its own. */
+const PREVIEW_COSTUMES: Record<string, KitchenCostume> = {};
+for (const kitchen of deriveGenesis(PREVIEW_SHELF, PREVIEW_IDENTITIES).kitchens) {
+  PREVIEW_COSTUMES[kitchen.restaurant.id] = costumeForShelfKitchen(
+    kitchen.cuisine,
+    kitchen.restaurant,
+    kitchen.identity,
   );
-  return kitchen ? costumeForShelfKitchen(kitchen.cuisine, kitchen.restaurant) : null;
-})();
+}
 
 /**
  * Signed-out showcase of the Eats experience (auth-gate exempt). No pre-built
  * restaurants — the home grows from a sample shelf, so the showcase demos a
- * minted kitchen (山城) and the "open your first kitchen" starter flow. Every
- * launch scrubs without a session; nothing here reads or writes household data.
+ * flagship kitchen (山城), a generated one (บ้านริมน้ำ), and the "open your
+ * first kitchen" starter flow. Every launch scrubs without a session; nothing
+ * here reads or writes household data.
  */
 type View_ = string;
 
 const STOPS: Array<{ key: View_; label: string }> = [
   { key: 'home', label: 'Home' },
   { key: 'shelf-sichuan-chongqing', label: '山城' },
+  { key: 'shelf-thai', label: 'บ้านริมน้ำ' },
   { key: 'first-kitchen', label: 'first kitchen' },
   { key: 'shelf', label: 'the shelf' },
 ];
@@ -75,6 +83,7 @@ export default function EatsPreviewScreen() {
         <HomeScreen
           previewMode
           previewShelf={PREVIEW_SHELF}
+          previewIdentities={PREVIEW_IDENTITIES}
           onOpenRestaurant={open}
           onOpenShelf={() => open('shelf')}
           onOpenFirstKitchen={() => open('first-kitchen')}
@@ -89,10 +98,16 @@ export default function EatsPreviewScreen() {
           onGoHome={home}
           onWalkIn={(kitchenId) => open(kitchenId ?? 'home')}
         />
-      ) : PREVIEW_MINTED ? (
-        <KitchenScreen costume={PREVIEW_MINTED} previewMode initialDishId={dishId} onBack={home} />
+      ) : PREVIEW_COSTUMES[view] ? (
+        <KitchenScreen costume={PREVIEW_COSTUMES[view]} previewMode initialDishId={dishId} onBack={home} />
       ) : (
-        <HomeScreen previewMode previewShelf={PREVIEW_SHELF} onOpenRestaurant={open} onOpenShelf={() => open('shelf')} />
+        <HomeScreen
+          previewMode
+          previewShelf={PREVIEW_SHELF}
+          previewIdentities={PREVIEW_IDENTITIES}
+          onOpenRestaurant={open}
+          onOpenShelf={() => open('shelf')}
+        />
       )}
     </View>
   );

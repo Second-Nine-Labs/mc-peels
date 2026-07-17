@@ -39,11 +39,16 @@ import {
 import {
   artConfigured,
   ensureKitchenDishArt,
+  ensureKitchenHero,
   ensureRecipeArt,
   ensureRecipeArtForUser,
   isArtSlug,
   kitchenArtMap,
 } from '../art/pipeline.js';
+import {
+  ensureKitchenIdentity,
+  listKitchenIdentities,
+} from '../core/kitchen-identities.js';
 import { deleteRecipe, ingestRecipe, listRecipes } from '../core/recipes.js';
 import { STARTER_CATALOG, seedStarters } from '../core/starters.js';
 import { listRetailers } from '../core/retailers.js';
@@ -601,6 +606,50 @@ export function createApp() {
     const force = ['1', 'true'].includes(c.req.query('force') ?? '');
     const result = await ensureKitchenDishArt(kitchenId, dishId, input, { force });
     return c.json({ status: result.status, art_url: result.artUrl });
+  });
+
+  // Generated kitchen identities (Stage 3) — the LLM names a shelf-minted
+  // kitchen (name, voice, palette seed) once, cached per (household, cuisine).
+  api.get('/kitchens/identities', async (c) => {
+    const identities = await listKitchenIdentities(
+      c.get('userId'),
+      uuidQuery(c.req.query('household_id'), 'household_id'),
+    );
+    return c.json({ identities });
+  });
+
+  const ensureIdentitySchema = z.object({
+    household_id: z.string().uuid().optional(),
+    // Slug — it becomes a storage path segment, so keep it traversal-safe.
+    cuisine: z
+      .string()
+      .min(1)
+      .max(60)
+      .regex(/^[a-z0-9][a-z0-9-]*$/, 'cuisine must be a slug'),
+    cuisine_label: z.string().min(1).max(80),
+    dishes: z.array(z.string().min(1).max(200)).max(60).default([]),
+  });
+
+  // Ensure the identity for one shelf-minted kitchen. Idempotent: an existing
+  // identity returns immediately; a fresh mint kicks the hero image in the
+  // background so the response is fast and the photo lands on the next fetch.
+  api.post('/kitchens/identity', async (c) => {
+    const input = await body(c, ensureIdentitySchema);
+    const { identity, created, householdId } = await ensureKitchenIdentity({
+      userId: c.get('userId'),
+      householdId: input.household_id,
+      cuisine: input.cuisine,
+      cuisineLabel: input.cuisine_label,
+      dishNames: input.dishes,
+    });
+    if (artConfigured() && (created || identity.hero_status === 'none')) {
+      waitUntil(
+        ensureKitchenHero(householdId, input.cuisine).catch((err) =>
+          console.error('Background kitchen hero failed:', err),
+        ),
+      );
+    }
+    return c.json({ identity });
   });
 
   // MCP access tokens --------------------------------------------------------------

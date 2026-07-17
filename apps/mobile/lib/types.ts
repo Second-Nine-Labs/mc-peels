@@ -361,6 +361,34 @@ export interface KitchenArtResponse {
   art: Record<string, string>;
 }
 
+/** A generated kitchen identity (Stage 3), as the API returns it. */
+export interface KitchenIdentityWire {
+  cuisine: string;
+  name: string;
+  sub: string;
+  tagline: string;
+  mono: boolean;
+  palette: { mode: 'light' | 'dark'; hue: number; accentHue: number };
+  voice: { back: string; launch: string; add: string; remove: string } | null;
+  hero_url: string | null;
+  hero_status: string;
+}
+
+export interface KitchenIdentitiesResponse {
+  identities: KitchenIdentityWire[];
+}
+
+export interface EnsureKitchenIdentityResponse {
+  identity: KitchenIdentityWire;
+}
+
+export interface EnsureKitchenIdentityBody {
+  household_id?: string;
+  cuisine: string;
+  cuisine_label: string;
+  dishes: string[];
+}
+
 export interface IngestRecipeBody {
   household_id?: string;
   url: string;

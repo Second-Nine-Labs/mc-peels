@@ -10,7 +10,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { KitchenCostume } from '../costume';
+import type { GeneratedIdentity } from '../identity';
 import type { Restaurant } from '../types';
+import { generatedCostume } from './generated';
 import { laMilpaCostume } from './lamilpa';
 import { shanchengCostume } from './shancheng';
 import { stolovayaCostume } from './stolovaya';
@@ -57,9 +59,21 @@ export function flagshipIdentity(cuisine: string): FlagshipIdentity | null {
   return FLAGSHIP_IDENTITY[cuisine] ?? null;
 }
 
-export function costumeForShelfKitchen(cuisine: string, restaurant: Restaurant): KitchenCostume {
+/**
+ * Dress a shelf-minted kitchen. Precedence: a hand-built flagship costume
+ * wins; then the kitchen's generated identity (bespoke palette + voice + hero);
+ * then the house look — which is also what a kitchen wears in the beat before
+ * its identity has generated.
+ */
+export function costumeForShelfKitchen(
+  cuisine: string,
+  restaurant: Restaurant,
+  identity?: GeneratedIdentity | null,
+): KitchenCostume {
   const flagship = FLAGSHIPS[cuisine];
-  return flagship ? flagship(restaurant) : houseCostume(restaurant);
+  if (flagship) return flagship(restaurant);
+  if (identity) return generatedCostume(identity, restaurant);
+  return houseCostume(restaurant);
 }
 
 // ---------------------------------------------------------------------------

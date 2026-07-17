@@ -1,8 +1,9 @@
 /**
- * Sample shelf for the signed-out showcase — enough Sichuan-Chongqing saves
- * to open 山城 (4 ≥ OPEN_THRESHOLD) and two Italian saves so the home also
- * demos an under-construction tease. Static demo data; the real app derives
- * from the household's actual shelf.
+ * Sample shelf for the signed-out showcase — enough Sichuan-Chongqing saves to
+ * open the flagship 山城 (4 ≥ OPEN_THRESHOLD), four Thai saves to open a
+ * *generated* kitchen (a non-flagship cuisine, dressed by PREVIEW_IDENTITIES),
+ * and two Italian saves so the home also demos an under-construction tease.
+ * Static demo data; the real app derives from the household's actual shelf.
  */
 
 import type { SavedRecipe } from '@/lib/types';
@@ -103,6 +104,96 @@ export const PREVIEW_SHELF: SavedRecipe[] = [
       { name: 'ground pork', quantity: 0.5, unit: 'lb', pantry: false },
       { name: 'tahini', quantity: 1, unit: 'jar', pantry: false },
       { name: 'chili oil', quantity: null, unit: null, pantry: true },
+    ],
+  },
+  // Four Thai saves — a non-flagship cuisine, so it opens a *generated*
+  // kitchen dressed by its LLM-written identity (see PREVIEW_IDENTITIES).
+  {
+    ...base,
+    id: 'preview-krapow',
+    source_url: 'https://www.tiktok.com/@bangkok.street/video/3',
+    source_platform: 'tiktok',
+    creator: 'bangkok.street',
+    title: 'Pad krapow',
+    sub: 'ผัดกะเพรา',
+    description: 'Holy basil, chili, and a runny fried egg over rice — the after-work plate.',
+    cuisine: 'thai',
+    dish_type: 'main',
+    serves: 2,
+    minutes: 15,
+    heat: 3,
+    ingredients: [
+      { name: 'ground chicken', quantity: 1, unit: 'lb', pantry: false },
+      { name: 'thai holy basil', quantity: 1, unit: 'bunch', pantry: false },
+      { name: 'thai chiles', quantity: 6, unit: 'each', pantry: false },
+      { name: 'jasmine rice', quantity: 2, unit: 'cups', pantry: false },
+      { name: 'fish sauce', quantity: null, unit: null, pantry: true },
+    ],
+  },
+  {
+    ...base,
+    id: 'preview-greencurry',
+    source_url: 'https://www.instagram.com/p/greencurry',
+    source_platform: 'instagram',
+    creator: 'curry.paste',
+    title: 'Green curry',
+    sub: 'แกงเขียวหวาน',
+    description: 'Coconut, green chili paste, and thai eggplant — sweet heat in a bowl.',
+    cuisine: 'thai',
+    dish_type: 'main',
+    serves: 4,
+    minutes: 35,
+    heat: 2,
+    ingredients: [
+      { name: 'green curry paste', quantity: 1, unit: 'jar', pantry: false },
+      { name: 'coconut milk', quantity: 2, unit: 'can', pantry: false },
+      { name: 'chicken thighs', quantity: 1.5, unit: 'lb', pantry: false },
+      { name: 'thai eggplant', quantity: 0.5, unit: 'lb', pantry: false },
+      { name: 'thai basil', quantity: 1, unit: 'bunch', pantry: false },
+    ],
+  },
+  {
+    ...base,
+    id: 'preview-somtum',
+    source_url: 'https://www.youtube.com/watch?v=somtum',
+    source_platform: 'youtube',
+    creator: 'isaan.kitchen',
+    title: 'Som tum',
+    sub: 'ส้มตำ',
+    description: 'Green papaya pounded with lime, chili, and peanuts — the loud salad.',
+    cuisine: 'thai',
+    dish_type: 'salad',
+    serves: 2,
+    minutes: 15,
+    heat: 3,
+    ingredients: [
+      { name: 'green papaya', quantity: 1, unit: 'each', pantry: false },
+      { name: 'limes', quantity: 3, unit: 'each', pantry: false },
+      { name: 'roasted peanuts', quantity: 4, unit: 'oz', pantry: false },
+      { name: 'thai chiles', quantity: 4, unit: 'each', pantry: false },
+      { name: 'cherry tomatoes', quantity: 1, unit: 'cup', pantry: false },
+    ],
+  },
+  {
+    ...base,
+    id: 'preview-khaosoi',
+    source_url: 'https://www.pinterest.com/pin/khaosoi',
+    source_platform: 'pinterest',
+    creator: 'chiangmai.noodle',
+    title: 'Khao soi',
+    sub: 'ข้าวซอย',
+    description: 'Northern curry noodles under a crown of crispy egg noodles.',
+    cuisine: 'thai',
+    dish_type: 'soup',
+    serves: 4,
+    minutes: 40,
+    heat: 2,
+    ingredients: [
+      { name: 'egg noodles', quantity: 1, unit: 'lb', pantry: false },
+      { name: 'khao soi paste', quantity: 1, unit: 'jar', pantry: false },
+      { name: 'coconut milk', quantity: 2, unit: 'can', pantry: false },
+      { name: 'chicken legs', quantity: 2, unit: 'lb', pantry: false },
+      { name: 'shallots', quantity: 4, unit: 'each', pantry: false },
     ],
   },
   // Two Italian saves — the home teases "2 more and the kitchen opens".
