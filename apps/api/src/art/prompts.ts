@@ -100,6 +100,55 @@ export function dishArtPrompt(dish: DishForArt): string {
   return `${subject}. ${lock.style}, ${HOUSE_RULES}`;
 }
 
+// ---------------------------------------------------------------------------
+// Kitchen hero backdrop (Stage 3) — an atmospheric *establishing* shot of the
+// eatery, not a centered dish. Its medium follows the generated palette's
+// mode so the photo and the room's colors read as one place.
+
+const HERO_HOUSE_RULES =
+  'no text, no lettering, no signage words, no numbers, no logos, no watermarks, no emoji, no menus, no readable human faces, wide atmospheric establishing composition with calm negative space toward the lower-left for a title';
+
+const HERO_LIGHT =
+  'bright airy editorial interior photography, soft diffused daylight through a window, warm natural materials — pale wood, linen, ceramic — shallow depth of field, generous negative space, fresh inviting and premium';
+
+const HERO_DARK =
+  'moody cinematic interior photography, warm low-key lighting, deep shadows, a single glowing source, rich lacquered surfaces, intimate late-evening atmosphere, premium';
+
+/** The hero's base medium, chosen by the palette mode so photo + room agree. */
+export function heroStyle(mode: 'light' | 'dark'): string {
+  return mode === 'dark' ? HERO_DARK : HERO_LIGHT;
+}
+
+export interface HeroForArt {
+  /** Human cuisine label woven into the scene ("Thai", "Levantine"). */
+  cuisineLabel: string;
+  /** Palette mode — steers the medium (light/airy vs moody/dark). */
+  mode: 'light' | 'dark';
+  /** The kitchen's tagline/mood, if any — nudges the atmosphere. */
+  mood?: string | null;
+}
+
+/** The full generation prompt for a kitchen hero backdrop. */
+export function heroArtPrompt(hero: HeroForArt): string {
+  const scene =
+    `An atmospheric establishing photograph of an intimate ${hero.cuisineLabel} eatery interior — ` +
+    'the counter, a set table, and the light that makes it feel like a real, beloved place';
+  return `${scene}${hero.mood ? `, ${hero.mood}` : ''}. ${heroStyle(hero.mode)}, ${HERO_HOUSE_RULES}`;
+}
+
+/** The hero judge's rubric — scene-oriented (no "depict this dish" clause). */
+export function heroJudgeRubric(subject: string, style: string): string {
+  return [
+    `You are grading a generated hero backdrop for a ${subject} kitchen. Fail it if ANY of the following are true:`,
+    '1. Any text, lettering, numbers, logos, signage words, or watermarks appear anywhere in the image.',
+    '2. Any emoji or emoji-like glyphs appear.',
+    '3. The scene is deformed or shows generation artifacts (melted shapes, impossible architecture, mangled hands or anatomy).',
+    '4. A human face is a dominant, in-focus subject (a distant, out-of-focus figure is acceptable).',
+    `5. The setting or style is clearly off-brief — expected: an atmospheric ${subject} eatery interior, ${style}.`,
+    'Grade strictly; when uncertain, fail it and say why.',
+  ].join('\n');
+}
+
 /** The judge's rubric — strict by design; a false fail costs one reroll. */
 export function judgeRubric(dish: { title: string; description?: string | null }, style: string): string {
   return [

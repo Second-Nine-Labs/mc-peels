@@ -29,6 +29,7 @@ import { DishTile } from './art';
 import { costumeForShelfKitchen } from './costumes/factory';
 import type { KitchenCostume } from './costume';
 import type { KitchenTease } from './genesis';
+import type { GeneratedIdentity } from './identity';
 import { searchEats } from './restaurants';
 import type { Restaurant, RestaurantId } from './types';
 import { useShelfKitchens } from './useShelfKitchens';
@@ -91,6 +92,8 @@ export interface HomeScreenProps {
   householdId?: string;
   /** Sample shelf for the signed-out showcase (no network touched). */
   previewShelf?: SavedRecipe[];
+  /** Sample generated identities for the showcase (demos generated kitchens). */
+  previewIdentities?: Record<string, GeneratedIdentity>;
   previewMode?: boolean;
   onOpenRestaurant: (id: RestaurantId, dishId?: string) => void;
   onOpenAsk?: () => void;
@@ -103,6 +106,7 @@ export function HomeScreen({
   householdName,
   householdId,
   previewShelf,
+  previewIdentities,
   previewMode = false,
   onOpenRestaurant,
   onOpenAsk,
@@ -112,7 +116,7 @@ export function HomeScreen({
   const t = useColorScheme() === 'dark' ? dark : light;
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
-  const genesis = useShelfKitchens({ householdId, previewRecipes: previewShelf });
+  const genesis = useShelfKitchens({ householdId, previewRecipes: previewShelf, previewIdentities });
   const kitchens = useMemo(() => genesis.kitchens.map((k) => k.restaurant), [genesis.kitchens]);
   const results = useMemo(() => searchEats(query, kitchens), [query, kitchens]);
 
@@ -121,8 +125,8 @@ export function HomeScreen({
   // carries the home instead.
   const picks = useMemo(
     () =>
-      genesis.kitchens.flatMap(({ cuisine, restaurant }) =>
-        restaurant.dishes.map((dish) => ({ dish, restaurant, cuisine })),
+      genesis.kitchens.flatMap(({ cuisine, restaurant, identity }) =>
+        restaurant.dishes.map((dish) => ({ dish, restaurant, cuisine, identity })),
       ),
     [genesis.kitchens],
   );
@@ -180,7 +184,7 @@ export function HomeScreen({
                  dressed in that kitchen's costume ---- */}
             {feature ? (
               <FeatureHero
-                costume={costumeForShelfKitchen(feature.cuisine, feature.restaurant)}
+                costume={costumeForShelfKitchen(feature.cuisine, feature.restaurant, feature.identity)}
                 restaurant={feature.restaurant}
                 dishName={feature.dish.name}
                 dishSub={feature.dish.sub}
@@ -196,10 +200,10 @@ export function HomeScreen({
               <Text style={[styles.sectionLabel, { color: t.muted }]}>YOUR KITCHENS</Text>
             ) : null}
             <View style={styles.storefronts}>
-              {genesis.kitchens.map(({ cuisine, restaurant }) => (
+              {genesis.kitchens.map(({ cuisine, restaurant, identity }) => (
                 <ShelfStorefront
                   key={restaurant.id}
-                  costume={costumeForShelfKitchen(cuisine, restaurant)}
+                  costume={costumeForShelfKitchen(cuisine, restaurant, identity)}
                   onPress={() => onOpenRestaurant(restaurant.id)}
                 />
               ))}

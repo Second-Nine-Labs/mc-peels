@@ -16,6 +16,8 @@
 import type { SavedRecipe } from '@/lib/types';
 
 import { flagshipIdentity } from './costumes/factory';
+import type { GeneratedIdentity } from './identity';
+import { buildTokens } from './palette';
 import type { Dish, MenuSection, Restaurant } from './types';
 
 /** Saves of one cuisine that open its kitchen — the earned threshold. */
@@ -95,6 +97,9 @@ export function cuisineForKitchenId(id: string): string | null {
 export interface DerivedKitchen {
   cuisine: string;
   restaurant: Restaurant;
+  /** The generated identity dressing this kitchen (non-flagship cuisines),
+   * once minted. Undefined for flagships and for the beat before it lands. */
+  identity?: GeneratedIdentity;
 }
 
 /** A kitchen still under construction — the home teases the countdown. */
@@ -132,8 +137,13 @@ function toDish(recipe: SavedRecipe): Dish {
   };
 }
 
-/** Group shelf recipes by cuisine → open kitchens + under-construction teases. */
-export function deriveGenesis(recipes: SavedRecipe[]): Genesis {
+/** Group shelf recipes by cuisine → open kitchens + under-construction teases.
+ * `identities` (keyed by cuisine) dress non-flagship kitchens; a cuisine
+ * without one yet opens in the house look until its identity mints. */
+export function deriveGenesis(
+  recipes: SavedRecipe[],
+  identities: Record<string, GeneratedIdentity> = {},
+): Genesis {
   const byCuisine = new Map<string, SavedRecipe[]>();
   for (const recipe of recipes) {
     if (NEVER_A_KITCHEN.has(recipe.cuisine)) continue;
@@ -148,7 +158,8 @@ export function deriveGenesis(recipes: SavedRecipe[]): Genesis {
   for (const [cuisine, saved] of byCuisine) {
     const threshold = openThresholdFor(saved);
     if (saved.length >= threshold) {
-      kitchens.push({ cuisine, restaurant: toRestaurant(cuisine, saved) });
+      const identity = identities[cuisine];
+      kitchens.push({ cuisine, identity, restaurant: toRestaurant(cuisine, saved, identity) });
     } else if (saved.length >= TEASE_THRESHOLD) {
       teases.push({
         cuisine,
@@ -166,26 +177,31 @@ export function deriveGenesis(recipes: SavedRecipe[]): Genesis {
   return { kitchens, teases };
 }
 
-function toRestaurant(cuisine: string, saved: SavedRecipe[]): Restaurant {
+function toRestaurant(
+  cuisine: string,
+  saved: SavedRecipe[],
+  identity?: GeneratedIdentity,
+): Restaurant {
   const dishes = saved.map(toDish);
   const present = new Set(dishes.map((dish) => dish.section));
   const sections = SECTIONS.filter((section) => present.has(section.key));
   const label = cuisineLabel(cuisine);
 
-  // Flagship cuisines take on a thematic identity (山城, Столовая, La Milpa);
-  // every other kitchen is named for its cuisine. Either way it's the user's,
-  // grown from their shelf.
-  const identity = flagshipIdentity(cuisine);
+  // Precedence: a hand-built flagship (山城, Столовая, La Milpa) → the kitchen's
+  // generated identity → a plain cuisine-named house kitchen. Either way it's
+  // the user's, grown from their shelf.
+  const flagship = flagshipIdentity(cuisine);
+  const accent = identity && !flagship ? buildTokens(identity.palette).accent : '#FFC531';
 
   return {
     id: kitchenIdForCuisine(cuisine),
-    name: identity?.name ?? label,
-    sub: identity?.sub ?? 'from your shelf',
+    name: flagship?.name ?? identity?.name ?? label,
+    sub: flagship?.sub ?? identity?.sub ?? 'from your shelf',
     cuisine: label.toLowerCase(),
-    tagline: identity?.tagline ?? 'your saves, seated at a table',
+    tagline: flagship?.tagline ?? identity?.tagline ?? 'your saves, seated at a table',
     blurb: `Everything ${label} you saved, plated as a menu — every dish carts through your household rules.`,
     meta: `${dishes.length} dishes · opened from the shelf`,
-    accent: '#FFC531',
+    accent,
     onAccent: '#1D2433',
     sections,
     dishes,

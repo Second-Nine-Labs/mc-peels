@@ -10,7 +10,7 @@ import type { Tool, ToolUseBlock } from '@anthropic-ai/sdk/resources/messages';
 
 import { env } from '../env.js';
 import type { GeneratedImage } from './gemini.js';
-import { judgeRubric } from './prompts.js';
+import { heroJudgeRubric, judgeRubric } from './prompts.js';
 
 export interface ArtVerdict {
   pass: boolean;
@@ -19,7 +19,7 @@ export interface ArtVerdict {
 
 const VERDICT_TOOL: Tool = {
   name: 'grade_dish_art',
-  description: 'Record the verdict for a generated dish image.',
+  description: 'Record the verdict for a generated image.',
   input_schema: {
     type: 'object',
     properties: {
@@ -46,11 +46,8 @@ function getClient(): Anthropic {
   return client;
 }
 
-export async function judgeDishArt(
-  image: GeneratedImage,
-  dish: { title: string; description?: string | null },
-  style: string,
-): Promise<ArtVerdict> {
+/** The shared vision pass: send the image + a rubric, read the forced verdict. */
+async function grade(image: GeneratedImage, rubric: string): Promise<ArtVerdict> {
   const mediaType = IMAGE_MEDIA_TYPES.find((m) => m === image.mimeType) ?? 'image/png';
 
   const response = await getClient().messages.create({
@@ -66,7 +63,7 @@ export async function judgeDishArt(
             type: 'image',
             source: { type: 'base64', media_type: mediaType, data: image.bytes.toString('base64') },
           },
-          { type: 'text', text: judgeRubric(dish, style) },
+          { type: 'text', text: rubric },
         ],
       },
     ],
@@ -77,4 +74,17 @@ export async function judgeDishArt(
 
   const input = toolUse.input as { pass?: boolean; reasons?: string[] };
   return { pass: input.pass === true, reasons: Array.isArray(input.reasons) ? input.reasons : [] };
+}
+
+export function judgeDishArt(
+  image: GeneratedImage,
+  dish: { title: string; description?: string | null },
+  style: string,
+): Promise<ArtVerdict> {
+  return grade(image, judgeRubric(dish, style));
+}
+
+/** The kitchen-hero variant — same strict eye, scene-oriented rubric. */
+export function judgeHeroArt(image: GeneratedImage, subject: string, style: string): Promise<ArtVerdict> {
+  return grade(image, heroJudgeRubric(subject, style));
 }

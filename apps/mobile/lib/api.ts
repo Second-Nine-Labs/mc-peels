@@ -17,9 +17,12 @@ import type {
   CreateHouseholdBody,
   CreatedTokenResponse,
   DietaryProfile,
+  EnsureKitchenIdentityBody,
+  EnsureKitchenIdentityResponse,
   EnsureRecipeArtResponse,
   ErrorEnvelope,
   KitchenArtResponse,
+  KitchenIdentitiesResponse,
   Household,
   HouseholdDetailResponse,
   IngestRecipeBody,
@@ -223,6 +226,15 @@ export const api = {
       method: 'POST',
       body: descriptor,
     }),
+
+  // Generated kitchen identities (Stage 3) ----------------------------------
+  /** Every generated identity the household owns: `{ identities: [...] }`. */
+  kitchenIdentities: (params: { household_id?: string } = {}) =>
+    request<KitchenIdentitiesResponse>('/kitchens/identities', { query: params }),
+
+  /** Ensure (mint-once) the identity for one shelf-minted kitchen. */
+  ensureKitchenIdentity: (body: EnsureKitchenIdentityBody) =>
+    request<EnsureKitchenIdentityResponse>('/kitchens/identity', { method: 'POST', body }),
 
   // MCP access tokens ------------------------------------------------------
   createToken: (name: string) =>

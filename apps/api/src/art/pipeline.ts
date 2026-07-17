@@ -14,14 +14,16 @@
  * is invisible, never broken.
  */
 
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { getHouseholdContext } from '../core/households.js';
 import { getDb, schema } from '../db/client.js';
 import { env } from '../env.js';
+import type { GeneratedImage } from './gemini.js';
 import { generateDishImage } from './gemini.js';
-import { judgeDishArt } from './judge.js';
-import { dishArtPrompt, styleLock } from './prompts.js';
+import type { ArtVerdict } from './judge.js';
+import { judgeDishArt, judgeHeroArt } from './judge.js';
+import { dishArtPrompt, heroArtPrompt, heroStyle, styleLock } from './prompts.js';
 import { listKitchenArt, uploadArt } from './storage.js';
 
 export type EnsureArtStatus = 'ok' | 'exists' | 'failed' | 'unconfigured';
@@ -50,14 +52,13 @@ interface Descriptor {
 }
 
 /** The shared engine: prompt → generate → judge → upload, with one reroll.
- * Returns 'ok' + url or 'failed' + reasons; callers own the bookkeeping. */
-async function generateJudgeUpload(
-  descriptor: Descriptor,
-  styleKey: string,
+ * Restaurant-agnostic — the caller supplies the prompt and the judge. Returns
+ * 'ok' + url or 'failed' + reasons; callers own the bookkeeping. */
+async function runGeneration(
+  prompt: string,
+  judge: (image: GeneratedImage) => Promise<ArtVerdict>,
   storagePathBase: string,
 ): Promise<{ status: 'ok' | 'failed'; artUrl: string | null; reasons: string[] }> {
-  const prompt = dishArtPrompt({ ...descriptor, styleKey });
-  const lock = styleLock(styleKey);
   const started = Date.now();
   const reasons: string[] = [];
 
@@ -67,11 +68,7 @@ async function generateJudgeUpload(
       if (image.bytes.length < MIN_IMAGE_BYTES) {
         reasons.push(`attempt ${attempt}: image suspiciously small (${image.bytes.length} bytes)`);
       } else {
-        const verdict = await judgeDishArt(
-          image,
-          { title: descriptor.title, description: descriptor.description },
-          lock.style,
-        );
+        const verdict = await judge(image);
         if (verdict.pass) {
           const extension = image.mimeType === 'image/jpeg' ? 'jpg' : 'png';
           // Timestamped path: rerolls mint a fresh CDN URL instead of fighting caches.
@@ -90,6 +87,20 @@ async function generateJudgeUpload(
     if (Date.now() - started > RETRY_BUDGET_MS) break;
   }
   return { status: 'failed', artUrl: null, reasons };
+}
+
+/** Dish-tile entry point onto the shared engine: the style lock leads. */
+function generateJudgeUpload(
+  descriptor: Descriptor,
+  styleKey: string,
+  storagePathBase: string,
+): Promise<{ status: 'ok' | 'failed'; artUrl: string | null; reasons: string[] }> {
+  const lock = styleLock(styleKey);
+  return runGeneration(
+    dishArtPrompt({ ...descriptor, styleKey }),
+    (image) => judgeDishArt(image, { title: descriptor.title, description: descriptor.description }, lock.style),
+    storagePathBase,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -195,5 +206,80 @@ export async function ensureKitchenDishArt(
     return { status: 'ok', artUrl: result.artUrl };
   }
   console.error(`Dish art failed for ${kitchenId}/${dishId}:`, result.reasons);
+  return { status: 'failed', artUrl: null, reasons: result.reasons };
+}
+
+// ---------------------------------------------------------------------------
+// Generated kitchens (Stage 3) — the atmospheric hero backdrop for a minted
+// kitchen's identity. Keyed by (household, cuisine); the URL rides on the
+// kitchen_identities row, so the client picks it up on the next fetch.
+
+/** "sichuan-chongqing" → "Sichuan Chongqing" — a readable label for the prompt. */
+function humanizeCuisine(cuisine: string): string {
+  return cuisine
+    .split('-')
+    .map((word) => (word ? word[0]!.toUpperCase() + word.slice(1) : word))
+    .join(' ');
+}
+
+async function setHero(
+  householdId: string,
+  cuisine: string,
+  values: { heroUrl?: string; heroStatus: string },
+): Promise<void> {
+  await getDb()
+    .update(schema.kitchenIdentities)
+    .set({ ...values, heroUpdatedAt: new Date(), updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.kitchenIdentities.householdId, householdId),
+        eq(schema.kitchenIdentities.cuisine, cuisine),
+      ),
+    );
+}
+
+/**
+ * Ensure the hero backdrop for one generated kitchen. Reads the identity row
+ * for its palette mode (light/dark medium) and tagline (mood), generates an
+ * establishing shot, and writes the URL back. Idempotent: skips generation
+ * when a hero already exists unless `force`.
+ */
+export async function ensureKitchenHero(
+  householdId: string,
+  cuisine: string,
+  opts: { force?: boolean } = {},
+): Promise<EnsureArtResult> {
+  if (!artConfigured()) return { status: 'unconfigured', artUrl: null };
+
+  const rows = await getDb()
+    .select()
+    .from(schema.kitchenIdentities)
+    .where(
+      and(
+        eq(schema.kitchenIdentities.householdId, householdId),
+        eq(schema.kitchenIdentities.cuisine, cuisine),
+      ),
+    )
+    .limit(1);
+  const identity = rows[0];
+  if (!identity) return { status: 'failed', artUrl: null, reasons: ['kitchen identity not found'] };
+  if (identity.heroUrl && !opts.force) return { status: 'exists', artUrl: identity.heroUrl };
+
+  await setHero(householdId, cuisine, { heroStatus: 'pending' });
+
+  const label = humanizeCuisine(cuisine);
+  const mode = identity.palette.mode;
+  const result = await runGeneration(
+    heroArtPrompt({ cuisineLabel: label, mode, mood: identity.tagline }),
+    (image) => judgeHeroArt(image, label, heroStyle(mode)),
+    `heroes/${householdId}/${cuisine}`,
+  );
+
+  if (result.status === 'ok' && result.artUrl) {
+    await setHero(householdId, cuisine, { heroUrl: result.artUrl, heroStatus: 'ok' });
+    return { status: 'ok', artUrl: result.artUrl };
+  }
+  console.error(`Kitchen hero failed for ${householdId}/${cuisine}:`, result.reasons);
+  await setHero(householdId, cuisine, { heroStatus: 'failed' });
   return { status: 'failed', artUrl: null, reasons: result.reasons };
 }
