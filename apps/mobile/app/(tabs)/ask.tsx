@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,12 +19,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BananaLoader } from '@/components/BananaLoader';
 import { BananaRain } from '@/components/BananaRain';
 import { MascotMark } from '@/components/MascotMark';
-import { Button, DisplayTitle, ErrorBanner, EyebrowChip } from '@/components/ui';
+import { Button, DisplayTitle, ErrorBanner, EyebrowChip, StatusChip } from '@/components/ui';
 import { api, getErrorMessage } from '@/lib/api';
 import { rememberCartResult } from '@/lib/cart-cache';
+import { formatDate, prettifyRetailerKey } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { usePalette } from '@/lib/theme';
-import type { UsualItem } from '@/lib/types';
+import type { CartSummary, UsualItem } from '@/lib/types';
 
 const EXAMPLES = [
   'Organic bananas, blueberries, and grass-fed beef',
@@ -46,7 +48,8 @@ const SECRET_PARTY = new Set([
 export default function AskScreen() {
   const p = usePalette();
   const router = useRouter();
-  const { membership } = useSession();
+  const { membership, me } = useSession();
+  const householdId = membership?.household_id;
 
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -54,11 +57,17 @@ export default function AskScreen() {
   const [usuals, setUsuals] = useState<UsualItem[]>([]);
   const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // The household's cart history — folded in from the old standalone Carts tab.
+  const [carts, setCarts] = useState<CartSummary[] | null>(null);
+  const [cartsError, setCartsError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [retailerNames, setRetailerNames] = useState<Record<string, string>>({});
+
   // The household's recurring items (best-effort; hidden when there are none).
   useEffect(() => {
     let cancelled = false;
     api
-      .getUsuals({ household_id: membership?.household_id })
+      .getUsuals({ household_id: householdId })
       .then((r) => {
         if (!cancelled) setUsuals(r.usuals);
       })
@@ -66,7 +75,55 @@ export default function AskScreen() {
     return () => {
       cancelled = true;
     };
-  }, [membership?.household_id]);
+  }, [householdId]);
+
+  const loadCarts = useCallback(async () => {
+    if (!householdId) return;
+    try {
+      const data = await api.listCarts({ household_id: householdId, limit: 50 });
+      setCarts(data.carts);
+      setCartsError(null);
+    } catch (err) {
+      setCartsError(getErrorMessage(err));
+      setCarts((previous) => previous ?? []);
+    }
+  }, [householdId]);
+
+  // Refresh history whenever the tab regains focus — a cart built here appears
+  // the moment you return from its detail screen.
+  useFocusEffect(
+    useCallback(() => {
+      loadCarts();
+    }, [loadCarts]),
+  );
+
+  // Best-effort retailer_key -> display name for the history rows.
+  useFocusEffect(
+    useCallback(() => {
+      if (!householdId) return;
+      let cancelled = false;
+      api
+        .getRetailers({ household_id: householdId })
+        .then((data) => {
+          if (cancelled) return;
+          const names: Record<string, string> = {};
+          for (const retailer of data.retailers) names[retailer.retailer_key] = retailer.name;
+          setRetailerNames(names);
+        })
+        .catch(() => {
+          // Falls back to prettified retailer keys.
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [householdId]),
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadCarts();
+    setRefreshing(false);
+  }, [loadCarts]);
 
   // Tap a usual to append it to the request (deduped, comma-joined).
   const addUsual = useCallback((name: string) => {
@@ -176,6 +233,7 @@ export default function AskScreen() {
   }
 
   const spinDeg = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const hasCarts = (carts?.length ?? 0) > 0;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]} edges={['top']}>
@@ -184,7 +242,13 @@ export default function AskScreen() {
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={styles.container}
+            keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={p.onBg} />
+            }
+          >
           <View style={styles.hero}>
             <View style={styles.mascot}>
               <MascotMark size={60} onStreak={throwParty} />
@@ -237,19 +301,66 @@ export default function AskScreen() {
             </>
           ) : null}
 
-          <Text style={[styles.examplesLabel, { color: p.onBgMuted }]}>Try something like</Text>
-          <View style={styles.examples}>
-            {EXAMPLES.map((example) => (
-              <Pressable
-                key={example}
-                onPress={() => typeOut(example)}
-                style={[styles.example, { backgroundColor: p.card }]}
-              >
-                <Ionicons name="bulb-outline" size={16} color={p.tint} />
-                <Text style={[styles.exampleText, { color: p.text }]}>{example}</Text>
-              </Pressable>
-            ))}
-          </View>
+          {/* Prompts are a first-run helper — once there's history to lean on,
+              they'd just be noise, so they retire when carts exist. */}
+          {!hasCarts ? (
+            <>
+              <Text style={[styles.examplesLabel, { color: p.onBgMuted }]}>Try something like</Text>
+              <View style={styles.examples}>
+                {EXAMPLES.map((example) => (
+                  <Pressable
+                    key={example}
+                    onPress={() => typeOut(example)}
+                    style={[styles.example, { backgroundColor: p.card }]}
+                  >
+                    <Ionicons name="bulb-outline" size={16} color={p.tint} />
+                    <Text style={[styles.exampleText, { color: p.text }]}>{example}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          ) : null}
+
+          {/* Recent carts — the household's history, folded in from the old
+              standalone Carts tab. Ordered + in-progress carts both live here. */}
+          <ErrorBanner message={cartsError} />
+          {hasCarts ? (
+            <View style={styles.history}>
+              <Text style={[styles.examplesLabel, { color: p.onBgMuted }]}>Recent carts</Text>
+              {carts!.map((item) => {
+                // retailer_key is null when a cart was built via the
+                // partial-success path (no preferred retailer, lookup empty).
+                const retailerName = item.retailer_key
+                  ? (retailerNames[item.retailer_key] ?? prettifyRetailerKey(item.retailer_key))
+                  : null;
+                const createdBy = item.created_by_user_id === me?.user.id ? 'you' : 'a household member';
+                const title = item.title?.trim() || item.request_text?.trim() || 'Grocery cart';
+                const meta = [retailerName, formatDate(item.created_at), `by ${createdBy}`]
+                  .filter(Boolean)
+                  .join(' · ');
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={() => router.push({ pathname: '/cart/[id]', params: { id: item.id } })}
+                    style={({ pressed }) => [
+                      styles.cartRow,
+                      { backgroundColor: p.card, opacity: pressed ? 0.85 : 1 },
+                    ]}
+                  >
+                    <View style={styles.cartRowHeader}>
+                      <Text style={[styles.cartRowTitle, { color: p.text }]} numberOfLines={2}>
+                        {title}
+                      </Text>
+                      <StatusChip status={item.status} />
+                    </View>
+                    <Text style={[styles.cartRowMeta, { color: p.textMuted }]} numberOfLines={1}>
+                      {meta}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
 
           <Text style={[styles.footnote, { color: p.onBgMuted }]}>
             You&apos;ll review and pay on Instacart — MC Peels never handles payment.
@@ -266,14 +377,17 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   flex: { flex: 1 },
   container: {
+    // Top-aligned now that cart history can extend the screen well past a
+    // viewport — the composer no longer floats centered.
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     padding: 24,
     maxWidth: 560,
     width: '100%',
     alignSelf: 'center',
   },
   hero: {
+    marginTop: 12,
     marginBottom: 24,
     gap: 12,
   },
@@ -346,5 +460,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'center',
     marginTop: 28,
+  },
+  history: {
+    gap: 10,
+  },
+  cartRow: {
+    borderRadius: 16,
+    padding: 14,
+    gap: 6,
+    boxShadow: '0px 12px 26px rgba(21, 34, 56, 0.10)',
+  },
+  cartRowHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  cartRowTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 21,
+  },
+  cartRowMeta: {
+    fontSize: 13,
   },
 });
