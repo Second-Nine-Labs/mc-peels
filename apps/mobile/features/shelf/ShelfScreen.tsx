@@ -255,9 +255,9 @@ export function ShelfScreen({
             </Pressable>
           ) : null}
           <EyebrowChip label="Send a link, get a dish" onCanvas />
-          <DisplayTitle text="The shelf" emphasis="shelf" size={34} />
+          <DisplayTitle text="Menu builder" emphasis="builder" size={34} />
           <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
-            dishes you sent us — every one of them cartable
+            the shelf of dishes you sent us — enough of one cuisine and its kitchen opens
           </Text>
         </View>
 

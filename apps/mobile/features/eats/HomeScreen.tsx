@@ -3,15 +3,17 @@
  *
  * One thing dominates: tonight's feature, a full-bleed poster wearing its
  * kitchen's whole costume (backdrop, art, voice), rotating deterministically
- * by day across the featured dishes. Under it: the rest of tonight's picks
- * as an art rail, the kitchens as storefronts (doors into worlds, not
- * banners), and one quiet concierge strip for Ask + the Shelf. Search
- * demotes to a masthead icon — a ~30-dish catalog doesn't earn a hero pill.
+ * by day across the featured dishes. Under it: the kitchens as storefronts
+ * (doors into worlds, not banners), then the menu builder — the block's
+ * intake, where a pasted link becomes a dish and the kitchens above grow.
+ * Cart-building is a different flow entirely: it lives on its own tab, and
+ * the home only signposts it. Search demotes to a masthead icon.
  */
 
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,12 +25,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MascotMark } from '@/components/MascotMark';
+import { api, getErrorMessage } from '@/lib/api';
 import type { SavedRecipe } from '@/lib/types';
 
 import { DishTile } from './art';
 import { costumeForShelfKitchen } from './costumes/factory';
 import type { KitchenCostume } from './costume';
-import type { KitchenTease } from './genesis';
+import { cuisineLabel, type KitchenTease } from './genesis';
 import type { GeneratedIdentity } from './identity';
 import { searchEats } from './restaurants';
 import type { Restaurant, RestaurantId } from './types';
@@ -42,9 +45,9 @@ interface HomeTokens {
   hairline: string;
   gold: string;
   onGold: string;
-  strip: string;
-  onStrip: string;
-  onStripMuted: string;
+  /** The menu builder's gold-washed surface — the block's intake counter. */
+  builderBg: string;
+  builderBorder: string;
 }
 
 const light: HomeTokens = {
@@ -55,9 +58,8 @@ const light: HomeTokens = {
   hairline: '#E7E4DB',
   gold: '#FFC531',
   onGold: '#1D2433',
-  strip: '#1D2433',
-  onStrip: '#EAF2FE',
-  onStripMuted: '#97A6C2',
+  builderBg: '#FBF3DC',
+  builderBorder: '#EBD9A6',
 };
 
 const dark: HomeTokens = {
@@ -68,9 +70,8 @@ const dark: HomeTokens = {
   hairline: '#243953',
   gold: '#FFC531',
   onGold: '#20180A',
-  strip: '#13233A',
-  onStrip: '#EAF2FE',
-  onStripMuted: '#97A6C2',
+  builderBg: '#221C0E',
+  builderBorder: '#4A3D1C',
 };
 
 const WEEKDAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -116,7 +117,13 @@ export function HomeScreen({
   const t = useColorScheme() === 'dark' ? dark : light;
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
-  const genesis = useShelfKitchens({ householdId, previewRecipes: previewShelf, previewIdentities });
+  const [shelfVersion, setShelfVersion] = useState(0);
+  const genesis = useShelfKitchens({
+    householdId,
+    previewRecipes: previewShelf,
+    previewIdentities,
+    refreshKey: shelfVersion,
+  });
   const kitchens = useMemo(() => genesis.kitchens.map((k) => k.restaurant), [genesis.kitchens]);
   const results = useMemo(() => searchEats(query, kitchens), [query, kitchens]);
 
@@ -207,69 +214,34 @@ export function HomeScreen({
                   onPress={() => onOpenRestaurant(restaurant.id)}
                 />
               ))}
-              {genesis.teases.map((tease) => (
-                <TeaseCard key={tease.cuisine} tease={tease} tokens={t} onPress={onOpenShelf} />
-              ))}
-              {!previewMode &&
-              onOpenFirstKitchen &&
-              genesis.kitchens.length === 0 &&
-              genesis.teases.length === 0 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={onOpenFirstKitchen}
-                  style={({ pressed }) => [
-                    styles.tease,
-                    { borderColor: t.hairline, backgroundColor: t.card, opacity: pressed ? 0.85 : 1 },
-                  ]}
-                >
-                  <View style={styles.teaseRow}>
-                    <Text style={[styles.teaseTitle, { color: t.ink }]}>Open your first kitchen</Text>
-                    <View style={[styles.stripDot, { backgroundColor: t.gold }]}>
-                      <Ionicons name="storefront-outline" size={14} color={t.onGold} />
-                    </View>
-                  </View>
-                  <Text style={[styles.teaseHint, { color: t.muted }]}>
-                    Pick three dishes you would actually eat — thirty seconds, and the kitchen
-                    arrives knowing how to shop.
-                  </Text>
-                </Pressable>
-              ) : null}
             </View>
 
-            {/* ---- Z5 · the concierge strip — the superpower, stated once ---- */}
-            <View style={[styles.strip, { backgroundColor: t.strip }]}>
+            {/* ---- Z5 · the menu builder — the block's intake. Feeding lives
+                 here, beside the kitchens it grows; buying lives on its own
+                 tab and gets one quiet signpost below ---- */}
+            <MenuBuilder
+              tokens={t}
+              householdId={householdId}
+              previewMode={previewMode}
+              teases={genesis.teases}
+              hasKitchens={genesis.kitchens.length > 0}
+              onSaved={() => setShelfVersion((version) => version + 1)}
+              onOpenShelf={onOpenShelf}
+              onOpenFirstKitchen={onOpenFirstKitchen}
+            />
+
+            {onOpenAsk ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={onOpenAsk}
-                disabled={!onOpenAsk}
-                style={({ pressed }) => [styles.stripMain, { opacity: pressed ? 0.8 : 1 }]}
+                style={({ pressed }) => [styles.signpost, { opacity: pressed ? 0.7 : 1 }]}
               >
-                <View style={[styles.stripDot, { backgroundColor: t.gold }]}>
-                  <Ionicons name="sparkles" size={14} color={t.onGold} />
-                </View>
-                <View style={styles.stripBody}>
-                  <Text style={[styles.stripTitle, { color: t.onStrip }]}>
-                    Or just tell MC Peels
-                  </Text>
-                  <Text style={[styles.stripText, { color: t.onStripMuted }]} numberOfLines={2}>
-                    {previewMode
-                      ? 'Plain-language carts live on the Ask tab of the real app.'
-                      : 'Say it in plain words — the cart builds with your household rules.'}
-                  </Text>
-                </View>
+                <Text style={[styles.signpostText, { color: t.muted }]}>
+                  Just need groceries? <Text style={styles.signpostStrong}>New cart</Text> builds
+                  one from plain words →
+                </Text>
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                onPress={onOpenShelf}
-                disabled={!onOpenShelf}
-                style={({ pressed }) => [
-                  styles.stripShelf,
-                  { borderColor: t.onStripMuted, opacity: pressed ? 0.8 : 1 },
-                ]}
-              >
-                <Text style={[styles.stripShelfText, { color: t.onStrip }]}>the shelf →</Text>
-              </Pressable>
-            </View>
+            ) : null}
 
             <Text style={[styles.footnote, { color: t.muted }]}>
               Menus become Instacart carts — you review and pay there. MC Peels never handles
@@ -396,45 +368,163 @@ function ShelfStorefront({ costume, onPress }: { costume: KitchenCostume; onPres
   );
 }
 
-function TeaseCard({
-  tease,
-  tokens: t,
-  onPress,
-}: {
-  tease: KitchenTease;
+// ---------------------------------------------------------------------------
+// Z5 — the menu builder. Paste a link and the shelf reads it into a dish;
+// the chips count each cuisine toward its opening. This zone is only ever
+// about feeding the block — never about buying.
+
+interface MenuBuilderProps {
   tokens: HomeTokens;
-  onPress?: () => void;
-}) {
+  householdId?: string;
+  previewMode: boolean;
+  teases: KitchenTease[];
+  hasKitchens: boolean;
+  /** A save landed — the home refetches so chips and storefronts move. */
+  onSaved: () => void;
+  onOpenShelf?: () => void;
+  onOpenFirstKitchen?: () => void;
+}
+
+function MenuBuilder({
+  tokens: t,
+  householdId,
+  previewMode,
+  teases,
+  hasKitchens,
+  onSaved,
+  onOpenShelf,
+  onOpenFirstKitchen,
+}: MenuBuilderProps) {
+  const [link, setLink] = useState('');
+  const [pulling, setPulling] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const firstRun = !hasKitchens && teases.length === 0;
+
+  const pullIn = async () => {
+    const url = link.trim();
+    if (url.length === 0 || pulling) return;
+    setNote(null);
+    setError(null);
+    if (previewMode || !householdId) {
+      setError('Sign in and MC Peels reads links for real — this home is a showcase.');
+      return;
+    }
+    setPulling(true);
+    try {
+      const result = await api.ingestRecipe({ household_id: householdId, url });
+      setLink('');
+      setNote(
+        result.already_saved
+          ? `“${result.recipe.title}” was already on the shelf.`
+          : `“${result.recipe.title}” is on the shelf — ${cuisineLabel(result.recipe.cuisine)} grows.`,
+      );
+      onSaved();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setPulling(false);
+    }
+  };
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${tease.label} kitchen — ${tease.needed} more saves to open`}
-      onPress={onPress}
-      disabled={!onPress}
-      style={({ pressed }) => [
-        styles.tease,
-        { borderColor: t.hairline, backgroundColor: t.card, opacity: pressed ? 0.85 : 1 },
-      ]}
-    >
-      <View style={styles.teaseRow}>
-        <Text style={[styles.teaseTitle, { color: t.ink }]}>{tease.label} kitchen</Text>
-        <Text style={[styles.teaseCount, { color: t.muted }]}>
-          {/* The tease knows its own finish line — starter cuisines open at 3, earned ones at 4. */}
-          {tease.saved} of {tease.saved + tease.needed} saved
+    <View style={styles.builderWrap}>
+      <Text style={[styles.sectionLabel, { color: t.muted }]}>MENU BUILDER</Text>
+      <View style={[styles.builder, { backgroundColor: t.builderBg, borderColor: t.builderBorder }]}>
+        <Text style={[styles.builderLead, { color: t.ink }]}>
+          {firstRun
+            ? 'Pick three dishes you would actually eat — thirty seconds, and your first kitchen opens.'
+            : 'Feed it dishes — kitchens open themselves.'}
         </Text>
+
+        <View style={[styles.builderField, { backgroundColor: t.card, borderColor: t.hairline }]}>
+          <Ionicons name="link-outline" size={16} color={t.muted} />
+          <TextInput
+            value={link}
+            onChangeText={(value) => {
+              setLink(value);
+              setNote(null);
+              setError(null);
+            }}
+            placeholder="Paste a TikTok, pin, or recipe link"
+            placeholderTextColor={t.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!pulling}
+            onSubmitEditing={pullIn}
+            style={[styles.builderInput, { color: t.ink }]}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Pull the link in"
+            onPress={pullIn}
+            disabled={pulling || link.trim().length === 0}
+            style={[
+              styles.builderGo,
+              { backgroundColor: t.gold, opacity: pulling || link.trim().length === 0 ? 0.45 : 1 },
+            ]}
+          >
+            {pulling ? (
+              <ActivityIndicator size="small" color={t.onGold} />
+            ) : (
+              <Ionicons name="arrow-down" size={15} color={t.onGold} />
+            )}
+          </Pressable>
+        </View>
+
+        {error ? <Text style={[styles.builderNote, { color: '#C2483B' }]}>{error}</Text> : null}
+        {note ? <Text style={[styles.builderNote, { color: t.muted }]}>{note}</Text> : null}
+
+        <View style={styles.builderChips}>
+          {teases.map((tease) => (
+            <Pressable
+              key={tease.cuisine}
+              accessibilityRole="button"
+              accessibilityLabel={`${tease.label} kitchen — ${tease.needed} more ${tease.needed === 1 ? 'save' : 'saves'} to open`}
+              onPress={onOpenShelf}
+              disabled={!onOpenShelf}
+              style={({ pressed }) => [
+                styles.builderChip,
+                { backgroundColor: t.gold, opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <Text style={[styles.builderChipText, { color: t.onGold }]}>
+                {tease.label} · {tease.saved} of {tease.saved + tease.needed}
+              </Text>
+            </Pressable>
+          ))}
+          {firstRun && onOpenFirstKitchen && !previewMode ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onOpenFirstKitchen}
+              style={({ pressed }) => [
+                styles.builderChip,
+                { backgroundColor: t.gold, opacity: pressed ? 0.85 : 1 },
+              ]}
+            >
+              <Text style={[styles.builderChipText, { color: t.onGold }]}>
+                open your first kitchen
+              </Text>
+            </Pressable>
+          ) : null}
+          {onOpenShelf ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onOpenShelf}
+              style={({ pressed }) => [
+                styles.builderChipGhost,
+                { borderColor: t.builderBorder, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Text style={[styles.builderChipGhostText, { color: t.muted }]}>
+                open the shelf →
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
-      <View style={[styles.teaseTrack, { backgroundColor: t.hairline }]}>
-        <View
-          style={[
-            styles.teaseFill,
-            { backgroundColor: t.gold, width: `${(tease.saved / (tease.saved + tease.needed)) * 100}%` },
-          ]}
-        />
-      </View>
-      <Text style={[styles.teaseHint, { color: t.muted }]}>
-        {tease.needed} more {tease.needed === 1 ? 'save' : 'saves'} on the shelf and it opens
-      </Text>
-    </Pressable>
+    </View>
   );
 }
 
@@ -671,47 +761,54 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   shelfOpenedText: { color: '#1D2433', fontSize: 8, fontWeight: '800', letterSpacing: 1.2 },
-  tease: {
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderRadius: 18,
-    padding: 16,
-    gap: 8,
-  },
-  teaseRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  teaseTitle: { fontSize: 15, fontWeight: '800' },
-  teaseCount: { fontSize: 11, fontWeight: '600' },
-  teaseTrack: { height: 6, borderRadius: 999, overflow: 'hidden' },
-  teaseFill: { height: 6, borderRadius: 999 },
-  teaseHint: { fontSize: 11.5 },
 
-  // Z5
-  strip: {
-    borderRadius: 16,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+  // Z5 — the menu builder
+  builderWrap: { marginBottom: 4 },
+  builder: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
     gap: 10,
   },
-  stripMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  stripDot: {
-    width: 30,
-    height: 30,
+  builderLead: { fontSize: 13.5, lineHeight: 19, fontWeight: '600' },
+  builderField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingLeft: 12,
+    paddingRight: 6,
+    minHeight: 44,
+  },
+  builderInput: { flex: 1, fontSize: 13.5, paddingVertical: 10 },
+  builderGo: {
+    width: 32,
+    height: 32,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stripBody: { flex: 1, gap: 1 },
-  stripTitle: { fontSize: 13, fontWeight: '800' },
-  stripText: { fontSize: 11, lineHeight: 15 },
-  stripShelf: {
+  builderNote: { fontSize: 11.5, lineHeight: 16 },
+  builderChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  builderChip: {
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+  },
+  builderChipText: { fontSize: 11.5, fontWeight: '800' },
+  builderChipGhost: {
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: 11,
-    paddingVertical: 7,
+    paddingVertical: 6,
   },
-  stripShelfText: { fontSize: 11.5, fontWeight: '700' },
-  footnote: { fontSize: 11.5, lineHeight: 16, textAlign: 'center', marginTop: 20 },
+  builderChipGhostText: { fontSize: 11.5, fontWeight: '700' },
+
+  signpost: { alignSelf: 'center', marginTop: 18, paddingVertical: 4, paddingHorizontal: 8 },
+  signpostText: { fontSize: 12, lineHeight: 17, textAlign: 'center' },
+  signpostStrong: { fontWeight: '800' },
+  footnote: { fontSize: 11.5, lineHeight: 16, textAlign: 'center', marginTop: 10 },
 
   // Search
   search: {

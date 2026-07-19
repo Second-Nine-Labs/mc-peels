@@ -78,12 +78,15 @@ export interface UseShelfKitchensOptions {
   previewRecipes?: SavedRecipe[];
   /** Preview surfaces may pass sample identities to demo generated kitchens. */
   previewIdentities?: Record<string, GeneratedIdentity>;
+  /** Bump to refetch outside a focus change (e.g. after an inline ingest). */
+  refreshKey?: number;
 }
 
 export function useShelfKitchens({
   householdId,
   previewRecipes,
   previewIdentities,
+  refreshKey = 0,
 }: UseShelfKitchensOptions): Genesis {
   const [fetched, setFetched] = useState<SavedRecipe[] | null>(null);
   const [identities, setIdentities] = useState<Record<string, GeneratedIdentity>>(NO_IDENTITIES);
@@ -115,7 +118,7 @@ export function useShelfKitchens({
       return () => {
         cancelled = true;
       };
-    }, [householdId, previewRecipes, mergeIdentity]),
+    }, [householdId, previewRecipes, mergeIdentity, refreshKey]),
   );
 
   return useMemo(() => {

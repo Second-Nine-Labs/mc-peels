@@ -31,10 +31,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ask"
         options={{
-          title: 'Ask',
+          // The cart flow, named for what it makes — distinct from the home,
+          // which is the block (kitchens + menu builder).
+          title: 'New cart',
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="sparkles-outline" size={size} color={color} />
+            <Ionicons name="basket-outline" size={size} color={color} />
           ),
         }}
       />
