@@ -21,7 +21,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          // Your personalized feed of restaurant kitchens, grown from the shelf.
+          title: 'Kitchens',
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="storefront-outline" size={size} color={color} />
@@ -31,21 +32,12 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="ask"
         options={{
-          // The cart flow, named for what it makes — distinct from the home,
-          // which is the block (kitchens + menu builder).
+          // The cart flow: build a new cart AND browse the household's cart
+          // history (the old standalone Carts tab folded in here).
           title: 'New cart',
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="basket-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="carts"
-        options={{
-          title: 'Carts',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="cart-outline" size={size} color={color} />
           ),
         }}
       />
