@@ -221,6 +221,25 @@ export function createApp() {
     }),
   );
 
+  // MCP clients configured with the bare domain (no /mcp path) POST here.
+  // Seen live July 20: Third Brain's connector did exactly this and surfaced
+  // it as "token rejected". Answer in JSON-RPC shape so the misconfiguration
+  // names itself in the client's own logs.
+  app.post('/', (c) =>
+    c.json(
+      {
+        jsonrpc: '2.0',
+        error: {
+          code: -32601,
+          message:
+            'Wrong path: this is the MC Peels API root. Point your MCP client at /mcp on this host.',
+        },
+        id: null,
+      },
+      404,
+    ),
+  );
+
   app.get('/health', (c) => c.json({ ok: true }));
 
   // MCP front door — authenticates with its own mcp_ bearer tokens.

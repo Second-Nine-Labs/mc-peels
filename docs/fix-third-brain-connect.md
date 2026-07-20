@@ -58,6 +58,42 @@ connect → bananas → Instacart link).
 
 ---
 
+## SECOND LOOK — July 20, 04:16 UTC: your MCP client is pointed at the wrong path
+
+Live test by the owner after the fixes above deployed: Third Brain settings
+said "Connected for Admin," Chief said "saved token was rejected or expired."
+MC Peels runtime logs at that exact moment show:
+
+```
+04:16:46.18  POST /      → 404      ← your connector's JSON-RPC call
+04:16:46.30  GET  /      → 200      ← its follow-up stream request
+```
+
+**No request hit `POST /mcp` at all.** The MCP endpoint URL stored on the
+Third Brain side is the bare host (`https://mc-peels-api-9zt9.vercel.app`)
+instead of `https://mc-peels-api-9zt9.vercel.app/mcp`. A request to `/` 404s
+before any bearer token is examined — so every token, valid or not, fails
+identically, and this one misconfiguration is consistent with every historical
+failure in this doc (the copy-truncation hazard we fixed above was real, but
+secondary). Note the owner's 04:16 attempt reused an old stored token — no
+fresh mint had occurred — so fix the URL *and* have the member paste a fresh
+Copy-button token.
+
+Two asks, Third Brain side:
+
+1. **Fix the stored MCP server URL to end in `/mcp`** (wherever the Anthropic
+   connector config lives — per-member or global).
+2. **Validate on save** (the owner's explicit UX request): when a member pastes
+   a token, immediately POST `tools/list` to `/mcp` with it and only then show
+   "Connected"; on failure, show the error inline. "Connected" must mean a
+   round-trip succeeded, not that a string was stored. Same check applies after
+   the OAuth exchange.
+
+MC Peels' root now answers `POST /` with a JSON-RPC error naming the correct
+path, so if the URL regresses the failure will say so in your own logs.
+
+---
+
 ## What a user experiences today
 
 1. In Third Brain → Settings → **Connect MC Peels** → browser opens
