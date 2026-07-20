@@ -31,6 +31,7 @@ import type {
   KrogerConnectStartResponse,
   KrogerHandoffResponse,
   MeResponse,
+  OauthCodeResponse,
   OffersRefreshBody,
   OffersRefreshResponse,
   RetailersResponse,
@@ -41,6 +42,7 @@ import type {
   TokensResponse,
   UpdateHouseholdBody,
   UsualsResponse,
+  VerifyTokenResponse,
 } from './types';
 
 const API_ORIGIN = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
@@ -244,4 +246,19 @@ export const api = {
 
   deleteToken: (tokenId: string) =>
     request<void>(`/tokens/${tokenId}`, { method: 'DELETE' }),
+
+  verifyToken: (token: string) =>
+    request<VerifyTokenResponse>('/tokens/verify', { method: 'POST', body: { token } }),
+
+  // OAuth (agent hosts) ----------------------------------------------------
+  createOauthCode: (input: {
+    client_id: string;
+    redirect_uri: string;
+    scope: string;
+    code_challenge: string;
+  }) =>
+    request<OauthCodeResponse>('/oauth/code', {
+      method: 'POST',
+      body: { ...input, code_challenge_method: 'S256' },
+    }),
 };

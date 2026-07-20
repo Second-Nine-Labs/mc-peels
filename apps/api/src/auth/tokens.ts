@@ -10,9 +10,14 @@ import { getDb, schema } from '../db/client.js';
 
 export const TOKEN_PREFIX = 'mcp_';
 
-/** 32 random bytes, base64url — prefixed so tokens are recognizable in configs. */
+/**
+ * 32 random bytes, hex — prefixed so tokens are recognizable in configs.
+ * Hex (not base64url) on purpose: `-` breaks browser double-click selection,
+ * and a hand-selected token that loses characters hashes to nothing. Hex plus
+ * the `_` in the prefix selects as one word. Old base64url tokens still verify.
+ */
 export function generateToken(): string {
-  return TOKEN_PREFIX + randomBytes(32).toString('base64url');
+  return TOKEN_PREFIX + randomBytes(32).toString('hex');
 }
 
 export function hashToken(token: string): string {
@@ -51,8 +56,15 @@ export async function revokeApiToken(userId: string, tokenId: string): Promise<v
   }
 }
 
-/** Resolve an MCP bearer token to its user, or null if unknown. */
-export async function verifyMcpToken(token: string): Promise<{ userId: string } | null> {
+/**
+ * Resolve an MCP bearer token to its user, or null if unknown.
+ * `touch: false` skips the last_used_at update — used by the paste-to-verify
+ * endpoint so a pre-flight check doesn't masquerade as real agent traffic.
+ */
+export async function verifyMcpToken(
+  token: string,
+  opts: { touch?: boolean } = {},
+): Promise<{ userId: string } | null> {
   if (!token.startsWith(TOKEN_PREFIX)) return null;
   const db = getDb();
   const rows = await db
@@ -62,9 +74,11 @@ export async function verifyMcpToken(token: string): Promise<{ userId: string } 
     .limit(1);
   const row = rows[0];
   if (!row) return null;
-  await db
-    .update(schema.apiTokens)
-    .set({ lastUsedAt: new Date() })
-    .where(eq(schema.apiTokens.id, row.id));
+  if (opts.touch !== false) {
+    await db
+      .update(schema.apiTokens)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(schema.apiTokens.id, row.id));
+  }
   return { userId: row.userId };
 }

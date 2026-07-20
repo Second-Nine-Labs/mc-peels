@@ -285,6 +285,50 @@ export const apiTokens = pgTable(
   (t) => [index('api_tokens_user_idx').on(t.userId)],
 );
 
+// OAuth for agent hosts (Third Brain's "Sign in with MC Peels"). Same hashing
+// discipline as api_tokens: only SHA-256 hashes at rest, plaintext in transit
+// once. Access tokens are opaque rows (not JWTs) so revocation is a DELETE.
+export const oauthCodes = pgTable('oauth_authorization_codes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  codeHash: text('code_hash').notNull().unique(),
+  userId: uuid('user_id').notNull(),
+  clientId: text('client_id').notNull(),
+  codeChallenge: text('code_challenge').notNull(),
+  redirectUri: text('redirect_uri').notNull(),
+  scope: text('scope').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const oauthAccessTokens = pgTable(
+  'oauth_access_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tokenHash: text('token_hash').notNull().unique(),
+    userId: uuid('user_id').notNull(),
+    clientId: text('client_id').notNull(),
+    scope: text('scope').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('oauth_access_tokens_user_idx').on(t.userId)],
+);
+
+export const oauthRefreshTokens = pgTable(
+  'oauth_refresh_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    tokenHash: text('token_hash').notNull().unique(),
+    userId: uuid('user_id').notNull(),
+    clientId: text('client_id').notNull(),
+    scope: text('scope').notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('oauth_refresh_tokens_user_idx').on(t.userId)],
+);
+
 // Fulfillment — parallel rails + price comparison ---------------------------
 
 /** Provider-scoped store identity, denormalized for display. */

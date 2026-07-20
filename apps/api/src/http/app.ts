@@ -3,8 +3,16 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';
+import {
+  OAUTH_CLIENT_ID,
+  OAUTH_SCOPE,
+  createAuthorizationCode,
+  exchangeAuthorizationCode,
+  redirectUriAllowed,
+  refreshAccessToken,
+} from '../auth/oauth.js';
 import { verifySupabaseToken } from '../auth/supabase.js';
-import { createApiToken, listApiTokens, revokeApiToken } from '../auth/tokens.js';
+import { createApiToken, listApiTokens, revokeApiToken, verifyMcpToken } from '../auth/tokens.js';
 import {
   createCart,
   getCartWithItems,
@@ -206,7 +214,8 @@ export function createApp() {
       endpoints: {
         health: '/health',
         rest: '/api/v1 (Supabase bearer auth)',
-        mcp: '/mcp (mcp_ personal access token)',
+        mcp: '/mcp (mcp_ personal access token or mcpa_ OAuth access token)',
+        oauth: '/oauth/token (authorization_code + refresh_token grants)',
       },
       docs: 'https://github.com/Second-Nine-Labs/mc-peels',
     }),
@@ -216,6 +225,67 @@ export function createApp() {
 
   // MCP front door — authenticates with its own mcp_ bearer tokens.
   app.route('/mcp', mcpRoute);
+
+  // OAuth token endpoint (public — the auth code / refresh token IS the
+  // credential; PKCE proves the client). Speaks RFC 6749 shapes, not AppError:
+  // Third Brain drops the connection on invalid_grant.
+  app.post('/oauth/token', async (c) => {
+    const contentType = c.req.header('Content-Type') ?? '';
+    let form: Record<string, unknown>;
+    try {
+      form = contentType.includes('application/json')
+        ? ((await c.req.json()) as Record<string, unknown>)
+        : await c.req.parseBody();
+    } catch {
+      return c.json({ error: 'invalid_request' }, 400);
+    }
+    const field = (name: string): string | null =>
+      typeof form[name] === 'string' && (form[name] as string).length > 0
+        ? (form[name] as string)
+        : null;
+
+    const grantType = field('grant_type');
+    const clientId = field('client_id');
+    c.header('Cache-Control', 'no-store');
+
+    if (clientId !== OAUTH_CLIENT_ID) {
+      return c.json({ error: 'invalid_request' }, 400);
+    }
+
+    if (grantType === 'authorization_code') {
+      const code = field('code');
+      const redirectUri = field('redirect_uri');
+      const codeVerifier = field('code_verifier');
+      if (!code || !redirectUri || !codeVerifier) {
+        return c.json({ error: 'invalid_request' }, 400);
+      }
+      const pair = await exchangeAuthorizationCode({ code, redirectUri, clientId, codeVerifier });
+      if (!pair) return c.json({ error: 'invalid_grant' }, 400);
+      return c.json({
+        access_token: pair.accessToken,
+        refresh_token: pair.refreshToken,
+        token_type: 'Bearer',
+        expires_in: pair.expiresIn,
+        scope: pair.scope,
+      });
+    }
+
+    if (grantType === 'refresh_token') {
+      const refreshToken = field('refresh_token');
+      if (!refreshToken) return c.json({ error: 'invalid_request' }, 400);
+      const pair = await refreshAccessToken({ refreshToken, clientId });
+      if (!pair) return c.json({ error: 'invalid_grant' }, 400);
+      return c.json({
+        access_token: pair.accessToken,
+        refresh_token: pair.refreshToken,
+        token_type: 'Bearer',
+        expires_in: pair.expiresIn,
+        scope: pair.scope,
+      });
+    }
+
+    return c.json({ error: 'unsupported_grant_type' }, 400);
+  });
 
   // Provider account linking. Mounted OUTSIDE the bearer-authed sub-app:
   // the OAuth callback arrives as a bare browser redirect. /start still
@@ -661,6 +731,45 @@ export function createApp() {
       { id: created.id, name: created.name, token: created.token, created_at: created.createdAt.toISOString() },
       201,
     );
+  });
+
+  // Pre-flight check for the mint screen: does this pasted string actually
+  // match a stored token? Catches copy/paste mangling at mint time instead of
+  // as a mystery -32001 from the agent. Deliberately does not touch
+  // last_used_at ("never used" must keep meaning "no agent traffic yet").
+  api.post('/tokens/verify', async (c) => {
+    const input = await body(c, z.object({ token: z.string().min(1).max(500) }));
+    const match = await verifyMcpToken(input.token.trim(), { touch: false });
+    return c.json({ valid: match !== null });
+  });
+
+  // The OAuth consent screen (web app /oauth/authorize) calls this after the
+  // signed-in user taps Allow; the one-time code goes back in its redirect.
+  api.post('/oauth/code', async (c) => {
+    const input = await body(
+      c,
+      z.object({
+        client_id: z.string().min(1),
+        redirect_uri: z.string().url(),
+        scope: z.string().min(1).max(200).default(OAUTH_SCOPE),
+        code_challenge: z.string().min(43).max(128),
+        code_challenge_method: z.literal('S256'),
+      }),
+    );
+    if (input.client_id !== OAUTH_CLIENT_ID) {
+      throw validationError(`Unknown client_id "${input.client_id}".`);
+    }
+    if (!redirectUriAllowed(input.redirect_uri)) {
+      throw validationError('redirect_uri is not an approved destination.');
+    }
+    const { code, expiresIn } = await createAuthorizationCode({
+      userId: c.get('userId'),
+      clientId: input.client_id,
+      codeChallenge: input.code_challenge,
+      redirectUri: input.redirect_uri,
+      scope: input.scope,
+    });
+    return c.json({ code, expires_in: expiresIn }, 201);
   });
 
   api.get('/tokens', async (c) => {

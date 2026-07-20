@@ -460,3 +460,14 @@ export interface TokenSummary {
 export interface TokensResponse {
   tokens: TokenSummary[];
 }
+
+export interface VerifyTokenResponse {
+  valid: boolean;
+}
+
+// One-time OAuth authorization code (the /oauth/authorize consent screen
+// trades it for the ?code= redirect back to the agent host).
+export interface OauthCodeResponse {
+  code: string;
+  expires_in: number;
+}

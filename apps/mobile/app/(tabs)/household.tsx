@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import {
   Button,
@@ -59,6 +59,10 @@ export default function HouseholdScreen() {
   const [tokenName, setTokenName] = useState('');
   const [newToken, setNewToken] = useState<string | null>(null);
   const [creatingToken, setCreatingToken] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [verifyInput, setVerifyInput] = useState('');
+  const [verifyResult, setVerifyResult] = useState<'valid' | 'invalid' | null>(null);
+  const [verifying, setVerifying] = useState(false);
   const [connections, setConnections] = useState<Array<{ provider: string; connected_at: string }>>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -176,6 +180,34 @@ export default function HouseholdScreen() {
     }
   };
 
+  const copyToken = async () => {
+    if (!newToken) return;
+    try {
+      if (Platform.OS === 'web' && navigator.clipboard) {
+        await navigator.clipboard.writeText(newToken);
+        setTokenCopied(true);
+        setTimeout(() => setTokenCopied(false), 2500);
+      }
+    } catch {
+      // Selection fallback is always available — the token text stays selectable.
+    }
+  };
+
+  const checkPastedToken = async () => {
+    const candidate = verifyInput.trim();
+    if (!candidate || verifying) return;
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const { valid } = await api.verifyToken(candidate);
+      setVerifyResult(valid ? 'valid' : 'invalid');
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const createToken = async () => {
     const trimmed = tokenName.trim();
     if (!trimmed) return;
@@ -183,6 +215,7 @@ export default function HouseholdScreen() {
     try {
       const created = await api.createToken(trimmed);
       setNewToken(created.token);
+      setTokenCopied(false);
       setTokenName('');
       setTokens(await api.listTokens().then((r) => r.tokens));
       setError(null);
@@ -422,8 +455,16 @@ export default function HouseholdScreen() {
             <Text style={[styles.tokenValue, { color: p.tint }]} selectable>
               {newToken}
             </Text>
+            {Platform.OS === 'web' ? (
+              <Button
+                title={tokenCopied ? 'Copied!' : 'Copy token'}
+                onPress={copyToken}
+                icon="copy-outline"
+              />
+            ) : null}
             <Text style={[styles.helperText, { color: p.textMuted }]}>
-              Copy it now — this token won’t be shown again.
+              Use the button — a hand-selected copy can silently miss characters, and the token
+              won’t be shown again.
             </Text>
           </View>
         ) : null}
@@ -458,6 +499,34 @@ export default function HouseholdScreen() {
           loading={creatingToken}
           disabled={tokenName.trim().length === 0}
         />
+
+        <Text style={[styles.helperText, styles.verifyIntro, { color: p.textMuted }]}>
+          Not sure a copy took? Paste it here to check it against MC Peels before giving it to
+          your agent.
+        </Text>
+        <Field
+          label="Paste-check a token"
+          value={verifyInput}
+          onChangeText={(v: string) => {
+            setVerifyInput(v);
+            setVerifyResult(null);
+          }}
+          placeholder="mcp_…"
+          autoCapitalize="none"
+        />
+        <Button
+          title="Check token"
+          variant="secondary"
+          onPress={checkPastedToken}
+          loading={verifying}
+          disabled={verifyInput.trim().length === 0}
+        />
+        {verifyResult === 'valid' ? (
+          <SuccessBanner message="Token checks out — safe to paste into your agent." />
+        ) : null}
+        {verifyResult === 'invalid' ? (
+          <ErrorBanner message="No match. That string is not a working token — re-copy it with the Copy button and check again." />
+        ) : null}
       </Card>
 
       <Button title="Sign out" variant="ghost" onPress={signOut} style={styles.signOut} />
@@ -561,6 +630,14 @@ const styles = StyleSheet.create({
   tokenValue: {
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: Platform.OS === 'web' ? 'monospace' : 'Courier',
+    // One click grabs the whole token on web — partial hand-selections of
+    // this string are how "the token never worked" happened.
+    userSelect: 'all',
+    marginBottom: 10,
+  },
+  verifyIntro: {
+    marginTop: 16,
   },
   signOut: {
     marginTop: 4,
