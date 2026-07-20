@@ -30,6 +30,10 @@ function AuthGate({ children }: { children: ReactNode }) {
     // into or out of it.
     if (segments[0] === 'connect') return;
 
+    // /oauth/authorize is the same consent UX for the OAuth code flow — same
+    // rules: inline sign-in, query params are load-bearing.
+    if (segments[0] === 'oauth') return;
+
     // /eats-preview is the signed-out showcase of the Eats home + restaurants:
     // static menus only, launches scrub without a session.
     if (segments[0] === 'eats-preview') return;
@@ -85,6 +89,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="connect" options={{ headerShown: false }} />
+          <Stack.Screen name="oauth/authorize" options={{ headerShown: false }} />
           <Stack.Screen name="reset-password" options={{ headerShown: false }} />
           <Stack.Screen name="cart/[id]" options={{ title: 'Cart' }} />
         </Stack>

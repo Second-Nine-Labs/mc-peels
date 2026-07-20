@@ -1,17 +1,15 @@
 /**
- * Agent-connect handoff page (consent-screen UX without full OAuth).
+ * OAuth authorization endpoint (the human half): standard authorization-code +
+ * PKCE consent screen for agent hosts. Third Brain links the user here:
  *
- * An agent host (e.g. Third Brain) links the user here:
- *   /connect?name=Chief+of+Staff&redirect_uri=https://brainos.../callback&state=xyz
+ *   /oauth/authorize?response_type=code&client_id=third-brain
+ *     &redirect_uri=https://brainos.../api/mcpeels/callback&scope=groceries
+ *     &state=xyz&code_challenge=...&code_challenge_method=S256
  *
- * The user signs in (inline) and taps Approve. MC Peels mints an mcp_ personal
- * access token and returns it in the URL FRAGMENT (never sent to servers/logs):
- *   <redirect_uri>#token=mcp_...&state=xyz     (or #error=access_denied&state=xyz)
- *
- * redirect_uri must be https (http allowed for localhost) and its origin must
- * be allowlisted (EXPO_PUBLIC_CONNECT_REDIRECT_ORIGINS, comma-separated).
- * Without a redirect_uri this degrades to a copy-the-token screen.
- * Full contract: docs/third-brain-connect.md.
+ * The user signs in (inline) and taps Allow. The API mints a one-time
+ * authorization code and we redirect with ?code=...&state=... in the QUERY
+ * (codes are single-use and PKCE-bound, unlike /connect's #token fragment).
+ * Deny redirects with ?error=access_denied. Contract: docs/third-brain-oauth-build.md.
  */
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
@@ -34,42 +32,61 @@ import { useSession } from '@/lib/session';
 import { supabase } from '@/lib/supabase';
 import { usePalette } from '@/lib/theme';
 
-function buildFragment(fields: Record<string, string | undefined>): string {
-  const parts = Object.entries(fields)
-    .filter((entry): entry is [string, string] => Boolean(entry[1]))
-    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
-  return `#${parts.join('&')}`;
-}
+const KNOWN_CLIENTS: Record<string, string> = { 'third-brain': 'Third Brain' };
 
-export default function ConnectScreen() {
+export default function OauthAuthorizeScreen() {
   const p = usePalette();
   const params = useLocalSearchParams<{
-    name?: string | string[];
+    response_type?: string | string[];
+    client_id?: string | string[];
     redirect_uri?: string | string[];
+    scope?: string | string[];
     state?: string | string[];
+    code_challenge?: string | string[];
+    code_challenge_method?: string | string[];
   }>();
-  const agentName = (first(params.name) ?? 'Third Brain').slice(0, 60);
+  const responseType = first(params.response_type);
+  const clientId = first(params.client_id) ?? '';
   const redirectRaw = first(params.redirect_uri);
+  const scope = first(params.scope) ?? 'groceries';
   const state = first(params.state);
+  const codeChallenge = first(params.code_challenge);
+  const codeChallengeMethod = first(params.code_challenge_method);
 
+  const agentName = KNOWN_CLIENTS[clientId] ?? clientId;
   const { session, membership, ready } = useSession();
   const redirect = useMemo(() => checkRedirect(redirectRaw), [redirectRaw]);
 
-  // Inline auth state
+  // Inline auth state (same UX as /connect: never leave the consent page).
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authInfo, setAuthInfo] = useState<string | null>(null);
 
-  // Shared
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Copy-fallback state (no redirect_uri, or native)
-  const [mintedToken, setMintedToken] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  // A malformed request is a hard stop — never mint a code we can't deliver
+  // safely. (Message chosen for the human who lands here, not the client dev.)
+  const requestProblem = useMemo(() => {
+    if (redirect.kind === 'rejected') return `Connection blocked: ${redirect.reason}`;
+    if (redirect.kind === 'none') return 'Connection blocked: the link is missing its return address (redirect_uri).';
+    if (responseType !== 'code') return 'Connection blocked: this link is malformed (response_type must be "code").';
+    if (!KNOWN_CLIENTS[clientId]) return `Connection blocked: "${clientId || '(missing client_id)'}" is not a registered agent.`;
+    if (!codeChallenge || codeChallengeMethod !== 'S256')
+      return 'Connection blocked: this link is malformed (PKCE S256 code_challenge is required).';
+    if (Platform.OS !== 'web') return 'Open this connection link in a web browser to finish connecting.';
+    return null;
+  }, [redirect, responseType, clientId, codeChallenge, codeChallengeMethod]);
 
-  const canRedirect = redirect.kind === 'ok' && Platform.OS === 'web';
+  const sendBack = (fields: Record<string, string | undefined>) => {
+    if (redirect.kind !== 'ok') return;
+    const url = new URL(redirect.url.toString());
+    for (const [k, v] of Object.entries(fields)) {
+      if (v) url.searchParams.set(k, v);
+    }
+    window.location.replace(url.toString());
+  };
 
   const submitAuth = async () => {
     if (busy) return;
@@ -105,46 +122,25 @@ export default function ConnectScreen() {
     }
   };
 
-  const approve = async () => {
-    if (busy) return;
+  const allow = async () => {
+    if (busy || !codeChallenge || redirect.kind !== 'ok') return;
     setError(null);
     setBusy(true);
     try {
-      const created = await api.createToken(agentName);
-      if (canRedirect && redirect.kind === 'ok') {
-        window.location.replace(
-          redirect.url.toString() + buildFragment({ token: created.token, state }),
-        );
-        return; // navigating away
-      }
-      setMintedToken(created.token);
+      const { code } = await api.createOauthCode({
+        client_id: clientId,
+        redirect_uri: redirectRaw!,
+        scope,
+        code_challenge: codeChallenge,
+      });
+      sendBack({ code, state });
     } catch (err) {
       setError(getErrorMessage(err));
-    } finally {
       setBusy(false);
     }
   };
 
-  const cancel = () => {
-    if (canRedirect && redirect.kind === 'ok') {
-      window.location.replace(
-        redirect.url.toString() + buildFragment({ error: 'access_denied', state }),
-      );
-    }
-  };
-
-  const copyToken = async () => {
-    if (!mintedToken) return;
-    try {
-      if (Platform.OS === 'web' && navigator.clipboard) {
-        await navigator.clipboard.writeText(mintedToken);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      }
-    } catch {
-      // Selection fallback is always available below.
-    }
-  };
+  const deny = () => sendBack({ error: 'access_denied', state });
 
   const shell = (children: React.ReactNode) => (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]}>
@@ -155,7 +151,9 @@ export default function ConnectScreen() {
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.hero}>
             <Ionicons name="link-outline" size={40} color={p.onBg} />
-            <Text style={[styles.title, { color: p.onBg }]}>Connect {agentName}</Text>
+            <Text style={[styles.title, { color: p.onBg }]}>
+              Connect {agentName || 'your agent'}
+            </Text>
           </View>
           {children}
         </ScrollView>
@@ -165,28 +163,8 @@ export default function ConnectScreen() {
 
   if (!ready) return shell(null);
 
-  // A bad redirect target is a hard stop — never mint into an unknown origin.
-  if (redirect.kind === 'rejected') {
-    return shell(<ErrorBanner message={`Connection blocked: ${redirect.reason}`} />);
-  }
-
-  // Token minted, no redirect available: copy-paste handoff.
-  if (mintedToken) {
-    return shell(
-      <Card>
-        <SuccessBanner message={`${agentName} access token created.`} />
-        <Text style={[styles.tokenValue, { color: p.tint }]} selectable>
-          {mintedToken}
-        </Text>
-        {Platform.OS === 'web' ? (
-          <Button title={copied ? 'Copied!' : 'Copy token'} onPress={copyToken} icon="copy-outline" />
-        ) : null}
-        <Text style={[styles.note, { color: p.textMuted }]}>
-          Paste this into {agentName}. It won’t be shown again — you can revoke it any time from
-          the Household tab.
-        </Text>
-      </Card>,
-    );
+  if (requestProblem) {
+    return shell(<ErrorBanner message={requestProblem} />);
   }
 
   // Signed out: inline sign-in / sign-up, staying on this page.
@@ -260,10 +238,8 @@ export default function ConnectScreen() {
         ) : null}
 
         <ErrorBanner message={error} />
-        <Button title={`Connect ${agentName}`} onPress={approve} loading={busy} />
-        {canRedirect ? (
-          <Button title="Cancel" variant="secondary" onPress={cancel} disabled={busy} />
-        ) : null}
+        <Button title="Allow" onPress={allow} loading={busy} />
+        <Button title="Deny" variant="secondary" onPress={deny} disabled={busy} />
       </Card>
       <Text style={[styles.note, styles.identity, { color: p.onBgMuted }]}>
         Signed in as {session.user.email ?? 'your account'} ·{' '}
@@ -324,11 +300,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginTop: 14,
-  },
-  tokenValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'web' ? 'monospace' : 'Courier',
-    marginVertical: 12,
   },
 });
