@@ -45,7 +45,10 @@ export default function AuthHandoffScreen() {
     (async () => {
       try {
         const { token_hash, redirect_to } = await redeemHandoff(nonce);
-        const { error } = await supabase.auth.verifyOtp({ type: 'magiclink', token_hash });
+        // type: 'email' is correct even though the API minted this via
+        // generate_link({type:'magiclink'}) — that's the pairing Supabase
+        // documents for redeeming a TokenHash. Don't "fix" this to 'magiclink'.
+        const { error } = await supabase.auth.verifyOtp({ type: 'email', token_hash });
         if (error) throw error;
         window.location.replace(redirect_to);
       } catch {
