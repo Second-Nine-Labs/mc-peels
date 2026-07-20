@@ -471,3 +471,9 @@ export interface OauthCodeResponse {
   code: string;
   expires_in: number;
 }
+
+// Session handoff: /auth/handoff trades its fragment nonce for these.
+export interface HandoffRedeemResponse {
+  token_hash: string;
+  redirect_to: string;
+}

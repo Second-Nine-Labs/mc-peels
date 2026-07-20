@@ -21,6 +21,8 @@ const envSchema = z.object({
   TOKEN_ENCRYPTION_KEY: z.string().optional(),
   /** Public origin of THIS API — the base for OAuth redirect_uris. */
   API_PUBLIC_URL: z.string().url().optional(),
+  /** Public origin of the consumer web app — the base for SSO handoff URLs. */
+  WEB_PUBLIC_URL: z.string().url().default('https://mc-peels.secondninelabs.com'),
   /** Origins allowed as post-OAuth return destinations (besides mcpeels:// and localhost). */
   CONNECT_RETURN_ORIGINS: z.string().default('https://mc-peels.secondninelabs.com'),
   QUOTE_CACHE_TTL_MINUTES: z.coerce.number().default(360),

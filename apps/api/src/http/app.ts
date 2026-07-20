@@ -10,7 +10,14 @@ import {
   exchangeAuthorizationCode,
   redirectUriAllowed,
   refreshAccessToken,
+  verifyOAuthAccessToken,
 } from '../auth/oauth.js';
+import {
+  createHandoffNonce,
+  redeemHandoffNonce,
+  sanitizeRedirectPath,
+  webOrigin,
+} from '../auth/sso.js';
 import { verifySupabaseToken } from '../auth/supabase.js';
 import { createApiToken, listApiTokens, revokeApiToken, verifyMcpToken } from '../auth/tokens.js';
 import {
@@ -364,6 +371,48 @@ export function createApp() {
   });
 
   app.route('/api/v1/connect', connect);
+
+  // Session handoff for agent hosts (Third Brain's "open MC Peels signed in").
+  // Mounted OUTSIDE the bearer-authed sub-app: /handoff authenticates with the
+  // member's MCP bearer, /redeem with the one-time nonce itself. Contract:
+  // docs/fix-third-brain-connect.md ("NEW ASK — session handoff").
+  const sso = new Hono();
+
+  sso.post('/handoff', async (c) => {
+    const header = c.req.header('Authorization');
+    const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : null;
+    const identity = token
+      ? (await verifyMcpToken(token)) ?? (await verifyOAuthAccessToken(token))
+      : null;
+    if (!identity) {
+      throw unauthorized('Pass an MC Peels agent token (mcp_... or mcpa_...) as a Bearer token');
+    }
+    let redirectRaw: unknown;
+    try {
+      redirectRaw = ((await c.req.json()) as { redirect_to?: unknown }).redirect_to;
+    } catch {
+      redirectRaw = undefined; // empty body → default destination
+    }
+    const redirectTo = sanitizeRedirectPath(redirectRaw);
+    if (redirectTo === null) {
+      throw validationError('redirect_to must be a path on the MC Peels origin, e.g. "/household"');
+    }
+    const { nonce, expiresIn } = await createHandoffNonce(identity.userId, redirectTo);
+    // The nonce rides the URL fragment: browsers never send fragments over the
+    // wire, so it cannot land in anyone's access logs.
+    return c.json({ url: `${webOrigin()}/auth/handoff#t=${nonce}`, expires_in: expiresIn });
+  });
+
+  sso.post('/redeem', async (c) => {
+    const input = await body(c, z.object({ t: z.string().min(1).max(200) }));
+    const result = await redeemHandoffNonce(input.t.trim());
+    if (!result) {
+      throw unauthorized('This sign-in link is expired or already used');
+    }
+    return c.json({ token_hash: result.tokenHash, redirect_to: result.redirectTo });
+  });
+
+  app.route('/api/v1/sso', sso);
 
   const api = new Hono<Vars>();
 

@@ -34,6 +34,10 @@ function AuthGate({ children }: { children: ReactNode }) {
     // rules: inline sign-in, query params are load-bearing.
     if (segments[0] === 'oauth') return;
 
+    // /auth/handoff signs the browser in itself (one-time nonce from an agent
+    // host); redirecting away would eat the nonce mid-flight.
+    if (segments[0] === 'auth') return;
+
     // /eats-preview is the signed-out showcase of the Eats home + restaurants:
     // static menus only, launches scrub without a session.
     if (segments[0] === 'eats-preview') return;
@@ -90,6 +94,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="connect" options={{ headerShown: false }} />
           <Stack.Screen name="oauth/authorize" options={{ headerShown: false }} />
+          <Stack.Screen name="auth/handoff" options={{ headerShown: false }} />
           <Stack.Screen name="reset-password" options={{ headerShown: false }} />
           <Stack.Screen name="cart/[id]" options={{ title: 'Cart' }} />
         </Stack>

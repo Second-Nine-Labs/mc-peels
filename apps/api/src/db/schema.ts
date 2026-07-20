@@ -315,6 +315,18 @@ export const oauthAccessTokens = pgTable(
   (t) => [index('oauth_access_tokens_user_idx').on(t.userId)],
 );
 
+// One-time nonces for cross-app session handoff (Third Brain → signed-in web
+// session). Same hashing discipline; rows are dead 60s after mint either way.
+export const ssoHandoffNonces = pgTable('sso_handoff_nonces', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  nonceHash: text('nonce_hash').notNull().unique(),
+  userId: uuid('user_id').notNull(),
+  redirectTo: text('redirect_to').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const oauthRefreshTokens = pgTable(
   'oauth_refresh_tokens',
   {

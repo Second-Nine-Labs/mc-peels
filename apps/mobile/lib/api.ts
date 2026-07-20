@@ -21,6 +21,7 @@ import type {
   EnsureKitchenIdentityResponse,
   EnsureRecipeArtResponse,
   ErrorEnvelope,
+  HandoffRedeemResponse,
   KitchenArtResponse,
   KitchenIdentitiesResponse,
   Household,
@@ -262,3 +263,27 @@ export const api = {
       body: { ...input, code_challenge_method: 'S256' },
     }),
 };
+
+/**
+ * Redeem a session-handoff nonce (/auth/handoff). Deliberately NOT request():
+ * the nonce is the credential (no bearer needed), and request()'s 401 handling
+ * signs the user out — an expired handoff link must never end an existing
+ * session.
+ */
+export async function redeemHandoff(nonce: string): Promise<HandoffRedeemResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/sso/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ t: nonce }),
+    });
+  } catch {
+    throw new ApiError(0, 'network_error', 'Could not reach MC Peels. Check your connection and try again.');
+  }
+  const payload = (await response.json().catch(() => null)) as HandoffRedeemResponse | null;
+  if (!response.ok || !payload) {
+    throw new ApiError(response.status, 'invalid_handoff', 'This sign-in link is expired or already used.');
+  }
+  return payload;
+}
