@@ -30,10 +30,17 @@ export default function AuthHandoffScreen() {
     }
     const hash = window.location.hash;
     const nonce = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash).get('t');
-    window.history.replaceState(null, '', window.location.pathname);
+
+    // Expo Router re-syncs the address bar from its own routing state after we
+    // mount, which puts the fragment back if we only scrub once. Scrub now and
+    // again on the next tick so ours lands last.
+    const scrub = () => window.history.replaceState(null, '', window.location.pathname);
+    scrub();
+    const settle = setTimeout(scrub, 0);
+
     if (!nonce) {
       setFailed(true);
-      return;
+      return () => clearTimeout(settle);
     }
     (async () => {
       try {
@@ -42,9 +49,11 @@ export default function AuthHandoffScreen() {
         if (error) throw error;
         window.location.replace(redirect_to);
       } catch {
+        scrub();
         setFailed(true);
       }
     })();
+    return () => clearTimeout(settle);
   }, []);
 
   if (!failed) return <LoadingView />;
