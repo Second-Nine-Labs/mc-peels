@@ -10,8 +10,12 @@
 > (`git checkout -b <name> main`), never a bare `checkout -b`. Preview server is
 > the `design-worktree` config on port 8095.
 >
-> **Next up, in order:** Phase 6c (image direction, design approved), then
-> Phase 6b (widened seed). **All seven review phases are now shipped.**
+> **Next up:** Phase 6b (widened seed) — but read the 6c entry first, because
+> 6c **supersedes `heroTreatment`**; do not build it. Phase 6c itself is BUILT
+> on `feat/kitchen-image-direction` (`71f245b`, `d991242`) and not merged. Its
+> migration is ALREADY APPLIED to prod, which is the safe order (additive column
+> before the code that writes it) but means the branch and the DB are briefly
+> out of step.
 >
 > **Owed to TJ:** an authed pass over **cart detail** only. Household and the
 > merged Ask screen were finally seen signed-in against real production data on
@@ -151,6 +155,42 @@ Also `d0329a1`: `npx tsc --noEmit` in `apps/api` had been **failing since
 guard's false branch narrowed to `never` and the gate's own diagnostic fields
 could not compile. The working agreement gates every commit on that typecheck, so
 it was worth its own commit.
+
+---
+
+## Built, not merged
+
+### Phase 6c — `feat/kitchen-image-direction` → `71f245b`, `d991242`
+
+**The file contradicted itself.** `prompts.ts` opened by saying the style lock
+owns the medium "so the prompt never forces 'photograph' onto an illustrated
+kitchen" — then `heroArtPrompt` hardcoded the word "photograph" and appended a
+clause selected by the PALETTE MODE, which returned one of two strings, both
+photography. `heroJudgeRubric` graded against that same photographic brief, so
+an illustrated hero was failed as off-brief and rerolled. **The judge enforced
+the mismatch it was meant to catch.** Столовая is the live case: Soviet-poster
+tiles, forced photographic hero. It was invisible everywhere else only because
+every shelf-minted kitchen fell through to one dark-photography default, so
+hero and tiles agreed by accident.
+
+A lock now carries `medium` plus a `hero` clause in that medium, one lock feeds
+both the prompt and the judge, and a parameterised test walks every lock
+asserting its two clauses name the same medium — so it cannot drift back.
+
+**Kitchens now author their own look** (TJ's call: hybrid). `medium` stays a
+bounded enum because it must be machine-checkable; the descriptive clauses are
+authored, because a six-item enum would give every Thai household the same
+kitchen. `isCoherentLook()` rejects any look whose clauses disagree on medium,
+and drops it whole rather than repairing it — clamping could strip the words
+that make it cohere. A rejected look means the house lock, i.e. today's look.
+
+**One prescription in the plan was wrong.** "Make the hero take the style lock,
+not the palette mode" would have regressed light-palette kitchens to dark
+backdrops; the mode was doing real work. It now decides the fallback's tone
+only, and named locks ignore it.
+
+`kitchen_identities.look` (jsonb, nullable) applied via Supabase MCP. Prod has
+3 identities, all NULL, all resolving exactly as before.
 
 ---
 

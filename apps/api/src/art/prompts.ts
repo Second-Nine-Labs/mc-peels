@@ -14,11 +14,25 @@
  * app), no emoji, one centered subject.
  */
 
+/** What a kitchen's images are MADE of. */
+export type ArtMedium = 'photograph' | 'illustration';
+
 export interface StyleLock {
   /** Slug recorded for bookkeeping; bump the suffix to force a new look. */
   key: string;
-  /** The medium + style clause; leads the prompt, so it sets the medium. */
+  /**
+   * The one hard constraint: medium is consistent WITHIN a kitchen. Both the
+   * dish tiles and the hero read this, so a kitchen cannot be illustrated on
+   * its menu and photographic on its backdrop.
+   */
+  medium: ArtMedium;
+  /** The medium + style clause for a dish tile; leads the prompt. */
   style: string;
+  /**
+   * The same look applied to a wide establishing shot of the room. Not a
+   * separate aesthetic — the same artist, stepping back from the plate.
+   */
+  hero: string;
 }
 
 const HOUSE_RULES =
@@ -27,38 +41,83 @@ const HOUSE_RULES =
 /** Столовая № 7 — flat-ink Soviet poster plates (the «НАШ ТРУД» language). */
 const SOVIET_POSTER: StyleLock = {
   key: 'soviet-poster-v1',
+  medium: 'illustration',
   style:
     '1960s Soviet propaganda-poster food illustration, flat ink printing style, bold black keyline, limited palette of faded red #C8332B, cream paper #F2E8D5, ochre and olive, slight misregistration and aged-paper grain, heroic composition from a low angle',
+  hero:
+    '1960s Soviet propaganda-poster illustration of a workers\' canteen interior, flat ink printing style, bold black keyline, limited palette of faded red #C8332B, cream paper #F2E8D5, ochre and olive, slight misregistration and aged-paper grain, wide heroic interior from a low angle',
 };
 
 /** greenhouse — bright overhead market photography on warm white. */
 const GREENHOUSE_PHOTO: StyleLock = {
   key: 'greenhouse-photo-v1',
+  medium: 'photograph',
   style:
     'bright overhead food photography on warm white marble, soft diffused morning window light, a sage-green linen napkin at the edge of frame, shallow depth of field, generous airy negative space, fresh and appetizing',
+  hero:
+    'bright airy editorial interior photography, soft diffused morning daylight through tall glasshouse panes, warm white marble and pale wood, sage-green linen, trailing plants, shallow depth of field, generous negative space, fresh inviting and premium',
 };
 
 /** La Milpa — vibrant mercado-poster gouache. */
 const MERCADO_GOUACHE: StyleLock = {
   key: 'mercado-gouache-v1',
+  medium: 'illustration',
   style:
     'vibrant Mexican mercado-poster gouache illustration, flat saturated shapes in marigold #F2A007, rosa mexicano #E84B8A, teal #159F94 and deep plum #241430, thick paint texture, papel-picado energy, festive but composed',
+  hero:
+    'vibrant Mexican mercado-poster gouache illustration of a market fonda interior, flat saturated shapes in marigold #F2A007, rosa mexicano #E84B8A, teal #159F94 and deep plum #241430, thick visible brush texture, papel-picado strung overhead, wide festive interior, composed',
 };
 
 /** 山城 — Chongqing night-market photography. */
 const NIGHT_MARKET: StyleLock = {
   key: 'night-market-v1',
+  medium: 'photograph',
   style:
     'dramatic dark food photography, deep plum-black night-market backdrop, red lantern glow from above, visible steam, glistening chili-oil sheen, hard cinematic rim light, rich and moody',
+  hero:
+    'moody cinematic interior photography of a Chongqing night-market stall, deep plum-black surroundings, red lantern glow from above, drifting steam, wet reflective surfaces, hard rim light, intimate late-evening atmosphere, premium',
 };
 
-/** Default for any other shelf-minted kitchen: premium dark photography that
- * sits well on the factory costume's dark canvas. */
-const DEFAULT_LOCK: StyleLock = {
+/**
+ * Fallbacks for a kitchen with no named lock — both photography, split by the
+ * palette mode so the art and the room agree on tone.
+ *
+ * These two are the reason `styleLock` takes a mode. A named lock commits to
+ * one look and ignores it; only the unnamed case has a tone left to decide.
+ */
+const DEFAULT_DARK: StyleLock = {
   key: 'dark-premium-v1',
+  medium: 'photograph',
   style:
     'dramatic dark food photography, deep charcoal backdrop, one warm directional key light, visible steam, shallow depth of field, rich and appetizing, cinematic',
+  hero:
+    'moody cinematic interior photography, warm low-key lighting, deep shadows, a single glowing source, rich lacquered surfaces, intimate late-evening atmosphere, premium',
 };
+
+const DEFAULT_LIGHT: StyleLock = {
+  key: 'light-premium-v1',
+  medium: 'photograph',
+  style:
+    'bright natural food photography, warm white backdrop, soft diffused daylight, pale wood and ceramic, shallow depth of field, generous airy negative space, fresh and appetizing',
+  hero:
+    'bright airy editorial interior photography, soft diffused daylight through a window, warm natural materials — pale wood, linen, ceramic — shallow depth of field, generous negative space, fresh inviting and premium',
+};
+
+/**
+ * Every lock that exists — the bounded vocabulary a kitchen can wear.
+ *
+ * Weighted toward photography (4 of 6): illustration stays reachable but is
+ * the exception, not the house style. No per-cuisine rules live here; a
+ * cuisine reaches a lock through LOCKS below, never the other way round.
+ */
+export const ALL_LOCKS: readonly StyleLock[] = [
+  SOVIET_POSTER,
+  GREENHOUSE_PHOTO,
+  MERCADO_GOUACHE,
+  NIGHT_MARKET,
+  DEFAULT_DARK,
+  DEFAULT_LIGHT,
+];
 
 /** Resolved by kitchen id (static trio) or cuisine (shelf-minted). */
 const LOCKS: Record<string, StyleLock> = {
@@ -72,8 +131,110 @@ const LOCKS: Record<string, StyleLock> = {
   'sichuan-chongqing': NIGHT_MARKET,
 };
 
-export function styleLock(key: string): StyleLock {
-  return LOCKS[key] ?? DEFAULT_LOCK;
+/**
+ * Resolve a kitchen's look.
+ *
+ * `mode` only decides the FALLBACK's tone; a named lock has already committed
+ * to one. It defaults to 'dark' so callers that do not know the palette (dish
+ * tiles today) keep the behaviour they had.
+ */
+export function styleLock(key: string, mode: 'light' | 'dark' = 'dark'): StyleLock {
+  return LOCKS[key] ?? (mode === 'light' ? DEFAULT_LIGHT : DEFAULT_DARK);
+}
+
+// ---------------------------------------------------------------------------
+// Generated looks — a kitchen that authors its own rendering language.
+//
+// Review §4: hand-built costumes don't scale past the flagships, and they bias
+// every new kitchen toward whoever wrote the last one. Six locks would also
+// mean two households that both cook Thai get identical kitchens.
+//
+// So the mint authors the look. The MEDIUM stays a bounded enum, because it is
+// the one thing that has to be machine-checkable; the descriptive clauses are
+// free, because that is where the character lives and an enum cannot hold it.
+
+/** A rendering language authored at mint time rather than hand-written here. */
+export interface GeneratedLook {
+  medium: ArtMedium;
+  /** The tile clause — same job as a StyleLock's `style`. */
+  style: string;
+  /** The hero clause — the same look, stepped back to the room. */
+  hero: string;
+}
+
+const PHOTO_WORDS = /photograph|photography|photorealistic|photo-realistic/i;
+const DRAWN_WORDS =
+  /illustration|illustrated|gouache|painted|painting|drawn|woodcut|risograph|linocut|screen-?print|etching|lithograph/i;
+
+/**
+ * Words HOUSE_RULES already forbids. A look that reintroduces them would be
+ * arguing with the rules appended after it, so it is rejected instead.
+ */
+const LOOK_BANNED = /\b(text|lettering|typography|words?|caption|logos?|watermarks?|emoji|signage)\b/i;
+
+const LOOK_MIN = 40;
+const LOOK_MAX = 320;
+
+function clauseMatchesMedium(clause: string, medium: ArtMedium): boolean {
+  return medium === 'illustration'
+    ? DRAWN_WORDS.test(clause) && !PHOTO_WORDS.test(clause)
+    : PHOTO_WORDS.test(clause) && !DRAWN_WORDS.test(clause);
+}
+
+/**
+ * Is an authored look coherent and safe to put in a prompt?
+ *
+ * The load-bearing check is the last one: BOTH clauses must name the declared
+ * medium and neither may name the other. That is the machine-checkable form of
+ * "medium is consistent within a kitchen" — without it, a model free to write
+ * two clauses could describe illustrated tiles beside a photographic hero, which
+ * is precisely the bug this phase exists to kill.
+ *
+ * Rejection is safe by design: the caller drops the look and falls back to the
+ * house lock, so a bad generation degrades to today's appearance.
+ */
+export function isCoherentLook(value: unknown): value is GeneratedLook {
+  if (!value || typeof value !== 'object') return false;
+  const look = value as Record<string, unknown>;
+  if (look.medium !== 'photograph' && look.medium !== 'illustration') return false;
+
+  const clauses = [look.style, look.hero];
+  for (const clause of clauses) {
+    if (typeof clause !== 'string') return false;
+    const trimmed = clause.trim();
+    if (trimmed.length < LOOK_MIN || trimmed.length > LOOK_MAX) return false;
+    if (LOOK_BANNED.test(trimmed)) return false;
+    if (!clauseMatchesMedium(trimmed, look.medium)) return false;
+  }
+  return true;
+}
+
+/** Wrap a validated authored look as a lock the prompt builders can use. */
+export function lockFromLook(look: GeneratedLook): StyleLock {
+  return {
+    key: 'generated-v1',
+    medium: look.medium,
+    style: look.style.trim(),
+    hero: look.hero.trim(),
+  };
+}
+
+/**
+ * The single place a kitchen's lock is decided.
+ *
+ * Precedence is deliberate: a NAMED lock wins, because a named key means this
+ * cuisine has a hand-designed flagship (§4 keeps the flagships bespoke). Only
+ * the kitchens that would otherwise share one default get their authored look.
+ */
+export function resolveLock(opts: {
+  styleKey: string;
+  mode?: 'light' | 'dark';
+  look?: unknown;
+}): StyleLock {
+  const named = LOCKS[opts.styleKey];
+  if (named) return named;
+  if (isCoherentLook(opts.look)) return lockFromLook(opts.look);
+  return opts.mode === 'light' ? DEFAULT_LIGHT : DEFAULT_DARK;
 }
 
 /** @deprecated name — kept for callers/tests; styleLock takes any style key. */
@@ -85,12 +246,20 @@ export interface DishForArt {
   description?: string | null;
   /** Kitchen id (static trio) or cuisine (shelf-minted). */
   styleKey: string;
+  /** Palette mode — only breaks the tie when no lock is named or authored. */
+  mode?: 'light' | 'dark';
+  /**
+   * The kitchen's authored look, when it has one. Tiles must read this too:
+   * a hero in the household's own medium beside default-photography tiles
+   * would recreate the mismatch one level down.
+   */
+  look?: unknown;
 }
 
 /** The full generation prompt for one dish tile. The style lock leads, so it
  * — not a hardcoded "photograph" — decides the medium. */
 export function dishArtPrompt(dish: DishForArt): string {
-  const lock = styleLock(dish.styleKey);
+  const lock = resolveLock({ styleKey: dish.styleKey, mode: dish.mode, look: dish.look });
   const subject = [
     dish.sub ? `${dish.title} (${dish.sub})` : dish.title,
     dish.description ?? null,
@@ -102,49 +271,63 @@ export function dishArtPrompt(dish: DishForArt): string {
 
 // ---------------------------------------------------------------------------
 // Kitchen hero backdrop (Stage 3) — an atmospheric *establishing* shot of the
-// eatery, not a centered dish. Its medium follows the generated palette's
-// mode so the photo and the room's colors read as one place.
+// eatery, not a centered dish. It takes the kitchen's own style lock, so its
+// medium is the same one the menu tiles are drawn in.
+//
+// It did not always. The scene string used to hardcode the word "photograph"
+// and append a clause chosen by the PALETTE MODE, which returned one of two
+// strings — both explicitly photography. So a kitchen whose tiles are flat-ink
+// illustration (Столовая) got a photographic hero, and `heroJudgeRubric`
+// graded against that same photographic brief and rerolled anything else. The
+// contradiction was masked only because every shelf-minted kitchen fell
+// through to one dark-photography default, so hero and tiles agreed by
+// accident.
 
 const HERO_HOUSE_RULES =
   'no text, no lettering, no signage words, no numbers, no logos, no watermarks, no emoji, no menus, no readable human faces, wide atmospheric establishing composition with calm negative space toward the lower-left for a title';
 
-const HERO_LIGHT =
-  'bright airy editorial interior photography, soft diffused daylight through a window, warm natural materials — pale wood, linen, ceramic — shallow depth of field, generous negative space, fresh inviting and premium';
-
-const HERO_DARK =
-  'moody cinematic interior photography, warm low-key lighting, deep shadows, a single glowing source, rich lacquered surfaces, intimate late-evening atmosphere, premium';
-
-/** The hero's base medium, chosen by the palette mode so photo + room agree. */
-export function heroStyle(mode: 'light' | 'dark'): string {
-  return mode === 'dark' ? HERO_DARK : HERO_LIGHT;
-}
-
 export interface HeroForArt {
   /** Human cuisine label woven into the scene ("Thai", "Levantine"). */
   cuisineLabel: string;
-  /** Palette mode — steers the medium (light/airy vs moody/dark). */
+  /** Kitchen id (static trio) or cuisine (shelf-minted) — resolves the lock. */
+  styleKey: string;
+  /** Palette mode — only breaks the tie for kitchens with no named lock. */
   mode: 'light' | 'dark';
+  /** The kitchen's authored look, when it has one. */
+  look?: unknown;
   /** The kitchen's tagline/mood, if any — nudges the atmosphere. */
   mood?: string | null;
 }
 
 /** The full generation prompt for a kitchen hero backdrop. */
 export function heroArtPrompt(hero: HeroForArt): string {
+  const lock = resolveLock({ styleKey: hero.styleKey, mode: hero.mode, look: hero.look });
   const scene =
-    `An atmospheric establishing photograph of an intimate ${hero.cuisineLabel} eatery interior — ` +
+    `An atmospheric establishing ${lock.medium} of an intimate ${hero.cuisineLabel} eatery interior — ` +
     'the counter, a set table, and the light that makes it feel like a real, beloved place';
-  return `${scene}${hero.mood ? `, ${hero.mood}` : ''}. ${heroStyle(hero.mode)}, ${HERO_HOUSE_RULES}`;
+  return `${scene}${hero.mood ? `, ${hero.mood}` : ''}. ${lock.hero}, ${HERO_HOUSE_RULES}`;
 }
 
-/** The hero judge's rubric — scene-oriented (no "depict this dish" clause). */
-export function heroJudgeRubric(subject: string, style: string): string {
+/**
+ * The hero judge's rubric — scene-oriented (no "depict this dish" clause), and
+ * graded against the kitchen's OWN lock.
+ *
+ * The medium is stated outright and defended in both directions. The previous
+ * rubric described a photographic brief unconditionally, so an illustrated
+ * hero was failed as off-brief and rerolled — the judge actively enforced the
+ * mismatch it was supposed to catch.
+ */
+export function heroJudgeRubric(subject: string, lock: Pick<StyleLock, 'medium' | 'hero'>): string {
   return [
-    `You are grading a generated hero backdrop for a ${subject} kitchen. Fail it if ANY of the following are true:`,
+    `You are grading a generated hero backdrop for a ${subject} kitchen.`,
+    `This kitchen's medium is ${lock.medium.toUpperCase()}. Grade it as that medium: do not fail an illustration for being unphotographic, and do not fail a photograph for lacking illustrative styling.`,
+    'Fail it if ANY of the following are true:',
     '1. Any text, lettering, numbers, logos, signage words, or watermarks appear anywhere in the image.',
     '2. Any emoji or emoji-like glyphs appear.',
     '3. The scene is deformed or shows generation artifacts (melted shapes, impossible architecture, mangled hands or anatomy).',
     '4. A human face is a dominant, in-focus subject (a distant, out-of-focus figure is acceptable).',
-    `5. The setting or style is clearly off-brief — expected: an atmospheric ${subject} eatery interior, ${style}.`,
+    `5. The setting is clearly off-brief — expected: an atmospheric ${subject} eatery interior.`,
+    `6. The rendering is clearly off-brief for its medium — expected: ${lock.hero}.`,
     'Grade strictly; when uncertain, fail it and say why.',
   ].join('\n');
 }

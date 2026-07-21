@@ -134,6 +134,9 @@ export async function ensureKitchenIdentity(
       mono: spec.mono,
       palette,
       voice: spec.voice,
+      // Undefined when the model's look failed coherence validation; the
+      // column stays null and the art pipeline wears the house lock.
+      look: spec.look,
       heroStatus: 'none',
     })
     .onConflictDoNothing()

@@ -278,25 +278,65 @@ the moment illustration becomes reachable.
 
 ### What to build
 
-- [ ] **Make the hero take the style lock, not the palette mode.** Its medium and
-      the tiles' medium must come from one source. Drop "photograph" from the
-      scene string; let the lock lead, exactly as `dishArtPrompt` already does.
-- [ ] **Judge against the kitchen's own lock**, so an illustrated hero passes for
-      an illustrated kitchen.
-- [ ] **Let the mint emit a bounded style lock** rather than falling through to
-      one hardcoded default. Today `LOCKS` has six hand-written entries and every
-      generated kitchen shares `DEFAULT_LOCK` — review §4's "hand-built costumes
-      don't scale past the flagships", exactly as predicted.
-- [ ] **Use the flagship locks as the quality bar.** `SOVIET_POSTER` works because
-      it commits to a medium, names palette values as hexes, and asks for physical
-      process artifacts ("slight misregistration and aged-paper grain"). It reads
-      as a real object made a real way, not "art in a style". Ask the model for
-      that shape of answer.
-- [ ] **`heroTreatment: photo | duotone | flat` is too coarse** and should be
-      reconsidered — it cannot express "flat ink printing with misregistration",
-      so it cannot reach the look TJ already likes.
-- [ ] Weight the vocabulary toward photography, with illustration reachable but
-      not common. No per-cuisine rules.
+Built on `feat/kitchen-image-direction` — `71f245b` (coherence) and `d991242`
+(authored looks). Not merged.
+
+- [x] **Make the hero take the style lock, not the palette mode.** A `StyleLock`
+      now carries `medium` and a `hero` clause written in that medium, and the
+      scene noun derives from the medium instead of the hardcoded "photograph".
+      `heroStyle()` is deleted.
+      **One correction to the prescription:** dropping the palette mode outright
+      would have regressed light-palette kitchens to dark backdrops, because the
+      mode was doing real work. It now breaks the tie for the FALLBACK only,
+      which splits into light/dark premium photography; a named lock has already
+      committed and ignores it.
+- [x] **Judge against the kitchen's own lock.** `heroJudgeRubric` states the
+      medium outright and defends it in both directions, so an illustration is
+      not failed for being unphotographic.
+- [x] **Let the mint emit a style lock.** TJ's call (2026-07-21) was the
+      **hybrid**: `medium` is a bounded enum because it must stay
+      machine-checkable; the two descriptive clauses are authored, because that
+      is where the character lives and a six-item enum cannot hold it — with an
+      enum, two households that both cook Thai get identical kitchens.
+      Stored on `kitchen_identities.look` (jsonb, nullable; migration applied via
+      Supabase MCP). `resolveLock()` is now the one place a lock is decided, and
+      a NAMED lock still wins so §4's flagships stay bespoke.
+- [x] **Use the flagship locks as the quality bar.** The tool description asks
+      for exactly that shape — name the process and its physical artifacts, give
+      real hex values — with `SOVIET_POSTER` paraphrased as the worked example.
+- [x] **`heroTreatment: photo | duotone | flat` is dropped, not narrowed.** The
+      note was right that it cannot express "flat ink printing with
+      misregistration". An authored clause can, so the coarse enum has nothing
+      left to do: `look.medium` carries the only part that must be bounded and
+      the prose carries the rest. **This supersedes `heroTreatment` in the
+      phase-6b widened seed — do not build it.**
+- [x] Weight toward photography, illustration reachable but uncommon. Four of the
+      six house locks are photographic, the tool description says photograph is
+      the default and illustration the exception, and a test pins the ratio. No
+      per-cuisine rules anywhere.
+
+### What guards it
+
+`isCoherentLook()` rejects a look whose two clauses disagree on medium — a model
+free to write both can describe illustrated tiles beside a photographic room,
+which is the same bug the hand-written locks had. It also rejects clauses that
+reintroduce lettering/logos/emoji, since the house rules forbidding those are
+appended later in the same prompt.
+
+Rejection is deliberately **not** repair: clamping a clause could strip the very
+words that make it agree with its medium, so a bad look is dropped whole and the
+kitchen wears the house lock — the appearance it had before looks existed.
+
+Dish tiles read the look too. Without that, a kitchen that minted an illustrated
+look would get an illustrated backdrop behind default-photography tiles: the
+same mismatch, one level down.
+
+### Still unverified
+
+No kitchen has actually minted a look yet — the prod table has 3 identities, all
+with `look` NULL. The first real mint is the test that matters, and the failure
+mode to watch is over-eager `illustration`, since the prompt's weighting toward
+photography is guidance rather than an enforced ratio.
 
 ### The approved design (TJ signed off 2026-07-21, risks accepted)
 
