@@ -121,7 +121,11 @@ export function shanchengCostume(restaurant: Restaurant): KitchenCostume {
       card: CARD,
       ink: CREAM,
       inkSoft: CREAM_SOFT,
-      accent: CHILE,
+      // The FILL uses the calmer lantern red (design review §6 — saturated
+      // fills need dark values; CHILE as a full-width pill glares the way the
+      // yellow did). CHILE stays for text and borders, where it has the
+      // stronger contrast and no luminous area.
+      accent: LANTERN,
       onAccent: '#FFF6EC',
       onHero: CREAM,
       onHeroSoft: CREAM_SOFT,

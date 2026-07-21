@@ -159,21 +159,37 @@ There is also a genuine design tension in the review itself: §2 says the nav is
 which argues for keeping it in the kitchen — but the kitchen is the most immersive
 surface in the app, wearing a full generated costume.
 
-## Phase 5 — `feat/token-consolidation`
+## Phase 5 — `feat/token-consolidation` — COMPLETE
 
 Review §3 + §6. Pulled ahead of Gemini: the legibility gate depends on these tokens
 being coherent.
 
-- [ ] **Split `primary` from `tint` in dark** — both `#4FA4F2` today, so the system
-      can't distinguish an action from an accent.
-- [ ] **Dark values for saturated fills** — accent `#FFC531` hits 11.6:1 as a
-      full-width dark fill. Add ~`#E0A020` (~8:1). Same for the Eats reds.
-- [ ] **Widen dark elevation steps** — `#0B1626` → `#13233A` → nested rows are too close.
-- [ ] **One primary button.** Accent yellow reserved for terminal retailer hand-off.
-      Alternates outlined, never a second equal-weight fill.
-- [ ] **Three chips:** `eyebrow`, `selectable`, `status`. Map the other five in.
-- [ ] **One title primitive** — keep `DisplayTitle` or `TwoToneTitle`, delete the other.
-- [ ] **Uppercase discipline** — eyebrows and section labels only; form labels sentence case.
+- [x] **Split `primary` from `tint` in dark** — primary is now `#1D6FD1` with white
+      text (4.95:1), a solid committed action fill; tint stays `#4FA4F2` for links,
+      icons, selected states. Visibly different lightness classes (1.87:1 apart).
+- [x] **Dark values for saturated fills** — accent `#E0A020` measures 8.28:1 on the
+      new canvas (was 11.48:1), on-accent text 7.70:1. Shancheng's CTA fill drops
+      from CHILE to LANTERN — its label was ALREADY sub-AA at 3.19:1 and improves
+      to 3.97:1; clearing 4.5 properly belongs to the phase-6 legibility gate.
+      All ratios computed, not eyeballed.
+- [x] **Widen dark elevation steps** — canvas `#0A1120` → card `#152743` → chip
+      `#1F3554`; canvas-to-card ratio widened 1.15 → 1.26, and muted text still
+      clears 6:1 on every surface.
+- [x] **One primary button.** Added an `outline` variant; in `offers.tsx` the
+      preferred retailer (first in the household's display order) takes the accent
+      fill and every alternate is outlined — no more two equal-weight fills.
+- [x] **Three chips:** `eyebrow` (EyebrowChip), `selectable` (Chip), `status` — the
+      last now ONE appearance via an internal `StatusBase`; `StatusChip` and
+      `FilterTag` had drifted to different radii (999 vs 6) and padding. Eats chips
+      (`malaChip`, KitchenScreen `chip`, `resultChip`) are costume-scoped and stay
+      off the shared system per review §4.
+- [x] **One title primitive** — `TwoToneTitle` deleted; it had zero call sites
+      outside its own definition. `DisplayTitle` is used in 9 files.
+- [x] **Uppercase discipline** — the shouting came from `textTransform` in styles,
+      not the strings (every label was already sentence case in source). Removed
+      from `fieldLabel` (x3 files), `heroStatLabel`, and cart `tagText`. Kept on
+      `eyebrowChipText` and ask's `examplesLabel` — an eyebrow and a section label,
+      which is exactly what §3c allows.
 
 ## Phase 6 — `feat/gemini-design`
 
@@ -197,6 +213,12 @@ being coherent.
 - [ ] Invalidation only on: version bump, material cuisine change, manual debug regen.
 
 ## Phase 7 — `feat/canvas-rebalance`
+
+**Landmine found during phase 5:** `HeroStat` hardcodes `color: p.onBg` (white in
+light mode) because it is designed to sit on the blue canvas. Move any screen
+using it onto a light canvas and its labels go white-on-white. Surfaced by a
+harness that rendered it on a Card; not a bug today, since cart detail does render
+it on the canvas. Audit every `p.onBg` / `onBgMuted` consumer before rebalancing.
 
 Confirmed direction. Largest visual change — last, reviewed side by side.
 

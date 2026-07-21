@@ -405,7 +405,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 8,
-    textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   signOut: {

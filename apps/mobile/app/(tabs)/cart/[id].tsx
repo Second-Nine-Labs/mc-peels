@@ -480,7 +480,6 @@ const styles = StyleSheet.create({
     fontSize: 10.5,
     fontWeight: '700',
     letterSpacing: 0.4,
-    textTransform: 'uppercase',
   },
   warningRow: {
     flexDirection: 'row',
