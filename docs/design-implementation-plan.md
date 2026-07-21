@@ -114,7 +114,7 @@ state rather than a `matchMedia` subscription.
       buttons) with no partial repaint, and System correctly returned to
       following the OS.
 
-## Phase 4 — `feat/responsive-nav` — mostly complete, one open question
+## Phase 4 — `feat/responsive-nav` — COMPLETE (kitchen deliberately left immersive)
 
 Largest blast radius. Screenshot every route at both breakpoints before merge.
 
@@ -129,8 +129,14 @@ with TJ that this is the intended shape.
 - [x] Kill the stack header on tab roots — `headerShown: false` hoisted to
       `screenOptions`; Household was the lone exception.
 - [x] Full-screen flows stay chrome-free — untouched, still outside `(tabs)`.
-- [ ] **OPEN — needs TJ.** Detail routes keeping the bottom nav visible, plus a
-      consistent back affordance. See "Phase 4 open question" below.
+- [x] **Cart detail keeps the nav** (TJ decided cart-only; the kitchen stays
+      immersive). `cart/[id]` moved inside `(tabs)` — a route group, so the URL
+      is still `/cart/<id>` and all 4 existing links plus the Kroger OAuth
+      return leg work unchanged. Declared `href: null`; AppNav honours the
+      `tabBarItemStyle: {display: 'none'}` encoding expo-router uses for it
+      (caught live: the route rendered as a fourth tab until then). The screen
+      owns its back control — same place, same size, both load and error
+      branches — falling back to `/(tabs)/ask` when there's no history.
 
 ### Phase 4 open question — detail routes inside the tabs
 
