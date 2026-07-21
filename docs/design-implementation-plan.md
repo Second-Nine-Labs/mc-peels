@@ -198,9 +198,17 @@ being coherent.
 - [ ] Widen the identity seed to a **design seed**: `surface`, `ornament`, `typeVoice`,
       `density`, `heroTreatment`. Bounded enums only — every value maps to code we own.
       All optional with safe defaults so a malformed field degrades to today's look.
-- [ ] **`assertLegible(seed)`** pure function — derive every text/surface pair, require
-      ≥4.5:1 (≥3:1 large). On failure, fall back to the house palette and log the
-      offending pair. Run at mint time server-side, assert again client-side.
+- [x] **`assertLegible(seed)`** in `apps/api/src/ai/legibility.ts` — pure, 10 tests.
+      Checks `onHero` against the CANVAS, not a photo, because an absent or failed
+      hero is exactly the case the shipped bug fell into.
+      **It found real defects.** The engine claimed its accent on-color "flips to
+      the side opposite the accent's own lightness" but hardcoded L98/L10 — worst
+      measured 2.01:1, only 26% of hue pairs cleared AA, and 2 of the 3 live
+      production kitchens failed. Fixing the on-color alone was insufficient (pure
+      white/black still topped out at 4.45 for mid-luminance fills), so the accent
+      fill now walks outward from its target lightness until its better on-color
+      clears. **All 10,368 hue/mode combinations pass**, verified by test. Mirrored
+      into `apps/mobile/features/eats/palette.ts`; ramp parity checked.
 - [ ] **Caching:** `design_seed` jsonb, `design_version` int, `design_model` text,
       `minted_at` timestamptz on `kitchen_identities`. Mint idempotent — existing seed
       at current version means **zero** API calls. Unique constraint on
