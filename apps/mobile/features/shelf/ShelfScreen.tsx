@@ -33,6 +33,7 @@ import { usePlan } from '@/features/eats/usePlan';
 import { api, getErrorMessage } from '@/lib/api';
 import type { CreateCartResponse, SavedRecipe } from '@/lib/types';
 import { usePalette, type Palette } from '@/lib/theme';
+import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
 
 const KITCHEN_THRESHOLD = 8;
 
@@ -114,6 +115,7 @@ export function ShelfScreen({
   onCartBuilt,
 }: ShelfScreenProps) {
   const p = usePalette();
+  const bottomInset = useScrollBottomInset();
 
   const [recipes, setRecipes] = useState<SavedRecipe[] | null>(previewMode ? SAMPLE_RECIPES : null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -241,7 +243,10 @@ export function ShelfScreen({
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomInset }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.header}>
           {onBack ? (
             <Pressable

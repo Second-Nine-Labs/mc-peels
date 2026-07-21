@@ -3,7 +3,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -158,6 +158,89 @@ export function Chip({ label, selected = false, onPress, onRemove }: ChipProps) 
           <Ionicons name="close" size={14} color={selected ? p.tint : p.textMuted} />
         </Pressable>
       ) : null}
+    </Pressable>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Toggle
+
+const TRACK_W = 52;
+const TRACK_H = 32;
+const THUMB = 26;
+const THUMB_INSET = (TRACK_H - THUMB) / 2;
+
+/**
+ * On/off pill. Replaces React Native's `Switch`, which needs `thumbColor`,
+ * `trackColor` for BOTH states, and `ios_backgroundColor` set explicitly or it
+ * renders as a bare thumb with no track on web and iOS — which is exactly how
+ * "Prefer organic" shipped. Owning the pill means one appearance everywhere and
+ * no per-platform prop matrix to get wrong again.
+ *
+ * The 52x32 track sits inside a 44pt touch target via hitSlop.
+ */
+export function Toggle({
+  value,
+  onValueChange,
+  accessibilityLabel,
+  disabled = false,
+}: {
+  value: boolean;
+  onValueChange: (next: boolean) => void;
+  accessibilityLabel?: string;
+  disabled?: boolean;
+}) {
+  const p = usePalette();
+  const slide = useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  useEffect(() => {
+    Animated.timing(slide, {
+      toValue: value ? 1 : 0,
+      duration: 160,
+      useNativeDriver: false,
+    }).start();
+  }, [value, slide]);
+
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled }}
+      accessibilityLabel={accessibilityLabel}
+      disabled={disabled}
+      onPress={() => onValueChange(!value)}
+      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+      style={{ opacity: disabled ? 0.5 : 1 }}
+    >
+      <Animated.View
+        style={[
+          styles.toggleTrack,
+          {
+            backgroundColor: slide.interpolate({
+              inputRange: [0, 1],
+              outputRange: [p.border, p.primary],
+            }),
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.toggleThumb,
+            {
+              // Always light, both modes — a dark thumb on the dark card reads
+              // as a hole punched in the track rather than a knob.
+              backgroundColor: '#FFFFFF',
+              transform: [
+                {
+                  translateX: slide.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [THUMB_INSET, TRACK_W - THUMB - THUMB_INSET],
+                  }),
+                },
+              ],
+            },
+          ]}
+        />
+      </Animated.View>
     </Pressable>
   );
 }
@@ -505,14 +588,32 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 6,
   },
+  toggleTrack: {
+    width: TRACK_W,
+    height: TRACK_H,
+    borderRadius: TRACK_H / 2,
+    justifyContent: 'center',
+  },
+  toggleThumb: {
+    width: THUMB,
+    height: THUMB,
+    borderRadius: THUMB / 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     borderWidth: 1,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 14,
+    // 44 is the iOS/Android minimum touch target; these were ~33.
+    minHeight: 44,
   },
   chipText: {
     fontSize: 14,

@@ -20,6 +20,7 @@ import { api, getErrorMessage } from '@/lib/api';
 import { getRememberedCart } from '@/lib/cart-cache';
 import { formatDate, prettifyFilterValue, prettifyRetailerKey } from '@/lib/format';
 import { usePalette } from '@/lib/theme';
+import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
 import type { CartDetailResponse, CartStatus, Offer, ResolvedLineItem } from '@/lib/types';
 
 // Price comparison is live by default; EXPO_PUBLIC_PRICE_COMPARE=0 is the
@@ -75,6 +76,7 @@ function toView(id: string, detail: CartDetailResponse | null): CartView | null 
 
 export default function CartDetailScreen() {
   const p = usePalette();
+  const bottomInset = useScrollBottomInset();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [cart, setCart] = useState<CartView | null>(() => toView(id, null));
@@ -139,7 +141,10 @@ export default function CartDetailScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: p.background }]}>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[styles.container, { paddingBottom: bottomInset }]}
+      >
         {/* Hero — lives on the blue canvas, recipe-app style. */}
         <View style={styles.hero}>
           <ErrorBanner message={error} />

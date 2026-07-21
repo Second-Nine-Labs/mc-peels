@@ -114,6 +114,11 @@ export function generatedCostume(identity: GeneratedIdentity, restaurant: Restau
     restaurant,
     mono: identity.mono,
 
+    // NOTE: onHero/onHeroSoft here are SCRIM-AWARE — over a photo they become
+    // near-white regardless of palette mode. Only read them for text that sits
+    // on the hero backdrop. Anything on canvas/paper/card must use ink/inkSoft,
+    // or a light-mode kitchen renders cream on cream. The structural fix (a
+    // separate scrim token + a legibility gate) lands with the design seed.
     tokens: { ...tokens, onHero, onHeroSoft },
 
     voice: {

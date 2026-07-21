@@ -25,6 +25,7 @@ import { rememberCartResult } from '@/lib/cart-cache';
 import { formatDate, prettifyRetailerKey } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { usePalette } from '@/lib/theme';
+import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
 import type { CartSummary, UsualItem } from '@/lib/types';
 
 const EXAMPLES = [
@@ -47,6 +48,7 @@ const SECRET_PARTY = new Set([
 
 export default function AskScreen() {
   const p = usePalette();
+  const bottomInset = useScrollBottomInset();
   const router = useRouter();
   const { membership, me } = useSession();
   const householdId = membership?.household_id;
@@ -243,7 +245,7 @@ export default function AskScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView
-            contentContainerStyle={styles.container}
+            contentContainerStyle={[styles.container, { paddingBottom: bottomInset }]}
             keyboardShouldPersistTaps="handled"
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={p.onBg} />
