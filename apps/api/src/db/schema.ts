@@ -13,6 +13,10 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+// Type-only, so it is erased at build time — no runtime dependency from the
+// schema onto the art module.
+import type { GeneratedLook } from '../art/prompts.js';
+
 // Enums --------------------------------------------------------------------
 
 export const memberRole = pgEnum('member_role', ['owner', 'member']);
@@ -244,6 +248,14 @@ export type IdentityVoice = {
   remove: string;
 };
 
+/**
+ * The kitchen's authored rendering language — see art/prompts.ts. Null means
+ * it never got one (or its one failed validation), and the art pipeline falls
+ * back to the house lock, which is exactly how every kitchen behaved before
+ * this column existed.
+ */
+export type IdentityLook = GeneratedLook;
+
 export const kitchenIdentities = pgTable(
   'kitchen_identities',
   {
@@ -259,6 +271,8 @@ export const kitchenIdentities = pgTable(
     mono: boolean('mono').notNull().default(false),
     palette: jsonb('palette').$type<IdentityPalette>().notNull(),
     voice: jsonb('voice').$type<IdentityVoice>(),
+    /** Authored rendering language; null → the house lock (pre-6c behaviour). */
+    look: jsonb('look').$type<IdentityLook>(),
     /** Generated hero image (public CDN URL) — null until the pipeline lands one. */
     heroUrl: text('hero_url'),
     /** none | pending | ok | failed — hero image lifecycle. */

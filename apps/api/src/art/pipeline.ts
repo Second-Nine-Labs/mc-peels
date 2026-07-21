@@ -23,7 +23,7 @@ import type { GeneratedImage } from './gemini.js';
 import { generateDishImage } from './gemini.js';
 import type { ArtVerdict } from './judge.js';
 import { judgeDishArt, judgeHeroArt } from './judge.js';
-import { dishArtPrompt, heroArtPrompt, styleLock } from './prompts.js';
+import { dishArtPrompt, heroArtPrompt, resolveLock } from './prompts.js';
 import { listKitchenArt, uploadArt } from './storage.js';
 
 export type EnsureArtStatus = 'ok' | 'exists' | 'failed' | 'unconfigured';
@@ -89,18 +89,49 @@ async function runGeneration(
   return { status: 'failed', artUrl: null, reasons };
 }
 
+/** What a kitchen is rendered in — resolved once, used by prompt and judge. */
+interface LookContext {
+  mode?: 'light' | 'dark';
+  look?: unknown;
+}
+
 /** Dish-tile entry point onto the shared engine: the style lock leads. */
 function generateJudgeUpload(
   descriptor: Descriptor,
   styleKey: string,
   storagePathBase: string,
+  ctx: LookContext = {},
 ): Promise<{ status: 'ok' | 'failed'; artUrl: string | null; reasons: string[] }> {
-  const lock = styleLock(styleKey);
+  const lock = resolveLock({ styleKey, ...ctx });
   return runGeneration(
-    dishArtPrompt({ ...descriptor, styleKey }),
+    dishArtPrompt({ ...descriptor, styleKey, ...ctx }),
     (image) => judgeDishArt(image, { title: descriptor.title, description: descriptor.description }, lock.style),
     storagePathBase,
   );
+}
+
+/**
+ * The kitchen's look + palette mode for a (household, cuisine), if it has a
+ * generated identity. Absent for the static trio and for any cuisine minted
+ * before looks existed — both correctly fall through to the house lock.
+ */
+async function lookContextFor(householdId: string, cuisine: string): Promise<LookContext> {
+  const rows = await getDb()
+    .select({
+      palette: schema.kitchenIdentities.palette,
+      look: schema.kitchenIdentities.look,
+    })
+    .from(schema.kitchenIdentities)
+    .where(
+      and(
+        eq(schema.kitchenIdentities.householdId, householdId),
+        eq(schema.kitchenIdentities.cuisine, cuisine),
+      ),
+    )
+    .limit(1);
+  const row = rows[0];
+  if (!row) return {};
+  return { mode: row.palette?.mode, look: row.look ?? undefined };
 }
 
 // ---------------------------------------------------------------------------
@@ -122,10 +153,18 @@ export async function ensureRecipeArt(
 
   await setRecipeArt(recipeId, { artStatus: 'pending' });
 
+  // Tiles read the kitchen's own look for the same reason the hero does: a
+  // household whose kitchen minted an illustrated look would otherwise get an
+  // illustrated backdrop behind default-photography tiles — the mismatch this
+  // phase removed, reappearing one level down. One extra read on a path that
+  // is already calling two model APIs.
+  const ctx = await lookContextFor(recipe.householdId, recipe.cuisine);
+
   const result = await generateJudgeUpload(
     { title: recipe.title, sub: recipe.sub, description: recipe.description },
     recipe.cuisine,
     `recipes/${recipeId}`,
+    ctx,
   );
 
   if (result.status === 'ok' && result.artUrl) {
@@ -272,9 +311,15 @@ export async function ensureKitchenHero(
   // One lock feeds the prompt AND the judge, so the hero is generated in the
   // same medium the menu tiles use and graded against that medium — not
   // against an assumed photographic brief.
-  const lock = styleLock(cuisine, mode);
+  const lock = resolveLock({ styleKey: cuisine, mode, look: identity.look });
   const result = await runGeneration(
-    heroArtPrompt({ cuisineLabel: label, styleKey: cuisine, mode, mood: identity.tagline }),
+    heroArtPrompt({
+      cuisineLabel: label,
+      styleKey: cuisine,
+      mode,
+      look: identity.look,
+      mood: identity.tagline,
+    }),
     (image) => judgeHeroArt(image, label, lock),
     `heroes/${householdId}/${cuisine}`,
   );

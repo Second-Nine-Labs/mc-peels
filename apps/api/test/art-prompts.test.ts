@@ -6,7 +6,9 @@ import {
   dishArtPrompt,
   heroArtPrompt,
   heroJudgeRubric,
+  isCoherentLook,
   judgeRubric,
+  resolveLock,
   styleLock,
 } from '../src/art/prompts.js';
 import { newestPerDish } from '../src/art/storage.js';
@@ -114,6 +116,97 @@ describe('heroArtPrompt', () => {
       mood: 'night-market heat, riverside calm',
     });
     expect(prompt).toContain('night-market heat, riverside calm');
+  });
+});
+
+describe('isCoherentLook', () => {
+  const RISO = {
+    medium: 'illustration' as const,
+    style:
+      'two-ink risograph illustration, teal #1B7A6B over warm orange #E86A33, visible registration slip and paper tooth',
+    hero: 'two-ink risograph illustration of the dining room, teal #1B7A6B over warm orange #E86A33, registration slip, paper tooth',
+  };
+  const TUNGSTEN = {
+    medium: 'photograph' as const,
+    style:
+      'slow-shutter tungsten food photography, brass and smoke-glass surfaces, a single warm key from a low lamp, deep falloff',
+    hero: 'slow-shutter tungsten interior photography, brass and smoke-glass, one warm lamp low in frame, deep shadow falloff',
+  };
+
+  it('accepts a look whose clauses agree on their medium', () => {
+    expect(isCoherentLook(RISO)).toBe(true);
+    expect(isCoherentLook(TUNGSTEN)).toBe(true);
+  });
+
+  it('REJECTS a look whose tiles and hero disagree on medium', () => {
+    // The whole reason the validator exists: a model free to write two clauses
+    // can describe illustrated tiles beside a photographic room, which is the
+    // exact bug this phase removed from the hand-written locks.
+    expect(isCoherentLook({ ...RISO, hero: TUNGSTEN.hero })).toBe(false);
+    expect(isCoherentLook({ ...TUNGSTEN, hero: RISO.hero })).toBe(false);
+  });
+
+  it('rejects a clause that names neither medium', () => {
+    expect(isCoherentLook({ ...RISO, style: 'a really beautiful and evocative rendering of the dish, very nice' })).toBe(
+      false,
+    );
+  });
+
+  it('rejects an unknown medium', () => {
+    expect(isCoherentLook({ ...RISO, medium: 'collage' })).toBe(false);
+    expect(isCoherentLook({ ...RISO, medium: undefined })).toBe(false);
+  });
+
+  it('rejects clauses that reintroduce what the house rules forbid', () => {
+    expect(isCoherentLook({ ...RISO, style: `${RISO.style}, hand-painted text across the top` })).toBe(false);
+    expect(isCoherentLook({ ...TUNGSTEN, hero: `${TUNGSTEN.hero}, a neon logo on the back wall` })).toBe(false);
+  });
+
+  it('rejects clauses that are too short to be a brief or too long to be one', () => {
+    expect(isCoherentLook({ ...RISO, style: 'illustration' })).toBe(false);
+    expect(isCoherentLook({ ...RISO, style: `${RISO.style} ${'and more detail '.repeat(30)}` })).toBe(false);
+  });
+
+  it('rejects anything that is not a look at all', () => {
+    for (const value of [null, undefined, 'illustration', 42, [], {}]) {
+      expect(isCoherentLook(value)).toBe(false);
+    }
+  });
+});
+
+describe('resolveLock', () => {
+  const RISO = {
+    medium: 'illustration' as const,
+    style:
+      'two-ink risograph illustration, teal #1B7A6B over warm orange #E86A33, visible registration slip and paper tooth',
+    hero: 'two-ink risograph illustration of the dining room, teal #1B7A6B over warm orange #E86A33, registration slip, paper tooth',
+  };
+
+  it('lets an unnamed kitchen wear its authored look', () => {
+    const lock = resolveLock({ styleKey: 'thai', mode: 'light', look: RISO });
+    expect(lock.medium).toBe('illustration');
+    expect(lock.style).toContain('risograph');
+  });
+
+  it('keeps a flagship hand-designed — a named lock beats an authored one', () => {
+    // §4 keeps the flagships bespoke; only the kitchens that would otherwise
+    // share one default get to author themselves.
+    expect(resolveLock({ styleKey: 'stolovaya-7', look: RISO }).key).toBe('soviet-poster-v1');
+  });
+
+  it('falls back to the house lock when the look is incoherent', () => {
+    const bad = { ...RISO, hero: 'moody cinematic interior photography, deep shadows, one glowing source, premium' };
+    expect(resolveLock({ styleKey: 'thai', mode: 'light', look: bad }).key).toBe('light-premium-v1');
+    expect(resolveLock({ styleKey: 'thai', mode: 'dark', look: null }).key).toBe('dark-premium-v1');
+  });
+
+  it('carries the authored look all the way into both prompts', () => {
+    const tile = dishArtPrompt({ title: 'Khao soi', styleKey: 'thai', mode: 'light', look: RISO });
+    const hero = heroArtPrompt({ cuisineLabel: 'Thai', styleKey: 'thai', mode: 'light', look: RISO });
+    expect(tile).toContain('risograph');
+    expect(hero).toContain('risograph');
+    // Same medium at both distances — the constraint, end to end.
+    expect(hero).toContain('establishing illustration');
   });
 });
 

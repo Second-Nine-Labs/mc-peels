@@ -142,6 +142,101 @@ export function styleLock(key: string, mode: 'light' | 'dark' = 'dark'): StyleLo
   return LOCKS[key] ?? (mode === 'light' ? DEFAULT_LIGHT : DEFAULT_DARK);
 }
 
+// ---------------------------------------------------------------------------
+// Generated looks — a kitchen that authors its own rendering language.
+//
+// Review §4: hand-built costumes don't scale past the flagships, and they bias
+// every new kitchen toward whoever wrote the last one. Six locks would also
+// mean two households that both cook Thai get identical kitchens.
+//
+// So the mint authors the look. The MEDIUM stays a bounded enum, because it is
+// the one thing that has to be machine-checkable; the descriptive clauses are
+// free, because that is where the character lives and an enum cannot hold it.
+
+/** A rendering language authored at mint time rather than hand-written here. */
+export interface GeneratedLook {
+  medium: ArtMedium;
+  /** The tile clause — same job as a StyleLock's `style`. */
+  style: string;
+  /** The hero clause — the same look, stepped back to the room. */
+  hero: string;
+}
+
+const PHOTO_WORDS = /photograph|photography|photorealistic|photo-realistic/i;
+const DRAWN_WORDS =
+  /illustration|illustrated|gouache|painted|painting|drawn|woodcut|risograph|linocut|screen-?print|etching|lithograph/i;
+
+/**
+ * Words HOUSE_RULES already forbids. A look that reintroduces them would be
+ * arguing with the rules appended after it, so it is rejected instead.
+ */
+const LOOK_BANNED = /\b(text|lettering|typography|words?|caption|logos?|watermarks?|emoji|signage)\b/i;
+
+const LOOK_MIN = 40;
+const LOOK_MAX = 320;
+
+function clauseMatchesMedium(clause: string, medium: ArtMedium): boolean {
+  return medium === 'illustration'
+    ? DRAWN_WORDS.test(clause) && !PHOTO_WORDS.test(clause)
+    : PHOTO_WORDS.test(clause) && !DRAWN_WORDS.test(clause);
+}
+
+/**
+ * Is an authored look coherent and safe to put in a prompt?
+ *
+ * The load-bearing check is the last one: BOTH clauses must name the declared
+ * medium and neither may name the other. That is the machine-checkable form of
+ * "medium is consistent within a kitchen" — without it, a model free to write
+ * two clauses could describe illustrated tiles beside a photographic hero, which
+ * is precisely the bug this phase exists to kill.
+ *
+ * Rejection is safe by design: the caller drops the look and falls back to the
+ * house lock, so a bad generation degrades to today's appearance.
+ */
+export function isCoherentLook(value: unknown): value is GeneratedLook {
+  if (!value || typeof value !== 'object') return false;
+  const look = value as Record<string, unknown>;
+  if (look.medium !== 'photograph' && look.medium !== 'illustration') return false;
+
+  const clauses = [look.style, look.hero];
+  for (const clause of clauses) {
+    if (typeof clause !== 'string') return false;
+    const trimmed = clause.trim();
+    if (trimmed.length < LOOK_MIN || trimmed.length > LOOK_MAX) return false;
+    if (LOOK_BANNED.test(trimmed)) return false;
+    if (!clauseMatchesMedium(trimmed, look.medium)) return false;
+  }
+  return true;
+}
+
+/** Wrap a validated authored look as a lock the prompt builders can use. */
+export function lockFromLook(look: GeneratedLook): StyleLock {
+  return {
+    key: 'generated-v1',
+    medium: look.medium,
+    style: look.style.trim(),
+    hero: look.hero.trim(),
+  };
+}
+
+/**
+ * The single place a kitchen's lock is decided.
+ *
+ * Precedence is deliberate: a NAMED lock wins, because a named key means this
+ * cuisine has a hand-designed flagship (§4 keeps the flagships bespoke). Only
+ * the kitchens that would otherwise share one default get their authored look.
+ */
+export function resolveLock(opts: {
+  styleKey: string;
+  mode?: 'light' | 'dark';
+  look?: unknown;
+}): StyleLock {
+  const named = LOCKS[opts.styleKey];
+  if (named) return named;
+  if (isCoherentLook(opts.look)) return lockFromLook(opts.look);
+  return opts.mode === 'light' ? DEFAULT_LIGHT : DEFAULT_DARK;
+}
+
 /** @deprecated name — kept for callers/tests; styleLock takes any style key. */
 export const styleLockForCuisine = styleLock;
 
@@ -151,12 +246,20 @@ export interface DishForArt {
   description?: string | null;
   /** Kitchen id (static trio) or cuisine (shelf-minted). */
   styleKey: string;
+  /** Palette mode — only breaks the tie when no lock is named or authored. */
+  mode?: 'light' | 'dark';
+  /**
+   * The kitchen's authored look, when it has one. Tiles must read this too:
+   * a hero in the household's own medium beside default-photography tiles
+   * would recreate the mismatch one level down.
+   */
+  look?: unknown;
 }
 
 /** The full generation prompt for one dish tile. The style lock leads, so it
  * — not a hardcoded "photograph" — decides the medium. */
 export function dishArtPrompt(dish: DishForArt): string {
-  const lock = styleLock(dish.styleKey);
+  const lock = resolveLock({ styleKey: dish.styleKey, mode: dish.mode, look: dish.look });
   const subject = [
     dish.sub ? `${dish.title} (${dish.sub})` : dish.title,
     dish.description ?? null,
@@ -190,13 +293,15 @@ export interface HeroForArt {
   styleKey: string;
   /** Palette mode — only breaks the tie for kitchens with no named lock. */
   mode: 'light' | 'dark';
+  /** The kitchen's authored look, when it has one. */
+  look?: unknown;
   /** The kitchen's tagline/mood, if any — nudges the atmosphere. */
   mood?: string | null;
 }
 
 /** The full generation prompt for a kitchen hero backdrop. */
 export function heroArtPrompt(hero: HeroForArt): string {
-  const lock = styleLock(hero.styleKey, hero.mode);
+  const lock = resolveLock({ styleKey: hero.styleKey, mode: hero.mode, look: hero.look });
   const scene =
     `An atmospheric establishing ${lock.medium} of an intimate ${hero.cuisineLabel} eatery interior — ` +
     'the counter, a set table, and the light that makes it feel like a real, beloved place';

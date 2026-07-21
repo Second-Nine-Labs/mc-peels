@@ -17,6 +17,8 @@
 import { Anthropic } from '@anthropic-ai/sdk';
 import type { Tool, ToolUseBlock } from '@anthropic-ai/sdk/resources/messages';
 
+import type { GeneratedLook } from '../art/prompts.js';
+import { isCoherentLook } from '../art/prompts.js';
 import type { IdentityPalette, IdentityVoice } from '../db/schema.js';
 import { env } from '../env.js';
 
@@ -27,6 +29,13 @@ export interface IdentitySpec {
   mono: boolean;
   palette: IdentityPalette;
   voice: IdentityVoice;
+  /**
+   * The kitchen's authored rendering language, when the model produced a
+   * coherent one. Optional on purpose: an incoherent look is dropped rather
+   * than repaired, and the kitchen wears the house lock instead — the same
+   * appearance it would have had before looks existed.
+   */
+  look?: GeneratedLook;
 }
 
 export interface GenerateIdentityInput {
@@ -106,8 +115,33 @@ const IDENTITY_TOOL: Tool = {
         required: ['back', 'launch', 'add', 'remove'],
         additionalProperties: false,
       },
+      look: {
+        type: 'object',
+        description:
+          "How this kitchen's pictures are MADE. Commit to one way of making images and describe it as a real physical process, the way a printer or a photographer would. The two clauses are the same look at two distances — never two different looks.",
+        properties: {
+          medium: {
+            type: 'string',
+            enum: ['photograph', 'illustration'],
+            description:
+              'Photograph for most kitchens. Choose illustration only when this cuisine has a real graphic tradition worth wearing (poster art, printed menu cards, painted signage) — it should be the exception, not the default.',
+          },
+          style: {
+            type: 'string',
+            description:
+              'The dish-tile clause, 40-320 characters. Name the process and its physical artifacts, and give real hex values. Good: "1960s Soviet propaganda-poster food illustration, flat ink printing, bold black keyline, faded red #C8332B on cream paper #F2E8D5, slight misregistration and aged-paper grain, heroic low angle". Describe the RENDERING only — never lettering, captions, logos, or words, which are forbidden elsewhere in the prompt and must not be reintroduced here.',
+          },
+          hero: {
+            type: 'string',
+            description:
+              'The same look applied to a wide establishing view of the room, 40-320 characters. Same medium, same palette, same process artifacts — one artist stepping back from the plate. If style is an illustration, this must be too; a mismatch is rejected.',
+          },
+        },
+        required: ['medium', 'style', 'hero'],
+        additionalProperties: false,
+      },
     },
-    required: ['name', 'sub', 'tagline', 'mono', 'palette', 'voice'],
+    required: ['name', 'sub', 'tagline', 'mono', 'palette', 'voice', 'look'],
     additionalProperties: false,
   },
 };
@@ -126,6 +160,8 @@ function prompt(input: GenerateIdentityInput): string {
     "- Evocative, premium, specific — never generic. The name should feel like a real place, drawn from this cuisine's culture, streets, or table. Native script is welcome where the cuisine has one.",
     '- NEVER use emoji or any emoji-like glyph. Typographic characters only.',
     "- The palette seed must suit the cuisine's real mood — a Chongqing night kitchen is dark and red; a Nordic table is light and cool.",
+    '- The look is how the pictures are MADE, not what is in them. Commit to one process and name its artifacts, the way a printer or a photographer would — "two-ink risograph, visible registration slip, paper tooth" beats "beautiful art". Most kitchens are photographs; reach for illustration only when the cuisine has a real graphic tradition worth wearing.',
+    '- Both look clauses are one artist at two distances. If the tiles are illustrated, the room is illustrated too.',
     "- Keep every string within its length guidance. Voice verbs pair the cuisine's language with a short English gloss.",
     '',
     'Record the identity with name_the_kitchen.',
@@ -180,5 +216,10 @@ export async function generateIdentitySpec(input: GenerateIdentityInput): Promis
       add: clampStr(voice.add, 22, 'add to the plan'),
       remove: clampStr(voice.remove, 22, 'remove'),
     },
+    // Not clamped, because a look cannot be repaired the way a string can:
+    // truncating a clause could strip the very words that make it agree with
+    // its medium, and a half-valid look is worse than none. Take it whole or
+    // drop it and wear the house lock.
+    ...(isCoherentLook(raw.look) ? { look: raw.look } : {}),
   };
 }
