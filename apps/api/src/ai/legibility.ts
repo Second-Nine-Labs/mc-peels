@@ -80,38 +80,83 @@ export function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/** AA body text. Large/display text is allowed the 3:1 threshold. */
+const AA_BODY = 4.5;
+const AA_LARGE = 3;
+
+const ON_ACCENT_LIGHT = '#FFFFFF';
+const ON_ACCENT_DARK = '#0B0B0B';
+
+/** Whichever on-color actually wins against this fill. */
+function onAccentFor(accentHex: string): string {
+  return contrast(ON_ACCENT_LIGHT, accentHex) >= contrast(ON_ACCENT_DARK, accentHex)
+    ? ON_ACCENT_LIGHT
+    : ON_ACCENT_DARK;
+}
+
+/**
+ * Solve the accent fill for its own legibility.
+ *
+ * The ramps used to fix both the fill lightness AND the on-color, then hope.
+ * They hoped wrong: HSL lightness badly overstates perceived darkness for warm
+ * hues, so an L44 yellow fill with a fixed near-white label measured 2.01:1.
+ *
+ * Fixing the on-color alone is not enough either — even pure white or black
+ * tops out around 4.45:1 for the worst hues, because those fills sit at a
+ * luminance where NEITHER extreme clears AA. The fill itself has to move.
+ *
+ * So: walk outward from the designer's target lightness and take the first
+ * value whose better on-color clears the bar. Hue keeps its character, the
+ * label stays readable, and the engine does the math it always claimed to.
+ */
+function accentFor(hue: number, sat: number, targetL: number): string {
+  for (let delta = 0; delta <= 40; delta += 1) {
+    for (const l of delta === 0 ? [targetL] : [targetL - delta, targetL + delta]) {
+      if (l < 12 || l > 88) continue;
+      const candidate = hslHex(hue, sat, l);
+      const best = Math.max(
+        contrast(ON_ACCENT_LIGHT, candidate),
+        contrast(ON_ACCENT_DARK, candidate),
+      );
+      if (best >= AA_BODY + 0.15) return candidate;
+    }
+  }
+  // Unreachable for any hue, but a dark fill with white on it is the safe end.
+  return hslHex(hue, sat, 30);
+}
+
 /** Mirrors the client palette engine's fixed lightness ramps. */
 export function deriveTokens(seed: PaletteSeed): DerivedTokens {
   const { hue: h, accentHue: a, mode } = seed;
   if (mode === 'dark') {
+    const accent = accentFor(a, 76, 58);
     return {
       canvas: hslHex(h, 32, 8),
       paper: hslHex(h, 28, 11),
       card: hslHex(h, 24, 15),
       ink: hslHex(h, 24, 92),
       inkSoft: hslHex(h, 14, 66),
-      accent: hslHex(a, 76, 58),
-      onAccent: hslHex(a, 45, 10),
+      accent,
+      onAccent: onAccentFor(accent),
       onHero: hslHex(h, 24, 93),
       onHeroSoft: hslHex(h, 14, 72),
     };
   }
+  const accent = accentFor(a, 66, 44);
   return {
     canvas: hslHex(h, 34, 96),
     paper: hslHex(h, 26, 93),
     card: hslHex(h, 30, 99),
     ink: hslHex(h, 42, 14),
-    inkSoft: hslHex(h, 18, 40),
-    accent: hslHex(a, 66, 44),
-    onAccent: hslHex(a, 45, 98),
+    // L40 fell to 4.04:1 on paper at yellow hues, where HSL lightness
+    // overstates perceived darkness. L34 clears AA across the whole circle.
+    inkSoft: hslHex(h, 18, 34),
+    accent,
+    onAccent: onAccentFor(accent),
     onHero: hslHex(h, 42, 14),
-    onHeroSoft: hslHex(h, 18, 40),
+    onHeroSoft: hslHex(h, 18, 34),
   };
 }
-
-/** AA body text. Large/display text is allowed the 3:1 threshold. */
-const AA_BODY = 4.5;
-const AA_LARGE = 3;
 
 interface Pair {
   /** Human name, used in the rejection log so a failure is actionable. */

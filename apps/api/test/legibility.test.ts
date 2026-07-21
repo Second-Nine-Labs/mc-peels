@@ -29,29 +29,39 @@ describe('assertLegible', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('catches the accent-label hole in the current ramps', () => {
-    // DOCUMENTS A REAL DEFECT, not a hypothetical. palette.ts says "the
-    // accent's text color flips to the side opposite the accent's own
-    // lightness" — but light mode hardcodes onAccent to L98 regardless. For
-    // any accent hue whose L44 fill is perceptually light (the yellow/green
-    // band), that is near-white on near-white.
-    const yellowAccent: PaletteSeed = { mode: 'light', hue: 240, accentHue: 60 };
-    const result = assertLegible(yellowAccent);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      const hit = result.failures.find((f) => f.pair === 'onAccent on accent');
-      expect(hit).toBeDefined();
-      expect(hit!.ratio).toBeLessThan(2.5);
+  it('passes every hue and mode the model can emit', () => {
+    // The engine's whole promise. Before the ramps were fixed this stood at
+    // 26%: the accent label hardcoded a near-white on-color, which fell to
+    // 2.01:1 on the yellow/green band. Now the fill solves for its own
+    // legibility, so there is no hue a mint can land on that breaks AA.
+    let checked = 0;
+    for (let hue = 0; hue < 360; hue += 5) {
+      for (let accentHue = 0; accentHue < 360; accentHue += 5) {
+        for (const mode of ['light', 'dark'] as const) {
+          checked++;
+          const seed: PaletteSeed = { mode, hue, accentHue };
+          expect(assertLegible(seed).ok, `${mode} h${hue}/a${accentHue}`).toBe(true);
+        }
+      }
     }
+    expect(checked).toBe(10368);
   });
 
-  it('rejects two of the three kitchens live in production today', () => {
-    // Griddle & Cheese and Limanaki, read from the prod DB 2026-07-21. This is
-    // the gate earning its keep before a single new seed is minted.
-    expect(assertLegible({ mode: 'light', hue: 40, accentHue: 15 }).ok).toBe(false);
-    expect(assertLegible({ mode: 'light', hue: 45, accentHue: 28 }).ok).toBe(false);
-    // Trattoria Sarda passes — the hole is real but not universal.
+  it('passes the three kitchens live in production', () => {
+    // Read from the prod DB 2026-07-21. Two of these FAILED before the ramp
+    // fix — Griddle & Cheese at 4.49 and Limanaki at 3.86 on its accent label.
+    expect(assertLegible({ mode: 'light', hue: 40, accentHue: 15 }).ok).toBe(true);
+    expect(assertLegible({ mode: 'light', hue: 45, accentHue: 28 }).ok).toBe(true);
     expect(assertLegible({ mode: 'light', hue: 25, accentHue: 15 }).ok).toBe(true);
+  });
+
+  it('keeps the accent label clear of AA for every accent hue', () => {
+    for (let accentHue = 0; accentHue < 360; accentHue += 5) {
+      for (const mode of ['light', 'dark'] as const) {
+        const t = deriveTokens({ mode, hue: 200, accentHue });
+        expect(contrast(t.onAccent, t.accent), `${mode} a${accentHue}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 
   it('reports the offending pair, not just a boolean', () => {
