@@ -12,8 +12,9 @@
 import { and, eq } from 'drizzle-orm';
 
 import { generateIdentitySpec } from '../ai/kitchen-identity.js';
+import { HOUSE_SEED, assertLegible } from '../ai/legibility.js';
 import { getDb, schema } from '../db/client.js';
-import type { KitchenIdentity } from '../db/schema.js';
+import type { IdentityPalette, KitchenIdentity } from '../db/schema.js';
 import { getHouseholdContext } from './households.js';
 
 export interface KitchenIdentityWire {
@@ -72,6 +73,29 @@ async function findRow(householdId: string, cuisine: string): Promise<KitchenIde
 }
 
 /**
+ * Gate a generated palette seed, falling back to the house palette.
+ *
+ * Exported for test: the fallback path is the one that must not regress, and
+ * it is otherwise only reachable behind a live model call.
+ */
+export function legiblePaletteOr(
+  seed: IdentityPalette,
+  cuisine: string,
+): IdentityPalette {
+  const verdict = assertLegible(seed);
+  if (verdict.ok) return seed;
+
+  const detail = verdict.failures
+    .map((f) => `${f.pair} ${f.ratio}:1 (need ${f.required})`)
+    .join('; ');
+  console.warn(
+    `[kitchen-identity] rejected illegible palette for "${cuisine}" ` +
+      `(mode=${seed.mode} hue=${seed.hue} accentHue=${seed.accentHue}): ${detail}`,
+  );
+  return HOUSE_SEED;
+}
+
+/**
  * Ensure a household's kitchen for `cuisine` has an identity. Returns the
  * cached one if present; otherwise generates, persists, and returns it. The
  * insert is race-safe (onConflictDoNothing → re-read), so two near-simultaneous
@@ -92,6 +116,13 @@ export async function ensureKitchenIdentity(
     dishNames: input.dishNames,
   });
 
+  // The legibility gate. A generated palette is a *proposal*; it only reaches a
+  // screen if every text/surface pair it implies clears AA. On failure the
+  // kitchen keeps its generated name and voice — the parts the model is good at
+  // — and falls back to the house palette, so a bad seed costs character rather
+  // than readability. Logged with the offending pair so it is diagnosable.
+  const palette = legiblePaletteOr(spec.palette, input.cuisine);
+
   const inserted = await getDb()
     .insert(schema.kitchenIdentities)
     .values({
@@ -101,7 +132,7 @@ export async function ensureKitchenIdentity(
       sub: spec.sub,
       tagline: spec.tagline,
       mono: spec.mono,
-      palette: spec.palette,
+      palette,
       voice: spec.voice,
       heroStatus: 'none',
     })

@@ -67,17 +67,27 @@ export function hslHex(h: number, s: number, l: number): string {
 /** WCAG 2.1 relative luminance. */
 export function luminance(hex: string): number {
   const h = hex.replace('#', '');
-  const chan = [0, 2, 4].map((i) => {
+  const channel = (i: number): number => {
     const v = parseInt(h.slice(i, i + 2), 16) / 255;
     return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2];
+  };
+  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
 }
 
 /** WCAG 2.1 contrast ratio, 1..21. */
 export function contrast(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  const la = luminance(a);
+  const lb = luminance(b);
+  const hi = Math.max(la, lb);
+  const lo = Math.min(la, lb);
   return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Hues must be real, finite numbers; mode must be one of the two we ramp. */
+function isUsableSeed(seed: PaletteSeed | null | undefined): seed is PaletteSeed {
+  if (!seed) return false;
+  if (seed.mode !== 'light' && seed.mode !== 'dark') return false;
+  return Number.isFinite(seed.hue) && Number.isFinite(seed.accentHue);
 }
 
 /** AA body text. Large/display text is allowed the 3:1 threshold. */
@@ -206,6 +216,25 @@ export type LegibilityResult =
  * logs `failures`; the seed is never persisted.
  */
 export function assertLegible(seed: PaletteSeed): LegibilityResult {
+  // Validate the INPUT before trusting any arithmetic on it. A NaN hue derives
+  // hex strings like "#NaNNaNNaN", whose contrast is NaN — and `NaN < 4.5` is
+  // false, so every pair would silently "pass" and garbage would reach a screen.
+  // A gate that cannot reject malformed input is not a gate.
+  if (!isUsableSeed(seed)) {
+    return {
+      ok: false,
+      failures: [
+        {
+          pair: 'seed shape',
+          ratio: 0,
+          required: AA_BODY,
+          fg: String(seed?.hue),
+          bg: String(seed?.accentHue),
+        },
+      ],
+    };
+  }
+
   const tokens = deriveTokens(seed);
   const failures: LegibilityFailure[] = [];
 

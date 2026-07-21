@@ -193,6 +193,15 @@ being coherent.
 
 ## Phase 6 — `feat/gemini-design`
 
+- [x] **Gate wired into the mint** — `legiblePaletteOr()` in
+      `core/kitchen-identities.ts`. A rejected seed keeps its generated name and
+      voice (what the model is good at) and falls back to `HOUSE_SEED`, logging
+      cuisine + the offending pair so a production rejection is diagnosable.
+      Wiring it surfaced a hole in the gate itself: a NaN hue derived
+      `"#NaNNaNNaN"`, whose contrast is NaN, and `NaN < 4.5` is false — so every
+      pair "passed" and garbage would have reached a screen. The gate now
+      validates seed shape before trusting arithmetic on it.
+
 - [ ] Add a Gemini **text** path beside `art/gemini.ts` — same REST-via-fetch pattern,
       same `GEMINI_API_KEY`, no SDK. New `GEMINI_TEXT_MODEL` env with a default.
 - [ ] Widen the identity seed to a **design seed**: `surface`, `ornament`, `typeVoice`,
