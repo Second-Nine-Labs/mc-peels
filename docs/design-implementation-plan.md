@@ -114,7 +114,7 @@ state rather than a `matchMedia` subscription.
       buttons) with no partial repaint, and System correctly returned to
       following the OS.
 
-## Phase 4 — `feat/responsive-nav`
+## Phase 4 — `feat/responsive-nav` — mostly complete, one open question
 
 Largest blast radius. Screenshot every route at both breakpoints before merge.
 
@@ -122,13 +122,36 @@ Note: main has exactly the **three** destinations §2 describes — Kitchens (`i
 New cart (`ask`), Household. `carts` was folded into `ask` by `6156b76`; confirmed
 with TJ that this is the intended shape.
 
-- [ ] Single `<AppNav variant="bottom" | "header" />` via custom `tabBar` prop.
-- [ ] Breakpoint 768px via `useWindowDimensions()` — never `Dimensions.get()` once.
-- [ ] Desktop header carries wordmark + account affordance a tab bar can't.
-- [ ] Kill the stack header on tab roots (`household.tsx` currently has one).
-- [ ] Detail routes keep a minimal back header **and** keep bottom nav visible on mobile.
-- [ ] Full-screen flows stay chrome-free — already correct, just don't regress them.
-- [ ] Back affordance: same position, same size, everywhere.
+- [x] Single `<AppNav variant="bottom" | "header" />` via custom `tabBar` prop.
+- [x] Breakpoint 768px via `useWindowDimensions()` — verified re-laying out live on
+      resize, no reload: header to bottom bar, inset 24 to 81, active tab preserved.
+- [x] Desktop header carries wordmark + account affordance a tab bar can't.
+- [x] Kill the stack header on tab roots — `headerShown: false` hoisted to
+      `screenOptions`; Household was the lone exception.
+- [x] Full-screen flows stay chrome-free — untouched, still outside `(tabs)`.
+- [ ] **OPEN — needs TJ.** Detail routes keeping the bottom nav visible, plus a
+      consistent back affordance. See "Phase 4 open question" below.
+
+### Phase 4 open question — detail routes inside the tabs
+
+`cart/[id]` and `restaurant/[id]` live at the app root, *outside* `(tabs)`, so the
+tab bar is not rendered over them. Keeping the nav visible there (review §2) means
+moving them inside the group — `(tabs)` is a route group, so URLs are unaffected.
+
+Two things make it more than a file move:
+
+1. **Back affordance.** They currently get their back button from the root Stack's
+   header. Inside a Tabs navigator there is no back button — the standard fix is a
+   nested Stack per tab (e.g. `(tabs)/ask/_layout.tsx` wrapping `index` +
+   `cart/[id]`), which is a real routing restructure, not a move.
+2. **`restaurant/[id]` has a pinned order bar** (KitchenScreen Z4,
+   `position: absolute; bottom: 0`). A tab bar at the bottom would sit on top of
+   it. The order bar would have to lift by the nav height.
+
+There is also a genuine design tension in the review itself: §2 says the nav is
+"the one thing that never changes between the blue app and the Eats/Book worlds",
+which argues for keeping it in the kitchen — but the kitchen is the most immersive
+surface in the app, wearing a full generated costume.
 
 ## Phase 5 — `feat/token-consolidation`
 
