@@ -23,7 +23,7 @@ import type { GeneratedImage } from './gemini.js';
 import { generateDishImage } from './gemini.js';
 import type { ArtVerdict } from './judge.js';
 import { judgeDishArt, judgeHeroArt } from './judge.js';
-import { dishArtPrompt, heroArtPrompt, heroStyle, styleLock } from './prompts.js';
+import { dishArtPrompt, heroArtPrompt, styleLock } from './prompts.js';
 import { listKitchenArt, uploadArt } from './storage.js';
 
 export type EnsureArtStatus = 'ok' | 'exists' | 'failed' | 'unconfigured';
@@ -269,9 +269,13 @@ export async function ensureKitchenHero(
 
   const label = humanizeCuisine(cuisine);
   const mode = identity.palette.mode;
+  // One lock feeds the prompt AND the judge, so the hero is generated in the
+  // same medium the menu tiles use and graded against that medium — not
+  // against an assumed photographic brief.
+  const lock = styleLock(cuisine, mode);
   const result = await runGeneration(
-    heroArtPrompt({ cuisineLabel: label, mode, mood: identity.tagline }),
-    (image) => judgeHeroArt(image, label, heroStyle(mode)),
+    heroArtPrompt({ cuisineLabel: label, styleKey: cuisine, mode, mood: identity.tagline }),
+    (image) => judgeHeroArt(image, label, lock),
     `heroes/${householdId}/${cuisine}`,
   );
 

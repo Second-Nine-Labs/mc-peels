@@ -10,6 +10,7 @@ import type { Tool, ToolUseBlock } from '@anthropic-ai/sdk/resources/messages';
 
 import { env } from '../env.js';
 import type { GeneratedImage } from './gemini.js';
+import type { StyleLock } from './prompts.js';
 import { heroJudgeRubric, judgeRubric } from './prompts.js';
 
 export interface ArtVerdict {
@@ -84,7 +85,15 @@ export function judgeDishArt(
   return grade(image, judgeRubric(dish, style));
 }
 
-/** The kitchen-hero variant — same strict eye, scene-oriented rubric. */
-export function judgeHeroArt(image: GeneratedImage, subject: string, style: string): Promise<ArtVerdict> {
-  return grade(image, heroJudgeRubric(subject, style));
+/**
+ * The kitchen-hero variant — same strict eye, scene-oriented rubric, graded
+ * against the kitchen's own lock so its medium is the standard rather than an
+ * assumed photographic one.
+ */
+export function judgeHeroArt(
+  image: GeneratedImage,
+  subject: string,
+  lock: Pick<StyleLock, 'medium' | 'hero'>,
+): Promise<ArtVerdict> {
+  return grade(image, heroJudgeRubric(subject, lock));
 }

@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { parseGeminiImage } from '../src/art/gemini.js';
-import { dishArtPrompt, judgeRubric, styleLock } from '../src/art/prompts.js';
+import {
+  ALL_LOCKS,
+  dishArtPrompt,
+  heroArtPrompt,
+  heroJudgeRubric,
+  judgeRubric,
+  styleLock,
+} from '../src/art/prompts.js';
 import { newestPerDish } from '../src/art/storage.js';
 
 describe('styleLock', () => {
@@ -22,6 +29,109 @@ describe('styleLock', () => {
 
   it('falls back to the premium dark lock for unknown keys', () => {
     expect(styleLock('oaxacan').key).toBe('dark-premium-v1');
+  });
+
+  it('breaks the fallback tie by palette mode, so a light kitchen is not dark', () => {
+    expect(styleLock('oaxacan', 'light').key).toBe('light-premium-v1');
+    expect(styleLock('oaxacan', 'dark').key).toBe('dark-premium-v1');
+  });
+
+  it('ignores the mode for a lock that has already committed to a look', () => {
+    // A named lock IS the decision; the palette does not get to re-open it.
+    expect(styleLock('stolovaya-7', 'light').key).toBe('soviet-poster-v1');
+    expect(styleLock('stolovaya-7', 'dark').key).toBe('soviet-poster-v1');
+  });
+});
+
+describe('medium coherence', () => {
+  // TJ's one hard constraint: medium is consistent WITHIN a kitchen. This is
+  // the guard — the previous bug was a hero clause that said "photography"
+  // while its tiles were flat-ink illustration.
+  const PHOTO_WORDS = /photograph|photography/i;
+  const DRAWN_WORDS = /illustration|gouache|painted|drawn/i;
+
+  it.each(ALL_LOCKS.map((lock) => [lock.key, lock] as const))(
+    '%s renders its tiles and its hero in one medium',
+    (_key, lock) => {
+      if (lock.medium === 'illustration') {
+        expect(lock.style).toMatch(DRAWN_WORDS);
+        expect(lock.hero).toMatch(DRAWN_WORDS);
+        expect(lock.hero).not.toMatch(PHOTO_WORDS);
+      } else {
+        expect(lock.style).toMatch(PHOTO_WORDS);
+        expect(lock.hero).toMatch(PHOTO_WORDS);
+        expect(lock.hero).not.toMatch(DRAWN_WORDS);
+      }
+    },
+  );
+
+  it('keeps illustration reachable but uncommon', () => {
+    const drawn = ALL_LOCKS.filter((lock) => lock.medium === 'illustration');
+    expect(drawn.length).toBeGreaterThan(0);
+    expect(drawn.length).toBeLessThan(ALL_LOCKS.length / 2);
+  });
+});
+
+describe('heroArtPrompt', () => {
+  it('lets an illustrated kitchen have an illustrated hero', () => {
+    const prompt = heroArtPrompt({
+      cuisineLabel: 'Post Soviet',
+      styleKey: 'stolovaya-7',
+      mode: 'light',
+    });
+    // The scene noun used to be the literal word "photograph", unconditionally.
+    expect(prompt).toContain('establishing illustration');
+    expect(prompt).not.toContain('establishing photograph');
+    expect(prompt).toContain('Soviet propaganda-poster illustration');
+    expect(prompt).toContain('no emoji');
+  });
+
+  it('keeps photography for a photographic kitchen', () => {
+    const prompt = heroArtPrompt({
+      cuisineLabel: 'Sichuan Chongqing',
+      styleKey: 'sichuan-chongqing',
+      mode: 'dark',
+    });
+    expect(prompt).toContain('establishing photograph');
+    expect(prompt).toContain('night-market');
+  });
+
+  it('follows the palette mode only when no lock is named', () => {
+    const light = heroArtPrompt({ cuisineLabel: 'Thai', styleKey: 'thai', mode: 'light' });
+    const dark = heroArtPrompt({ cuisineLabel: 'Thai', styleKey: 'thai', mode: 'dark' });
+    expect(light).toContain('bright airy editorial interior photography');
+    expect(dark).toContain('moody cinematic interior photography');
+    // Both are still photography — the mode picks a tone, never a medium.
+    expect(light).toContain('establishing photograph');
+    expect(dark).toContain('establishing photograph');
+  });
+
+  it('weaves the mood in when the kitchen has a tagline', () => {
+    const prompt = heroArtPrompt({
+      cuisineLabel: 'Thai',
+      styleKey: 'thai',
+      mode: 'light',
+      mood: 'night-market heat, riverside calm',
+    });
+    expect(prompt).toContain('night-market heat, riverside calm');
+  });
+});
+
+describe('heroJudgeRubric', () => {
+  it('names the medium and defends it in both directions', () => {
+    const rubric = heroJudgeRubric('Post Soviet', styleLock('stolovaya-7'));
+    expect(rubric).toContain('ILLUSTRATION');
+    // The old rubric described a photographic brief unconditionally, so it
+    // failed illustrated heroes as off-brief and rerolled them.
+    expect(rubric).toContain('do not fail an illustration for being unphotographic');
+    expect(rubric).toContain('lettering');
+    expect(rubric).toContain('emoji');
+  });
+
+  it('grades a photographic kitchen as a photograph', () => {
+    const rubric = heroJudgeRubric('Sichuan Chongqing', styleLock('sichuan-chongqing'));
+    expect(rubric).toContain('PHOTOGRAPH');
+    expect(rubric).toContain('night-market');
   });
 });
 
