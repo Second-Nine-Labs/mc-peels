@@ -11,11 +11,9 @@
 > the `design-worktree` config on port 8095.
 >
 > **Next up:** Phase 6b (widened seed) — but read the 6c entry first, because
-> 6c **supersedes `heroTreatment`**; do not build it. Phase 6c itself is BUILT
-> on `feat/kitchen-image-direction` (`71f245b`, `d991242`) and not merged. Its
-> migration is ALREADY APPLIED to prod, which is the safe order (additive column
-> before the code that writes it) but means the branch and the DB are briefly
-> out of step.
+> 6c **supersedes `heroTreatment`**; do not build it. Phase 6c is SHIPPED and
+> verified in prod: a real Georgian mint produced a coherent authored look and a
+> judged-OK hero image. All six review phases are now live on `main`.
 >
 > **Owed to TJ:** an authed pass over **cart detail** only. Household and the
 > merged Ask screen were finally seen signed-in against real production data on
@@ -158,9 +156,9 @@ it was worth its own commit.
 
 ---
 
-## Built, not merged
+## Shipped to production
 
-### Phase 6c — `feat/kitchen-image-direction` → `71f245b`, `d991242`
+### Phase 6c — merged `4724787`, fixed `412ddd2` + `5da054a`, verified in prod
 
 **The file contradicted itself.** `prompts.ts` opened by saying the style lock
 owns the medium "so the prompt never forces 'photograph' onto an illustrated
@@ -189,8 +187,20 @@ not the palette mode" would have regressed light-palette kitchens to dark
 backdrops; the mode was doing real work. It now decides the fallback's tone
 only, and named locks ignore it.
 
-`kitchen_identities.look` (jsonb, nullable) applied via Supabase MCP. Prod has
-3 identities, all NULL, all resolving exactly as before.
+`kitchen_identities.look` (jsonb, nullable) applied via Supabase MCP.
+
+**Verified in prod, and it took two follow-ups the first mint forced.** A forced
+Georgian mint came back with `look` NULL. `412ddd2` made the drop loggable
+(the gate had been silent); the log then showed the gate, not the model, was at
+fault — Haiku wrote a coherent photographic look, but the gate demanded the
+literal word "photograph" in the HERO clause, which the hero prompt supplies
+itself. `5da054a` fixed the rule: neither clause may name the OPPOSITE medium,
+and only the style clause must positively commit. After that the look persisted
+— a darkroom-photograph brief with real hexes and process flaws — and the hero
+image generated and passed the judge. Photography-default held; no over-eager
+illustration. Synthetic test row removed; prod back to its 3 organic identities.
+
+**Not yet exercised:** the illustration path, by a real mint.
 
 ---
 

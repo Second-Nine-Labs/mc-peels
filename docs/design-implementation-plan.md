@@ -331,12 +331,33 @@ Dish tiles read the look too. Without that, a kitchen that minted an illustrated
 look would get an illustrated backdrop behind default-photography tiles: the
 same mismatch, one level down.
 
-### Still unverified
+### Verified end-to-end in prod (2026-07-21)
 
-No kitchen has actually minted a look yet — the prod table has 3 identities, all
-with `look` NULL. The first real mint is the test that matters, and the failure
-mode to watch is over-eager `illustration`, since the prompt's weighting toward
-photography is guidance rather than an enforced ratio.
+Merged (`4724787`) and deployed, then forced a mint for a fresh cuisine
+(`georgian`, no poster tradition) on the S9L Testing household via the deployed
+API. It took **two follow-up fixes**, both driven by the first real mint:
+
+1. `412ddd2` — the drop was silent, so a NULL look was undiagnosable. Added
+   `lookRejection()` and logging that distinguishes an invalid look from an
+   absent one (mirrors the legibility gate).
+2. `5da054a` — the log then showed the gate was too strict, not the model:
+   Haiku produced a coherent photographic look, but the gate required the HERO
+   clause to contain the literal word "photograph". The hero prompt already
+   supplies "establishing <medium>", so the hero only needs to not contradict;
+   only the style clause (the tiles' sole medium signal) must positively
+   commit. That case is now a regression test.
+
+After the fix the look persisted, and it is genuinely good — a darkroom
+photograph brief with real hexes (#8B4513, #F5DEB3) and process flaws (dust
+marks, paper fiber, vignette, 1970s grain), and it correctly chose `photograph`,
+so the photography-default weighting held with no over-eager illustration. The
+background hero image also generated and passed the judge (`hero_status: ok`),
+proving the whole chain. The synthetic test row was then removed; prod is back
+to its 3 organic identities (one orphaned hero image left in the art bucket).
+
+**Still worth watching:** only one mint, one cuisine. The illustration path has
+not been exercised by a real mint, and the photography weighting is prompt
+guidance, not an enforced ratio.
 
 ### The approved design (TJ signed off 2026-07-21, risks accepted)
 
