@@ -27,7 +27,16 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 // ---------------------------------------------------------------------------
 // Button
 
-type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'danger' | 'ghost';
+/**
+ * Review §3a collapsed five ad-hoc button treatments into a rule:
+ *   primary   — the one action fill
+ *   accent    — RESERVED for the terminal "go shop" retailer hand-off
+ *   outline   — an alternate beside a primary/accent; never a second fill
+ *   secondary — setup and connect actions
+ *   danger / ghost — unchanged
+ * Two full-width fills of equal weight mean neither is the default.
+ */
+type ButtonVariant = 'primary' | 'accent' | 'outline' | 'secondary' | 'danger' | 'ghost';
 
 interface ButtonProps {
   title: string;
@@ -68,7 +77,10 @@ export function Button({
     : variant === 'accent' ? p.onAccent
     : variant === 'danger' ? p.danger
     : variant === 'ghost' ? p.onBg
+    : variant === 'outline' ? p.text
     : p.text;
+  // The outline carries its weight with a border instead of a fill.
+  const outlined = variant === 'outline';
 
   return (
     <AnimatedPressable
@@ -80,6 +92,7 @@ export function Button({
       style={[
         styles.button,
         { backgroundColor: background, opacity: inactive ? 0.55 : 1, transform: [{ scale }] },
+        outlined && { borderWidth: 1.5, borderColor: p.border },
         style,
       ]}
     >
@@ -299,21 +312,32 @@ export function Segmented<T extends string>({
   );
 }
 
-/** Tiny non-interactive chip used for applied filters on line items. */
-export function FilterTag({ label, tone = 'tint' }: { label: string; tone?: 'tint' | 'neutral' }) {
+/**
+ * The `status` chip — review §3b's third and last chip role. Semantic color
+ * only, never interactive.
+ *
+ * There is ONE appearance here. StatusChip and FilterTag are typed entry points
+ * over it, not separate looks: they had drifted to different radii (999 vs 6)
+ * and different padding, which is two of the eight variants the review counted.
+ */
+type StatusTone = 'info' | 'success' | 'neutral';
+
+function StatusBase({ label, tone }: { label: string; tone: StatusTone }) {
   const p = usePalette();
+  const c =
+    tone === 'success' ? { bg: p.successSoft, fg: p.success }
+    : tone === 'neutral' ? { bg: p.chip, fg: p.textMuted }
+    : { bg: p.tintSoft, fg: p.tint };
   return (
-    <View
-      style={[
-        styles.filterTag,
-        { backgroundColor: tone === 'tint' ? p.tintSoft : p.chip },
-      ]}
-    >
-      <Text style={[styles.filterTagText, { color: tone === 'tint' ? p.tint : p.textMuted }]}>
-        {label}
-      </Text>
+    <View style={[styles.statusChip, { backgroundColor: c.bg }]}>
+      <Text style={[styles.statusChipText, { color: c.fg }]}>{label}</Text>
     </View>
   );
+}
+
+/** Applied filters on line items. */
+export function FilterTag({ label, tone = 'tint' }: { label: string; tone?: 'tint' | 'neutral' }) {
+  return <StatusBase label={label} tone={tone === 'tint' ? 'info' : 'neutral'} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -507,31 +531,6 @@ export function SectionTitle({ children }: { children: string }) {
 }
 
 /**
- * Editorial two-tone title — a light lead-in and an extrabold payoff
- * ("What do **you need?**"). Defaults to canvas text (onBg).
- */
-export function TwoToneTitle({
-  light,
-  bold,
-  size = 32,
-  color,
-}: {
-  light: string;
-  bold: string;
-  size?: number;
-  color?: string;
-}) {
-  const p = usePalette();
-  const c = color ?? p.onBg;
-  return (
-    <Text style={{ fontSize: size, lineHeight: Math.round(size * 1.18), color: c }}>
-      <Text style={{ fontWeight: '300' }}>{light} </Text>
-      <Text style={{ fontWeight: '800' }}>{bold}</Text>
-    </Text>
-  );
-}
-
-/**
  * Hero stat row — outline icon + spaced uppercase label, recipe-app style.
  * Lives on the canvas (blue), so the icon takes the accent and text is white.
  */
@@ -590,18 +589,11 @@ export function EmptyState({
 }
 
 export function StatusChip({ status }: { status: CartStatus | undefined }) {
-  const p = usePalette();
-  const tone =
-    status === 'opened'
-      ? { bg: p.successSoft, fg: p.success, label: 'Opened' }
-      : status === 'expired'
-        ? { bg: p.chip, fg: p.textMuted, label: 'Expired' }
-        : { bg: p.tintSoft, fg: p.tint, label: 'Ready' };
-  return (
-    <View style={[styles.statusChip, { backgroundColor: tone.bg }]}>
-      <Text style={[styles.statusChipText, { color: tone.fg }]}>{tone.label}</Text>
-    </View>
-  );
+  const { label, tone }: { label: string; tone: StatusTone } =
+    status === 'opened' ? { label: 'Opened', tone: 'success' }
+    : status === 'expired' ? { label: 'Expired', tone: 'neutral' }
+    : { label: 'Ready', tone: 'info' };
+  return <StatusBase label={label} tone={tone} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -631,7 +623,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     marginBottom: 6,
-    textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   input: {
@@ -704,16 +695,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 10,
   },
-  filterTag: {
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  filterTagText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
   tagInputRow: {
     flexDirection: 'row',
     gap: 8,
@@ -780,7 +761,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 1.1,
-    textTransform: 'uppercase',
   },
   loadingView: {
     flex: 1,

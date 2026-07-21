@@ -212,7 +212,14 @@ export function OffersSection({
 
       {error ? <Text style={[styles.error, { color: p.danger }]}>{error}</Text> : null}
 
-      {offers.map((offer) => (
+      {offers.map((offer, offerIndex) => {
+        // Review §3a: the preferred retailer gets the accent fill; every
+        // alternate is outlined. Two equal-weight fills mean neither is the
+        // default. Offers arrive in the household's configured display order,
+        // so the first IS the preferred one.
+        const preferred = offerIndex === 0;
+        const handoff: 'accent' | 'outline' = preferred ? 'accent' : 'outline';
+        return (
         <OfferCard
           key={offer.provider}
           offer={offer}
@@ -226,7 +233,7 @@ export function OffersSection({
               <Button
                 title="Open in Instacart"
                 icon="cart-outline"
-                variant="accent"
+                variant={handoff}
                 onPress={onInstacartOpen}
                 loading={instacartOpening}
               />
@@ -235,14 +242,14 @@ export function OffersSection({
                 <Button
                   title="Open Kroger cart"
                   icon="open-outline"
-                  variant="accent"
+                  variant={handoff}
                   onPress={() => openLink(pushResult.url)}
                 />
               ) : connections.kroger ? (
                 <Button
                   title="Send to Kroger cart"
                   icon="cart-outline"
-                  variant="accent"
+                  variant={handoff}
                   onPress={pushToKroger}
                   loading={pushing}
                   disabled={offer.status !== 'quoted'}
@@ -266,14 +273,15 @@ export function OffersSection({
               <Button
                 title={`Shop on ${offer.display_name}`}
                 icon="open-outline"
-                variant="secondary"
+                variant={handoff}
                 onPress={() => openLink(offer.handoff_url)}
               />
             )
           }
           extraNotes={offer.provider === 'kroger' && pushResult ? pushResult.notes : []}
         />
-      ))}
+        );
+      })}
 
       <Text style={[styles.footer, { color: p.textMuted }]}>
         You always review and pay on the store’s site — MC Peels never handles payment.
