@@ -147,10 +147,23 @@ describe('isCoherentLook', () => {
     expect(isCoherentLook({ ...TUNGSTEN, hero: RISO.hero })).toBe(false);
   });
 
-  it('rejects a clause that names neither medium', () => {
+  it('rejects a STYLE clause that names neither medium — tiles depend on it', () => {
     expect(isCoherentLook({ ...RISO, style: 'a really beautiful and evocative rendering of the dish, very nice' })).toBe(
       false,
     );
+  });
+
+  it('accepts a hero that is a scene, not the literal word "photograph"', () => {
+    // The exact prod case (Georgian, first real mint): the style clause commits
+    // to the medium; the hero describes a photographic room without saying
+    // "photograph", which the hero prompt supplies itself via the scene noun.
+    const look = {
+      medium: 'photograph' as const,
+      style:
+        'Caucasus mountain-kitchen film photography, 1980s Kodachrome palette fading to warm amber, natural window light on clay pottery, visible film grain, desaturated reds #B8422A',
+      hero: 'Wide angle from the kitchen threshold: clay-fired bread cooling on linen, copper vessels catching low amber light, worn stone and cast iron across a lived-in room',
+    };
+    expect(isCoherentLook(look)).toBe(true);
   });
 
   it('rejects an unknown medium', () => {
@@ -178,7 +191,7 @@ describe('isCoherentLook', () => {
     expect(lookRejection(RISO)).toBeNull();
     expect(lookRejection({ ...RISO, medium: 'collage' })).toMatch(/medium/);
     expect(lookRejection({ ...RISO, style: 'illustration' })).toMatch(/too short/);
-    expect(lookRejection({ ...RISO, hero: TUNGSTEN.hero })).toMatch(/does not read as illustration/);
+    expect(lookRejection({ ...RISO, hero: TUNGSTEN.hero })).toMatch(/opposite medium/);
     expect(lookRejection({ ...RISO, style: `${RISO.style}, with a neon logo` })).toMatch(/forbidden/);
   });
 });

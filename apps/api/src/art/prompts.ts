@@ -173,12 +173,17 @@ const DRAWN_WORDS =
 const LOOK_BANNED = /\b(text|lettering|typography|words?|caption|logos?|watermarks?|emoji|signage)\b/i;
 
 const LOOK_MIN = 40;
-const LOOK_MAX = 320;
+const LOOK_MAX = 400;
 
-function clauseMatchesMedium(clause: string, medium: ArtMedium): boolean {
-  return medium === 'illustration'
-    ? DRAWN_WORDS.test(clause) && !PHOTO_WORDS.test(clause)
-    : PHOTO_WORDS.test(clause) && !DRAWN_WORDS.test(clause);
+/** Does a clause name the medium OPPOSITE to the declared one? That is the real
+ * mismatch — illustrated words in a photographic kitchen, or vice versa. */
+function namesOppositeMedium(clause: string, medium: ArtMedium): boolean {
+  return medium === 'illustration' ? PHOTO_WORDS.test(clause) : DRAWN_WORDS.test(clause);
+}
+
+/** Does a clause positively commit to the declared medium? */
+function namesOwnMedium(clause: string, medium: ArtMedium): boolean {
+  return medium === 'illustration' ? DRAWN_WORDS.test(clause) : PHOTO_WORDS.test(clause);
 }
 
 /**
@@ -198,10 +203,12 @@ function clauseMatchesMedium(clause: string, medium: ArtMedium): boolean {
 export function lookRejection(value: unknown): string | null {
   if (!value || typeof value !== 'object') return 'not an object';
   const look = value as Record<string, unknown>;
-  if (look.medium !== 'photograph' && look.medium !== 'illustration') {
-    return `medium is ${JSON.stringify(look.medium)}, not photograph|illustration`;
+  const medium = look.medium;
+  if (medium !== 'photograph' && medium !== 'illustration') {
+    return `medium is ${JSON.stringify(medium)}, not photograph|illustration`;
   }
 
+  // Shape and safety apply to both clauses.
   for (const [field, clause] of [
     ['style', look.style],
     ['hero', look.hero],
@@ -212,9 +219,21 @@ export function lookRejection(value: unknown): string | null {
     if (trimmed.length > LOOK_MAX) return `${field} too long (${trimmed.length} > ${LOOK_MAX})`;
     const banned = trimmed.match(LOOK_BANNED);
     if (banned) return `${field} names a forbidden element ("${banned[0]}")`;
-    if (!clauseMatchesMedium(trimmed, look.medium)) {
-      return `${field} does not read as ${look.medium} (or reads as the other medium)`;
+    // Neither clause may describe the OPPOSITE medium — that is the mismatch this
+    // whole gate exists to catch (illustrated tiles beside a photographic room).
+    if (namesOppositeMedium(trimmed, medium)) {
+      return `${field} reads as the opposite medium (declared ${medium})`;
     }
+  }
+
+  // The tile prompt derives its medium ONLY from the style clause's words, so
+  // that clause has to commit to the medium positively. The hero prompt already
+  // prepends an explicit "establishing <medium>" from the enum, so its clause
+  // only has to not contradict — requiring it to also repeat the keyword
+  // rejected genuinely coherent looks (a photographic room described as a scene
+  // rather than as "a photograph").
+  if (!namesOwnMedium((look.style as string).trim(), medium)) {
+    return `style does not commit to ${medium}`;
   }
   return null;
 }
