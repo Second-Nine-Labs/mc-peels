@@ -10,15 +10,13 @@
 > (`git checkout -b <name> main`), never a bare `checkout -b`. Preview server is
 > the `design-worktree` config on port 8095.
 >
-> **Next up, in order:** Phase 7 is BUILT and awaiting TJ's side-by-side review
-> (`feat/canvas-rebalance` at `f32a351` — do not merge without it). Then Phase 6c
-> (image direction, design approved), then Phase 6b (widened seed).
+> **Next up, in order:** Phase 6c (image direction, design approved), then
+> Phase 6b (widened seed). **All seven review phases are now shipped.**
 >
-> **Owed to TJ:** an authed tap-through of Household, the merged Ask screen, and
-> cart detail. See "Known gaps in verification" below — TJ signs in himself in the
+> **Owed to TJ:** an authed pass over **cart detail** only. Household and the
+> merged Ask screen were finally seen signed-in against real production data on
+> 2026-07-21 — see "Known gaps in verification". TJ signs in himself in the
 > Browser pane (never ask him for credentials; do not enter passwords or tokens).
-> Offer to seed test data via the Supabase MCP first so those screens have
-> something meaningful on them.
 
 **Last updated:** 2026-07-21 (later)
 **Companion to:** [design-implementation-plan.md](./design-implementation-plan.md) (per-item detail and
@@ -26,7 +24,7 @@ remaining checkboxes) · [design-review.md](./design-review.md) (what/why) ·
 [design-technical-notes.md](./design-technical-notes.md) (how)
 
 What has actually shipped, what is committed but unmerged, and what is still open.
-`main` is at `8d4cbfe` and deployed to https://mc-peels.secondninelabs.com.
+`main` is at `28302cf` and deployed to https://mc-peels.secondninelabs.com.
 
 ---
 
@@ -119,9 +117,7 @@ client renders otherwise.
 
 ---
 
-## Built, not merged
-
-### Phase 7 — `feat/canvas-rebalance` → `f32a351` (+ `d0329a1`)
+### 7. `feat/canvas-rebalance` → `28302cf` (merged + deployed 2026-07-21)
 
 The bold blue becomes a **band**. Household moves to a neutral canvas; Ask keeps
 the blue for its hero and composer and hands off to a page-level sheet for the
@@ -169,9 +165,8 @@ all optional with safe defaults), caching columns (`design_seed`, `design_versio
 Wire `assertLegible` into `ensureKitchenIdentity` so a rejected seed falls back to
 `HOUSE_SEED` and logs the offending pair.
 
-**Phase 7 review** — built (above), awaiting TJ side by side. The `HeroStat`
-landmine flagged in phase 5 turned out inert: its only call site is cart detail,
-which keeps the blue.
+**Phase 7 is shipped** — nothing open. The `HeroStat` landmine flagged in phase 5
+turned out inert: its only call site is cart detail, which keeps the blue.
 
 ---
 
@@ -179,10 +174,14 @@ which keeps the blue.
 
 Stated plainly because "it compiles" is not evidence:
 
-- **No authed session was ever exercised.** Verification ran against
-  `/eats-preview` (auth-exempt) and throwaway harnesses mounting the real
-  components. Household, the merged Ask screen, and cart detail have not been seen
-  with real data.
+- **Authed verification — MOSTLY CLOSED 2026-07-21.** Phases 1–6 were verified
+  only against `/eats-preview` (auth-exempt) and throwaway harnesses. After the
+  phase-7 deploy, **Household and the merged Ask screen were finally seen
+  signed-in against real production data**: Household on the new light canvas
+  with a real profile, Ask's blue band over the light sheet with the household's
+  real usuals and five real carts. No console errors on either.
+  **Still unseen authed: cart detail.** It is the one screen carrying `HeroStat`
+  and the mascot fix, so it is the remaining gap worth closing.
 - **`useScrollBottomInset`'s in-tabs path is now proven** (reads 81 on mobile, 24
   on desktop) — that was verified during phase 4, having been an open question
   since phase 1.
