@@ -67,16 +67,27 @@ Mechanical. No design debate. Covers review §5 defects 1–4 and 7–9.
       "N more" / "Show fewer" chip. (§5 #9)
 - [x] Touch targets: `Chip` now `minHeight: 44` (was ~33 from paddingVertical 7). (§6)
 
-## Phase 2 — `feat/cart-naming`
+## Phase 2 — `feat/cart-naming` — COMPLETE
 
 Cheapest big win. §5 #5, #10, #12.
 
-- [ ] Promote `request_text` to the cart title in `app/cart/[id].tsx` and `(tabs)/ask.tsx`.
-- [ ] Drop the redundant status chip beside the "Ready" pill.
-- [ ] Drop the duplicated date from the meta row.
-- [ ] Suppress the Kroger Connect CTA when no store is found near the postal code. (§5 #11)
-- [ ] Disabled "Build my cart" — keep enabled and validate on press, or use an
-      outlined waiting state. Never 55% opacity on `#4FA4F2`. (§5 #6)
+- [x] **Promote `request_text` to the cart title** in `cart/[id].tsx` and `(tabs)/ask.tsx`.
+      Done client-side by flipping precedence, NOT by changing the API: the stored
+      `title` ("MC Peels · <date>") is also the Instacart products-link page title,
+      where the branding is correct. Flipping it in the client also fixes every
+      existing cart retroactively, with no migration.
+- [x] **Drop the redundant status chip** — the eyebrow read "Ready to check out"
+      unconditionally, which was both duplicative of `StatusChip` and wrong for any
+      cart not actually ready. (§5 #10)
+- [x] **Duplicated date** resolved by the title swap — the date now appears only in
+      the meta row. (§5 #12)
+- [x] **Suppress the Kroger Connect CTA** when the offer failed AND has no store —
+      there is nothing to connect an account to. (§5 #11)
+- [x] **Disabled "Build my cart"** — button stays enabled and validates on press,
+      with the empty-input nudge clearing as soon as they type. (§5 #6)
+- [x] `DisplayTitle` gained an optional `numberOfLines`; cart detail steps the size
+      down (30/26/22) and clamps to 3 lines, since request text has no length
+      ceiling. Verified at 31, 38, and 87 characters.
 
 ## Phase 3 — `feat/theme-toggle`
 

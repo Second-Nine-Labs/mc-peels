@@ -409,12 +409,15 @@ export function DisplayTitle({
   size = 34,
   color,
   style,
+  numberOfLines,
 }: {
   text: string;
   emphasis?: string;
   size?: number;
   color?: string;
   style?: StyleProp<ViewStyle>;
+  /** Clamp for titles built from user text, which has no length ceiling. */
+  numberOfLines?: number;
 }) {
   const p = usePalette();
   const c = color ?? p.onBg;
@@ -433,6 +436,7 @@ export function DisplayTitle({
     : text;
   return (
     <Text
+      numberOfLines={numberOfLines}
       style={[
         { fontSize: size, fontWeight: '800', letterSpacing: -0.6, lineHeight: Math.round(size * 1.08), color: c },
         style,
