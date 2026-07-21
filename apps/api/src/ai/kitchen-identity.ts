@@ -18,7 +18,7 @@ import { Anthropic } from '@anthropic-ai/sdk';
 import type { Tool, ToolUseBlock } from '@anthropic-ai/sdk/resources/messages';
 
 import type { GeneratedLook } from '../art/prompts.js';
-import { isCoherentLook } from '../art/prompts.js';
+import { isCoherentLook, lookRejection } from '../art/prompts.js';
 import type { IdentityPalette, IdentityVoice } from '../db/schema.js';
 import { env } from '../env.js';
 
@@ -200,6 +200,27 @@ export async function generateIdentitySpec(input: GenerateIdentityInput): Promis
   const palette = (raw.palette ?? {}) as Record<string, unknown>;
   const voice = (raw.voice ?? {}) as Record<string, unknown>;
 
+  const look = isCoherentLook(raw.look) ? raw.look : undefined;
+
+  // A dropped look is a silent no-op at render time (the kitchen wears the house
+  // lock), so log WHY — the same courtesy the legibility gate pays its
+  // rejections. If looks fail often the feature is inert, and this line is how
+  // we'd know. Two distinct failures worth telling apart: the model returned a
+  // look that failed validation (raw snippet shows what it produced), or it
+  // omitted the field entirely despite it being required (a weaker signal about
+  // the model, not the prompt).
+  if (look === undefined) {
+    if (raw.look == null) {
+      console.warn(`Kitchen look absent for ${input.cuisine}: model returned no look field`);
+    } else {
+      console.warn(
+        `Kitchen look rejected for ${input.cuisine}: ${lookRejection(raw.look)} — raw: ${JSON.stringify(
+          raw.look,
+        ).slice(0, 400)}`,
+      );
+    }
+  }
+
   return {
     name: clampStr(raw.name, 24, input.cuisineLabel),
     sub: clampStr(raw.sub, 28, 'from your shelf'),
@@ -220,6 +241,6 @@ export async function generateIdentitySpec(input: GenerateIdentityInput): Promis
     // truncating a clause could strip the very words that make it agree with
     // its medium, and a half-valid look is worse than none. Take it whole or
     // drop it and wear the house lock.
-    ...(isCoherentLook(raw.look) ? { look: raw.look } : {}),
+    ...(look ? { look } : {}),
   };
 }

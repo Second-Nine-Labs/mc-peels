@@ -8,6 +8,7 @@ import {
   heroJudgeRubric,
   isCoherentLook,
   judgeRubric,
+  lookRejection,
   resolveLock,
   styleLock,
 } from '../src/art/prompts.js';
@@ -171,6 +172,14 @@ describe('isCoherentLook', () => {
     for (const value of [null, undefined, 'illustration', 42, [], {}]) {
       expect(isCoherentLook(value)).toBe(false);
     }
+  });
+
+  it('names the reason it rejected, for the mint to log', () => {
+    expect(lookRejection(RISO)).toBeNull();
+    expect(lookRejection({ ...RISO, medium: 'collage' })).toMatch(/medium/);
+    expect(lookRejection({ ...RISO, style: 'illustration' })).toMatch(/too short/);
+    expect(lookRejection({ ...RISO, hero: TUNGSTEN.hero })).toMatch(/does not read as illustration/);
+    expect(lookRejection({ ...RISO, style: `${RISO.style}, with a neon logo` })).toMatch(/forbidden/);
   });
 });
 

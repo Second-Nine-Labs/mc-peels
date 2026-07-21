@@ -182,31 +182,51 @@ function clauseMatchesMedium(clause: string, medium: ArtMedium): boolean {
 }
 
 /**
- * Is an authored look coherent and safe to put in a prompt?
+ * Why an authored look is unusable — or null when it is fine.
  *
- * The load-bearing check is the last one: BOTH clauses must name the declared
+ * The load-bearing check is the medium one: BOTH clauses must name the declared
  * medium and neither may name the other. That is the machine-checkable form of
  * "medium is consistent within a kitchen" — without it, a model free to write
  * two clauses could describe illustrated tiles beside a photographic hero, which
  * is precisely the bug this phase exists to kill.
  *
+ * Returned as a short reason (not just a boolean) so the mint can LOG why a look
+ * was dropped, the way the legibility gate logs its offending pair. A silently
+ * discarded look is undiagnosable — and if looks were to fail often, that is
+ * exactly the signal worth seeing, since the feature would be inert.
+ */
+export function lookRejection(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return 'not an object';
+  const look = value as Record<string, unknown>;
+  if (look.medium !== 'photograph' && look.medium !== 'illustration') {
+    return `medium is ${JSON.stringify(look.medium)}, not photograph|illustration`;
+  }
+
+  for (const [field, clause] of [
+    ['style', look.style],
+    ['hero', look.hero],
+  ] as const) {
+    if (typeof clause !== 'string') return `${field} is not a string`;
+    const trimmed = clause.trim();
+    if (trimmed.length < LOOK_MIN) return `${field} too short (${trimmed.length} < ${LOOK_MIN})`;
+    if (trimmed.length > LOOK_MAX) return `${field} too long (${trimmed.length} > ${LOOK_MAX})`;
+    const banned = trimmed.match(LOOK_BANNED);
+    if (banned) return `${field} names a forbidden element ("${banned[0]}")`;
+    if (!clauseMatchesMedium(trimmed, look.medium)) {
+      return `${field} does not read as ${look.medium} (or reads as the other medium)`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Is an authored look coherent and safe to put in a prompt?
+ *
  * Rejection is safe by design: the caller drops the look and falls back to the
  * house lock, so a bad generation degrades to today's appearance.
  */
 export function isCoherentLook(value: unknown): value is GeneratedLook {
-  if (!value || typeof value !== 'object') return false;
-  const look = value as Record<string, unknown>;
-  if (look.medium !== 'photograph' && look.medium !== 'illustration') return false;
-
-  const clauses = [look.style, look.hero];
-  for (const clause of clauses) {
-    if (typeof clause !== 'string') return false;
-    const trimmed = clause.trim();
-    if (trimmed.length < LOOK_MIN || trimmed.length > LOOK_MAX) return false;
-    if (LOOK_BANNED.test(trimmed)) return false;
-    if (!clauseMatchesMedium(trimmed, look.medium)) return false;
-  }
-  return true;
+  return lookRejection(value) === null;
 }
 
 /** Wrap a validated authored look as a lock the prompt builders can use. */
