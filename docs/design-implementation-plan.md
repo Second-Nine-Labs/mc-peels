@@ -298,6 +298,57 @@ the moment illustration becomes reachable.
 - [ ] Weight the vocabulary toward photography, with illustration reachable but
       not common. No per-cuisine rules.
 
+### The approved design (TJ signed off 2026-07-21, risks accepted)
+
+**The principle: describe how the image was MADE, not what it looks like.** The
+generated tell is usually absence of process, not the medium — AI images read as
+slop partly because they are too clean: flawless gradients, no grain structure,
+no registration error, no material history. Real objects carry evidence of the
+process that made them.
+
+`SOVIET_POSTER` is the proof. It specifies a process (flat ink printing, bold
+keyline), materials (cream paper #F2E8D5, faded red #C8332B), **flaws** (slight
+misregistration, aged-paper grain), and camera logic (heroic low angle). The
+flaws clause does the heavy lifting: misregistration only occurs when ink plates
+misalign, so asking for it forces the image toward being an artifact rather than
+a render.
+
+Same architecture as the palette engine — the model proposes, deterministic code
+assembles. Do NOT let it free-write a style string; that is how you get drift and
+unusable results.
+
+```
+process:  enum (~10 real making-processes, photography-weighted)
+light:    enum (window / single-source / overcast / lantern / flash)
+artifact: enum (grain / halftone / misregistration / none)
+```
+
+Candidate processes — each implies a whole physics (grain, colour limits, depth
+of field, artifacts) from one clause, which is why they beat adjectives:
+
+- `35mm film, Portra 400, natural window light`
+- `large-format studio, single softbox, seamless backdrop`
+- `handheld flash, direct on-camera` (harsh, snapshot, night-market)
+- `risograph, two-colour, visible misregistration`
+- `gouache on cold-press paper, visible tooth`
+- `screen print, coarse halftone`
+
+Because `process` is ONE field read by both hero and tiles, the medium-coherence
+rule falls out structurally rather than needing enforcement.
+
+- [ ] **Feed the derived palette hexes into the image prompts.** `HeroForArt` is
+      `{cuisineLabel, mode, mood}` and `DishForArt` is `{title, sub, description,
+      styleKey}` — no hexes. We derive a contrast-checked palette per kitchen and
+      then never tell the image generator about it, while `SOVIET_POSTER`
+      hardcodes its own. Probably the cheapest single change that makes art and
+      room read as one place.
+
+**Accepted risks (TJ, explicitly):** this may not remove the generated look —
+test on one kitchen and compare before believing it. And the model may reach for
+illustration more often than wanted, since illustrative processes are more
+distinctive to describe; weighting needs tuning against real output, not theory.
+Revise as needed rather than over-engineering up front.
+
 `HOUSE_RULES` / `HERO_HOUSE_RULES` already enforce the hard floor (no text, no
 lettering, no watermarks, no emoji) and stay as-is.
 
