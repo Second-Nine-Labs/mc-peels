@@ -34,7 +34,7 @@ Decisions taken 2026-07-20, before any code:
 
 ---
 
-## Phase 1 — `fix/design-defects`
+## Phase 1 — `fix/design-defects` — COMPLETE
 
 Mechanical. No design debate. Covers review §5 defects 1–4 and 7–9.
 
@@ -54,11 +54,17 @@ Mechanical. No design debate. Covers review §5 defects 1–4 and 7–9.
       rather than patching RN `Switch`'s per-platform prop matrix. Root cause was
       `trackColor={{ true: p.tint }}` — only the ON track, no `false`, no `thumbColor`,
       no `ios_backgroundColor`. Verified both states, both modes, plus disabled.
-- [ ] **Mascot collision** — `app/cart/[id].tsx`. Reposition or suppress when the
-      sheet header carries a right-side action. (§5 #4, critical)
+- [x] **Mascot collision** — `MascotMark`'s `size` is its WIDTH; height is
+      `size / (613/720)`, so the size-64 mark is ~75pt tall, not 64. At `top:-36`
+      it reached y=+39, past the sheet's `paddingTop: 22`, landing on
+      OffersSection's right-aligned "Refresh prices". Moved to `top:-60`. Kept the
+      mascot — review §7 says it has equity, it just has to stop landing on text.
 - [x] **Dedupe retailer chips** by `retailer_key` at ingestion. (§5 #7)
-- [ ] **Hero title wrap** — `numberOfLines={2}` before ellipsis. (§5 #8)
-- [ ] **Cap "Your usuals"** at 4–5 with a "more" affordance. (§5 #9)
+- [x] **Hero title wrap** — `FeatureHero`'s `heroDish` already had
+      `numberOfLines={2}` plus a font step-down on main. The real truncation was
+      `ShelfStorefront`'s `frontTitleHeavy` at `numberOfLines={1}`; now 2. (§5 #8)
+- [x] **Cap "Your usuals"** at 5 (`USUALS_VISIBLE`) with an expanding
+      "N more" / "Show fewer" chip. (§5 #9)
 - [x] Touch targets: `Chip` now `minHeight: 44` (was ~33 from paddingVertical 7). (§6)
 
 ## Phase 2 — `feat/cart-naming`

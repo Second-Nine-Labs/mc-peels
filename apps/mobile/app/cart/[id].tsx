@@ -340,7 +340,11 @@ const styles = StyleSheet.create({
   },
   sheetMascot: {
     position: 'absolute',
-    top: -36,
+    // MascotMark's `size` is its WIDTH; height is size / (613/720), so a size-64
+    // mark is ~75pt tall. At the old top:-36 it reached y=+39, well past the
+    // sheet's paddingTop of 22 — landing on OffersSection's right-aligned
+    // "Refresh prices". -60 puts its base at ~15, clearing the content start.
+    top: -60,
     right: 20,
   },
   divider: {

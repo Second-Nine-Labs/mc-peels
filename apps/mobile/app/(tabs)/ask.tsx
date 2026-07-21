@@ -46,6 +46,9 @@ const SECRET_PARTY = new Set([
   '🎉',
 ]);
 
+/** Two rows' worth. Beyond this the list buried recent carts (review §5 #9). */
+const USUALS_VISIBLE = 5;
+
 export default function AskScreen() {
   const p = usePalette();
   const bottomInset = useScrollBottomInset();
@@ -57,6 +60,7 @@ export default function AskScreen() {
   const [error, setError] = useState<string | null>(null);
   const [building, setBuilding] = useState(false);
   const [usuals, setUsuals] = useState<UsualItem[]>([]);
+  const [showAllUsuals, setShowAllUsuals] = useState(false);
   const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // The household's cart history — folded in from the old standalone Carts tab.
@@ -289,7 +293,7 @@ export default function AskScreen() {
             <>
               <Text style={[styles.examplesLabel, { color: p.onBgMuted }]}>Your usuals</Text>
               <View style={styles.usuals}>
-                {usuals.map((u) => (
+                {(showAllUsuals ? usuals : usuals.slice(0, USUALS_VISIBLE)).map((u) => (
                   <Pressable
                     key={u.name}
                     onPress={() => addUsual(u.name)}
@@ -299,6 +303,19 @@ export default function AskScreen() {
                     <Text style={[styles.usualText, { color: p.text }]}>{u.name}</Text>
                   </Pressable>
                 ))}
+                {usuals.length > USUALS_VISIBLE ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setShowAllUsuals((v) => !v)}
+                    style={[styles.usualChip, { borderColor: p.onBgMuted }]}
+                  >
+                    <Text style={[styles.usualText, { color: p.onBg }]}>
+                      {showAllUsuals
+                        ? 'Show fewer'
+                        : `${usuals.length - USUALS_VISIBLE} more`}
+                    </Text>
+                  </Pressable>
+                ) : null}
               </View>
             </>
           ) : null}
