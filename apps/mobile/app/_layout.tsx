@@ -108,7 +108,6 @@ function RootChrome() {
           <Stack.Screen name="oauth/authorize" options={{ headerShown: false }} />
           <Stack.Screen name="auth/handoff" options={{ headerShown: false }} />
           <Stack.Screen name="reset-password" options={{ headerShown: false }} />
-          <Stack.Screen name="cart/[id]" options={{ title: 'Cart' }} />
         </Stack>
       </AuthGate>
       {/* Driven by the same resolved scheme as the palette, so an explicit

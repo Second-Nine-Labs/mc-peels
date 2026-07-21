@@ -44,8 +44,16 @@ export function AppNav({ state, descriptors, navigation, insets, variant }: AppN
   const reportHeight = useContext(BottomTabBarHeightCallbackContext);
   const isHeader = variant === 'header';
 
-  const destinations = state.routes.map((route, index) => {
+  const destinations = state.routes.flatMap((route, index) => {
     const { options } = descriptors[route.key];
+
+    // Screens that live in the group but aren't destinations — cart detail, for
+    // one — are declared with `href: null`. Expo Router encodes that as
+    // `tabBarItemStyle: { display: 'none' }` (TabsClient), which the default bar
+    // applies as a style. A custom bar has to read it, or the route shows up as
+    // a tab named after its file.
+    if (StyleSheet.flatten(options.tabBarItemStyle)?.display === 'none') return [];
+
     const focused = state.index === index;
     const label =
       typeof options.tabBarLabel === 'string'
@@ -59,7 +67,7 @@ export function AppNav({ state, descriptors, navigation, insets, variant }: AppN
       }
     };
 
-    return { route, options, focused, label, onPress };
+    return [{ route, options, focused, label, onPress }];
   });
 
   const tint = p.tint;

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BananaRain } from '@/components/BananaRain';
 import { MascotMark } from '@/components/MascotMark';
@@ -134,6 +134,18 @@ export default function CartDetailScreen() {
     return (
       <View style={[styles.screen, { backgroundColor: p.background }]}>
         <View style={[styles.container, styles.hero]}>
+          {/* Same back control, same place — a cart that failed to load is
+              exactly when you most need the way out to be where you expect. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to carts"
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/ask'))}
+            hitSlop={8}
+            style={styles.back}
+          >
+            <Ionicons name="chevron-back" size={20} color={p.onBg} />
+            <Text style={[styles.backText, { color: p.onBg }]}>Carts</Text>
+          </Pressable>
           <ErrorBanner message={error ?? 'Cart not found.'} />
         </View>
       </View>
@@ -148,6 +160,20 @@ export default function CartDetailScreen() {
       >
         {/* Hero — lives on the blue canvas, recipe-app style. */}
         <View style={styles.hero}>
+          {/* Detail screens sit inside the tab group now, so the nav stays put
+              while you're in a cart. A Tabs navigator has no back button of its
+              own, so the screen owns one — which also puts the affordance in the
+              same place at the same size on every detail screen (review §2). */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Back to carts"
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/ask'))}
+            hitSlop={8}
+            style={styles.back}
+          >
+            <Ionicons name="chevron-back" size={20} color={p.onBg} />
+            <Text style={[styles.backText, { color: p.onBg }]}>Carts</Text>
+          </Pressable>
           <ErrorBanner message={error} />
           {/* The eyebrow used to read "Ready to check out" unconditionally —
               redundant beside StatusChip, and a lie for any cart that isn't
@@ -324,6 +350,15 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
+  back: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginLeft: -6,
+    minHeight: 44,
+    alignSelf: 'flex-start',
+  },
+  backText: { fontSize: 15, fontWeight: '700' },
   hero: {
     paddingHorizontal: 18,
     paddingTop: 20,

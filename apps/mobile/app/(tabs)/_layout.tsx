@@ -50,6 +50,11 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/* Cart detail lives inside the group so the nav stays visible — you never
+          lose your place mid-cart. `(tabs)` contributes no URL segment, so the
+          route is still /cart/<id>; every existing link and the Kroger OAuth
+          return leg keep working. href: null keeps it out of the bar itself. */}
+      <Tabs.Screen name="cart/[id]" options={{ href: null }} />
       <Tabs.Screen
         name="household"
         options={{
