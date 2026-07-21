@@ -1,5 +1,25 @@
 # MC Peels — design work log
 
+> **START HERE if you are a new session.** Read this file, then
+> [design-implementation-plan.md](./design-implementation-plan.md) for the
+> remaining checkboxes.
+>
+> **Work in the worktree at `/Users/tjshaffer/Documents/mc-peels-design`**, NOT the
+> primary checkout at `~/Documents/second9-labs-mc-peels` — a second session owns
+> that one and switches branches under you. Branch explicitly off main
+> (`git checkout -b <name> main`), never a bare `checkout -b`. Preview server is
+> the `design-worktree` config on port 8095.
+>
+> **Next up, in order:** finish Phase 7 (canvas rebalance, in progress on
+> `feat/canvas-rebalance` — STOP for TJ's screenshot review before merging), then
+> Phase 6c (image direction, design approved), then Phase 6b (widened seed).
+>
+> **Owed to TJ:** an authed tap-through of Household, the merged Ask screen, and
+> cart detail. See "Known gaps in verification" below — TJ signs in himself in the
+> Browser pane (never ask him for credentials; do not enter passwords or tokens).
+> Offer to seed test data via the Supabase MCP first so those screens have
+> something meaningful on them.
+
 **Last updated:** 2026-07-21 (later)
 **Companion to:** [design-implementation-plan.md](./design-implementation-plan.md) (per-item detail and
 remaining checkboxes) · [design-review.md](./design-review.md) (what/why) ·
