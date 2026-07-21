@@ -33,6 +33,8 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
+
 import { DishTile } from './art';
 import { useKitchenArt } from './useKitchenArt';
 import type { KitchenCostume } from './costume';
@@ -112,6 +114,9 @@ export function KitchenScreen({
   });
 
   const hasPlan = chosen.length > 0;
+  // The pinned order bar (Z4) floats over the scroll, so its height has to be
+  // cleared on top of the nav chrome — but only while it's actually showing.
+  const bottomInset = useScrollBottomInset(hasPlan ? ORDER_BAR_HEIGHT : 0);
   useEffect(() => {
     Animated.timing(orderIn, {
       toValue: hasPlan ? 1 : 0,
@@ -160,7 +165,7 @@ export function KitchenScreen({
         ref={scrollRef}
         stickyHeaderIndices={[1]}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={[styles.scroll, chosen.length > 0 && styles.scrollWithOrder]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomInset }]}
         showsVerticalScrollIndicator={false}
       >
         {/* ---- Z1 · hero — the costume owns this box entirely ---- */}
@@ -471,10 +476,14 @@ function DishCard({ costume, dish, family, open, inPlan, onOpen, onToggle }: Dis
 
 // ---------------------------------------------------------------------------
 
+/** Measured height of the Z4 order bar (padding 14 + 18, ~60pt of content). */
+const ORDER_BAR_HEIGHT = 92;
+
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  scroll: { paddingBottom: 40 },
-  scrollWithOrder: { paddingBottom: 132 },
+  // paddingBottom comes from useScrollBottomInset; the pinned order bar adds
+  // its own height on top when a plan is in progress.
+  scroll: {},
 
   // Z1
   hero: { minHeight: 252, overflow: 'hidden', position: 'relative' },

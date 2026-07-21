@@ -27,6 +27,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MascotMark } from '@/components/MascotMark';
 import { api, getErrorMessage } from '@/lib/api';
 import type { SavedRecipe } from '@/lib/types';
+import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
 
 import { DishTile } from './art';
 import { costumeForShelfKitchen } from './costumes/factory';
@@ -115,6 +116,7 @@ export function HomeScreen({
   onOpenFirstKitchen,
 }: HomeScreenProps) {
   const t = useColorScheme() === 'dark' ? dark : light;
+  const bottomInset = useScrollBottomInset();
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const [shelfVersion, setShelfVersion] = useState(0);
@@ -146,7 +148,10 @@ export function HomeScreen({
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: t.canvas }]} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomInset }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* ---- Z1 · masthead — small, search demoted to a glyph ---- */}
         <View style={styles.masthead}>
           <View style={styles.brand}>
@@ -349,17 +354,20 @@ function ShelfStorefront({ costume, onPress }: { costume: KitchenCostume; onPres
       {costume.renderStorefront ? (
         costume.renderStorefront()
       ) : (
+        // A flat palette surface with no photo behind it, so the text pair must
+        // be the canvas pair. onHero is scrim-aware — a costume with a hero photo
+        // flips it to near-white, which on this L96 canvas is cream on cream.
         <View style={[styles.front, { backgroundColor: tokens.canvas }]}>
           <View style={[styles.shelfOpened, { backgroundColor: '#F2B01E' }]}>
             <Text style={styles.shelfOpenedText}>OPENED FROM YOUR SHELF</Text>
           </View>
-          <Text style={[styles.frontTitleHeavy, { color: tokens.onHero }]} numberOfLines={1}>
+          <Text style={[styles.frontTitleHeavy, { color: tokens.ink }]} numberOfLines={2}>
             {restaurant.name}
           </Text>
-          <Text style={[styles.frontSub, { color: tokens.onHeroSoft }]} numberOfLines={1}>
+          <Text style={[styles.frontSub, { color: tokens.inkSoft }]} numberOfLines={1}>
             {restaurant.tagline}
           </Text>
-          <Text style={[styles.frontMeta, { color: tokens.onHeroSoft }]}>
+          <Text style={[styles.frontMeta, { color: tokens.inkSoft }]}>
             {restaurant.meta.toUpperCase()}
           </Text>
         </View>
@@ -601,7 +609,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: {
     padding: 16,
-    paddingBottom: 32,
+    // paddingBottom comes from useScrollBottomInset — the tab bar's real height.
     maxWidth: 620,
     width: '100%',
     alignSelf: 'center',

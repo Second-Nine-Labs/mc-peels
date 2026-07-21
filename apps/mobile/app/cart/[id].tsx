@@ -20,6 +20,7 @@ import { api, getErrorMessage } from '@/lib/api';
 import { getRememberedCart } from '@/lib/cart-cache';
 import { formatDate, prettifyFilterValue, prettifyRetailerKey } from '@/lib/format';
 import { usePalette } from '@/lib/theme';
+import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
 import type { CartDetailResponse, CartStatus, Offer, ResolvedLineItem } from '@/lib/types';
 
 // Price comparison is live by default; EXPO_PUBLIC_PRICE_COMPARE=0 is the
@@ -75,6 +76,7 @@ function toView(id: string, detail: CartDetailResponse | null): CartView | null 
 
 export default function CartDetailScreen() {
   const p = usePalette();
+  const bottomInset = useScrollBottomInset();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [cart, setCart] = useState<CartView | null>(() => toView(id, null));
@@ -139,7 +141,10 @@ export default function CartDetailScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: p.background }]}>
-      <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[styles.container, { paddingBottom: bottomInset }]}
+      >
         {/* Hero — lives on the blue canvas, recipe-app style. */}
         <View style={styles.hero}>
           <ErrorBanner message={error} />
@@ -335,7 +340,11 @@ const styles = StyleSheet.create({
   },
   sheetMascot: {
     position: 'absolute',
-    top: -36,
+    // MascotMark's `size` is its WIDTH; height is size / (613/720), so a size-64
+    // mark is ~75pt tall. At the old top:-36 it reached y=+39, well past the
+    // sheet's paddingTop of 22 — landing on OffersSection's right-aligned
+    // "Refresh prices". -60 puts its base at ~15, clearing the content start.
+    top: -60,
     right: 20,
   },
   divider: {

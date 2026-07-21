@@ -23,6 +23,7 @@ import { BananaRain } from '@/components/BananaRain';
 import { Button, DisplayTitle, ErrorBanner, EyebrowChip, LoadingView } from '@/components/ui';
 import { api, getErrorMessage } from '@/lib/api';
 import { usePalette } from '@/lib/theme';
+import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
 import type { StarterDishWire } from '@/lib/types';
 
 import { STARTER_OPEN_THRESHOLD, cuisineLabel, kitchenIdForCuisine } from './genesis';
@@ -62,6 +63,7 @@ export function StarterPicker({
   onBack,
 }: StarterPickerProps) {
   const p = usePalette();
+  const bottomInset = useScrollBottomInset();
 
   const [starters, setStarters] = useState<StarterDishWire[] | null>(previewStarters ?? null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -223,7 +225,7 @@ export function StarterPicker({
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: bottomInset }]}>
         <View style={styles.hero}>
           {onBack ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={onBack} hitSlop={10} style={styles.back}>

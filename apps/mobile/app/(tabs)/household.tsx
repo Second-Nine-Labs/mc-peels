@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   Button,
@@ -13,11 +13,13 @@ import {
   LoadingView,
   SuccessBanner,
   TagInput,
+  Toggle,
 } from '@/components/ui';
 import { api, getErrorMessage } from '@/lib/api';
 import { formatDate, prettifyFilterValue, prettifyRetailerKey } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { usePalette } from '@/lib/theme';
+import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
 import {
   EMPTY_DIETARY_PROFILE,
   HEALTH_FILTERS,
@@ -28,12 +30,19 @@ import {
   type TokenSummary,
 } from '@/lib/types';
 
+/** First entry per retailer_key wins; order is preserved. */
+function dedupeByRetailerKey(list: Retailer[]): Retailer[] {
+  const seen = new Set<string>();
+  return list.filter((r) => !seen.has(r.retailer_key) && seen.add(r.retailer_key));
+}
+
 const ALLERGEN_HONESTY_COPY =
   'Filters help select better matches but do not guarantee any product is allergen-free. ' +
   'Always check labels — checkout review on Instacart is the final safety gate.';
 
 export default function HouseholdScreen() {
   const p = usePalette();
+  const bottomInset = useScrollBottomInset();
   const { me, membership, refreshMe, signOut } = useSession();
   const householdId = membership?.household_id;
   const myUserId = me?.user.id;
@@ -95,7 +104,9 @@ export default function HouseholdScreen() {
       // Retailer list is best-effort; the picker just shows keys if it fails.
       api
         .getRetailers({ household_id: householdId })
-        .then((data) => setRetailers(data.retailers))
+        // The upstream list can repeat a storefront (two "Save A Lot" entries
+        // shipped this way). retailer_key is the identity, so collapse on it.
+        .then((data) => setRetailers(dedupeByRetailerKey(data.retailers)))
         .catch(() => {});
     } catch (err) {
       setError(getErrorMessage(err));
@@ -251,7 +262,7 @@ export default function HouseholdScreen() {
   return (
     <ScrollView
       style={[styles.screen, { backgroundColor: p.background }]}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, { paddingBottom: bottomInset }]}
     >
       <View style={styles.header}>
         <EyebrowChip label="Your household" onCanvas />
@@ -329,10 +340,10 @@ export default function HouseholdScreen() {
               “organic.”
             </Text>
           </View>
-          <Switch
+          <Toggle
             value={profile.prefer_organic}
             onValueChange={(value) => setProfile((prev) => ({ ...prev, prefer_organic: value }))}
-            trackColor={{ true: p.tint }}
+            accessibilityLabel="Prefer organic"
           />
         </View>
 
