@@ -6,7 +6,7 @@ import { EnvSetupScreen } from '@/components/EnvSetupScreen';
 import { LoadingView } from '@/components/ui';
 import { SessionProvider, useSession } from '@/lib/session';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { usePalette } from '@/lib/theme';
+import { ThemeProvider, usePalette, useThemeMode } from '@/lib/theme';
 
 /**
  * Auth gate (task + PRD section 6):
@@ -64,8 +64,6 @@ function AuthGate({ children }: { children: ReactNode }) {
 }
 
 export default function RootLayout() {
-  const p = usePalette();
-
   // Without Supabase config there is no auth to run; show setup guidance
   // instead of mounting SessionProvider (which would call supabase.auth).
   if (!isSupabaseConfigured) {
@@ -76,6 +74,20 @@ export default function RootLayout() {
       </>
     );
   }
+
+  // ThemeProvider sits above the auth gate so the very first painted frame —
+  // sign-in included — already honours the stored preference.
+  return (
+    <ThemeProvider>
+      <RootChrome />
+    </ThemeProvider>
+  );
+}
+
+/** Everything that needs the resolved theme, so it can read the context. */
+function RootChrome() {
+  const p = usePalette();
+  const { scheme } = useThemeMode();
 
   return (
     <SessionProvider>
@@ -99,7 +111,10 @@ export default function RootLayout() {
           <Stack.Screen name="cart/[id]" options={{ title: 'Cart' }} />
         </Stack>
       </AuthGate>
-      <StatusBar style="auto" />
+      {/* Driven by the same resolved scheme as the palette, so an explicit
+          Light choice on a dark-mode phone still gets dark status-bar text
+          instead of "auto" reading the OS and getting it backwards. */}
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
     </SessionProvider>
   );
 }

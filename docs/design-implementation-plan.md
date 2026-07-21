@@ -89,19 +89,30 @@ Cheapest big win. §5 #5, #10, #12.
       down (30/26/22) and clamps to 3 lines, since request text has no length
       ceiling. Verified at 31, 38, and 87 characters.
 
-## Phase 3 — `feat/theme-toggle`
+## Phase 3 — `feat/theme-toggle` — COMPLETE
 
 Also hardens the web stale-repaint bug, since the change propagates through React
 state rather than a `matchMedia` subscription.
 
-- [ ] `ThemeProvider` in `lib/theme.tsx` holding `'system' | 'light' | 'dark'`.
-- [ ] Persist to `AsyncStorage`; hydrate before first paint (no wrong-theme flash).
-- [ ] `usePalette()` reads context, falls back to `useColorScheme()` only on `'system'`.
-      **Signature unchanged** — that's what keeps ~15 call sites untouched.
-- [ ] Mount provider in `app/_layout.tsx` above the auth gate.
-- [ ] Household: three-way segmented control (System / Light / Dark), System default.
-- [ ] Drive `expo-status-bar` and root `backgroundColor` from the same value.
-- [ ] Verify the web repaint bug is actually gone at both breakpoints.
+- [x] `ThemeProvider` in `lib/theme.tsx` holding `'system' | 'light' | 'dark'`.
+- [x] Persist to `AsyncStorage`; children withheld until hydrated, so a Light user
+      never sees a dark frame first. Verified: key `mcpeels.theme-mode` = `light`
+      survived a full reload with the OS still dark, no flash.
+- [x] `usePalette()` reads context, falls back to `useColorScheme()` only on
+      `'system'` — and also when rendered outside the provider, so isolated
+      previews/tests get real colors instead of throwing. **Signature unchanged**,
+      which is what kept all 19 call sites untouched.
+- [x] Provider mounted in `app/_layout.tsx` above the auth gate, so even sign-in
+      honours the stored preference on its first frame.
+- [x] Household: three-way `Segmented` control (System / Light / Dark), System
+      default, added as a shared primitive.
+- [x] `expo-status-bar` driven from the resolved scheme rather than `"auto"` —
+      `auto` reads the OS, so an explicit Light choice on a dark phone got
+      light-on-light status text. Root background already flows from `p.background`.
+- [x] Verified all three states at 375px and 1280px: Light held while the OS
+      stayed dark, every surface flipped together (canvas, cards, chips, toggles,
+      buttons) with no partial repaint, and System correctly returned to
+      following the OS.
 
 ## Phase 4 — `feat/responsive-nav`
 
