@@ -197,8 +197,12 @@ export default function AskScreen() {
 
   const submit = async () => {
     stopTyping();
+    if (building) return;
     const requestText = text.trim();
-    if (!requestText || building) return;
+    if (!requestText) {
+      setError('Tell MC Peels what you need first — a few items is plenty.');
+      return;
+    }
 
     // Secret "requests" — a wink for the curious, never a real cart.
     const secret = requestText.toLowerCase();
@@ -271,7 +275,11 @@ export default function AskScreen() {
 
           <TextInput
             value={text}
-            onChangeText={setText}
+            onChangeText={(next) => {
+              setText(next);
+              // Clear the empty-input nudge as soon as they start answering it.
+              if (error) setError(null);
+            }}
             placeholder={'e.g. "go buy organic bananas, blueberries, and grass-fed beef"'}
             placeholderTextColor={p.textMuted}
             multiline
@@ -282,12 +290,10 @@ export default function AskScreen() {
             ]}
           />
 
-          <Button
-            title="Build my cart"
-            icon="cart-outline"
-            onPress={submit}
-            disabled={!text.trim()}
-          />
+          {/* Deliberately NOT disabled on empty input. At 55% opacity the fill
+              blends to ~#306496 and reads as broken rather than waiting, so the
+              button stays live and validates on press. */}
+          <Button title="Build my cart" icon="cart-outline" onPress={submit} />
 
           {usuals.length > 0 ? (
             <>
@@ -353,7 +359,10 @@ export default function AskScreen() {
                   ? (retailerNames[item.retailer_key] ?? prettifyRetailerKey(item.retailer_key))
                   : null;
                 const createdBy = item.created_by_user_id === me?.user.id ? 'you' : 'a household member';
-                const title = item.title?.trim() || item.request_text?.trim() || 'Grocery cart';
+                // Same swap as cart detail: the stored title is "MC Peels · <date>"
+                // for every cart, so the list read as a column of identical rows.
+                // The request line is what makes them scannable.
+                const title = item.request_text?.trim() || item.title?.trim() || 'Grocery cart';
                 const meta = [retailerName, formatDate(item.created_at), `by ${createdBy}`]
                   .filter(Boolean)
                   .join(' · ');

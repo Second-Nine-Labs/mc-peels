@@ -10,7 +10,6 @@ import {
   Button,
   DisplayTitle,
   ErrorBanner,
-  EyebrowChip,
   HeroStat,
   LoadingView,
   SectionTitle,
@@ -33,7 +32,6 @@ interface CartView {
   instacartUrl: string | null;
   retailerLabel: string | null;
   status: CartStatus | undefined;
-  requestText: string | null;
   createdAt: string | undefined;
   lineItems: ResolvedLineItem[];
   offers: Offer[];
@@ -62,11 +60,14 @@ function toView(id: string, detail: CartDetailResponse | null): CartView | null 
 
   return {
     id,
-    title: flat.title?.trim() || flat.request_text?.trim() || 'Grocery cart',
+    // The request line is the only text that says what this cart IS. The stored
+    // `title` is "MC Peels · <date>" — branding for the Instacart page, useless
+    // as our H1, and identical across every cart. Prefer the request; fall back
+    // to the stored title only for carts that somehow have no request text.
+    title: flat.request_text?.trim() || flat.title?.trim() || 'Grocery cart',
     instacartUrl: flat.instacart_url ?? remembered?.instacart_url ?? null,
     retailerLabel: retailerName,
     status: flat.status,
-    requestText: flat.request_text ?? null,
     createdAt: flat.created_at,
     lineItems,
     offers: detail?.offers ?? remembered?.offers ?? [],
@@ -148,9 +149,18 @@ export default function CartDetailScreen() {
         {/* Hero — lives on the blue canvas, recipe-app style. */}
         <View style={styles.hero}>
           <ErrorBanner message={error} />
-          <EyebrowChip label="Ready to check out" onCanvas />
+          {/* The eyebrow used to read "Ready to check out" unconditionally —
+              redundant beside StatusChip, and a lie for any cart that isn't
+              ready. StatusChip is the one that actually tracks status. */}
           <View style={styles.header}>
-            <DisplayTitle text={cart.title} size={30} style={styles.title} />
+            <DisplayTitle
+              text={cart.title}
+              // Request text has no length ceiling; step down and clamp so a
+              // long grocery list stays a headline instead of a wall.
+              size={cart.title.length > 64 ? 22 : cart.title.length > 34 ? 26 : 30}
+              numberOfLines={3}
+              style={styles.title}
+            />
             <StatusChip status={cart.status} />
           </View>
 
@@ -168,10 +178,6 @@ export default function CartDetailScreen() {
               />
             ) : null}
           </View>
-
-          {cart.requestText && cart.requestText !== cart.title ? (
-            <Text style={[styles.requestText, { color: p.onBgMuted }]}>“{cart.requestText}”</Text>
-          ) : null}
 
           {PRICE_COMPARE_OFF && cart.instacartUrl ? (
             <View style={styles.checkout}>
@@ -364,11 +370,6 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
-  },
-  requestText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    lineHeight: 20,
   },
   checkout: {
     gap: 8,

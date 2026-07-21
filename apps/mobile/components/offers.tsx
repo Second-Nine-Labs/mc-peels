@@ -247,6 +247,12 @@ export function OffersSection({
                   loading={pushing}
                   disabled={offer.status !== 'quoted'}
                 />
+              ) : offer.status === 'failed' && !offer.store ? (
+                // No store near the postal code, so there is nothing to connect
+                // an account TO. Offering "Connect Kroger" beside "No quote"
+                // read as a contradiction (review §5 #11). The offer's own notes
+                // already explain why it came back empty.
+                null
               ) : (
                 <Button
                   title="Connect Kroger"
