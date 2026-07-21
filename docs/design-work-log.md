@@ -1,6 +1,6 @@
 # MC Peels — design work log
 
-**Last updated:** 2026-07-21
+**Last updated:** 2026-07-21 (later)
 **Companion to:** [design-implementation-plan.md](./design-implementation-plan.md) (per-item detail and
 remaining checkboxes) · [design-review.md](./design-review.md) (what/why) ·
 [design-technical-notes.md](./design-technical-notes.md) (how)
@@ -64,23 +64,55 @@ inside `(tabs)` so the nav stays visible — a route group contributes no URL
 segment, so `/cart/<id>` and the Kroger OAuth return leg are unchanged. The kitchen
 (`restaurant/[id]`) deliberately stays immersive.
 
----
+### 5. `feat/token-consolidation` → `08da4af`
 
-## Committed, not merged
+Review §3 and the mechanical half of §6. Dark `primary` split from `tint`
+(`#1D6FD1`, 4.95:1 with white); accent dimmed to `#E0A020` (8.28:1, was 11.48:1);
+elevation ramp widened. Buttons: one fill, alternates outlined, accent reserved
+for the terminal retailer hand-off. Chips: three roles, status collapsed to one
+appearance. `TwoToneTitle` deleted (zero call sites). Uppercase stripped from form
+labels and stat rows, kept on eyebrows and section labels.
 
-**`feat/token-consolidation`** — `5c2cea1`. The mechanical half of review §6:
-dark `primary` split from `tint` (`#1D6FD1`, 4.95:1 with white), accent dimmed to
-`#E0A020` (8.28:1, was 11.48:1), elevation ramp widened, shancheng's CTA fill
-stepped down to the lantern red. All ratios computed, not eyeballed.
+### 6. `feat/gemini-design` part 1 → `eb2c6d7`
+
+The legibility gate — and the engine fix it forced.
+
+`assertLegible` is pure, 10 tests, and checks `onHero` against the **canvas**
+rather than a photo, because an absent or failed hero is precisely the case the
+cream-on-cream bug fell into.
+
+Writing it before the Gemini path paid for itself immediately. It found that
+`palette.ts` claimed its accent on-color "flips to the side opposite the accent's
+own lightness" while hardcoding L98/L10 — worst measured **2.01:1**, only **26%**
+of hue pairs cleared AA, and **two of the three live production kitchens failed**.
+
+TJ's call was to fix the ramps rather than gate around them. Two parts, because
+the obvious one is insufficient: the on-color is now measured against the real
+fill, AND the fill walks outward from its target lightness until its label clears
+— needed because some fills sit where neither white nor black works. Light-mode
+`inkSoft` also dropped L40 → L34 (4.04:1 on paper at yellow hues).
+
+**10,368 of 10,368 hue/mode combinations now pass**, pinned by a test that walks
+the whole space. Mirrored into the client engine with ramp parity verified field
+by field — a divergence would ship a seed the server believes is legible and the
+client renders otherwise.
 
 ---
 
 ## Still open
 
-**Phase 5 remainder** — one-primary-button sweep, collapse eight chip variants to
-three, delete one of `DisplayTitle`/`TwoToneTitle`, uppercase discipline.
-**Phase 6** — Gemini design seed, legibility gate, caching + migration.
-**Phase 7** — canvas rebalance (largest visual change; TJ reviews side by side first).
+**Phase 6 remainder** — Gemini **text** `generateContent` path (reuse the plain-REST
+pattern and `GEMINI_API_KEY` from `art/gemini.ts`; no SDK), the widened design seed
+(`surface` / `ornament` / `typeVoice` / `density` / `heroTreatment` — bounded enums,
+all optional with safe defaults), caching columns (`design_seed`, `design_version`,
+`design_model`, `minted_at`) via **Supabase MCP** not drizzle, client memoization of
+`paletteFromSeed`, `expo-image` `cachePolicy` + `recyclingKey`, and cost guardrails.
+Wire `assertLegible` into `ensureKitchenIdentity` so a rejected seed falls back to
+`HOUSE_SEED` and logs the offending pair.
+
+**Phase 7** — canvas rebalance (largest visual change; TJ reviews side by side
+first). Pre-flight: audit every `p.onBg` / `onBgMuted` consumer — `HeroStat`
+hardcodes white and will go invisible on a light canvas.
 
 ---
 
