@@ -1,29 +1,39 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useWindowDimensions } from 'react-native';
 
+import { AppNav, NAV_BREAKPOINT } from '@/components/AppNav';
 import { usePalette } from '@/lib/theme';
 
 export default function TabsLayout() {
   const p = usePalette();
+  // useWindowDimensions re-renders on resize; Dimensions.get() reads once and
+  // would strand a desktop header on a window that has since narrowed.
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= NAV_BREAKPOINT;
 
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: p.card },
-        headerShadowVisible: false,
-        headerTitleStyle: { color: p.text },
-        tabBarStyle: { backgroundColor: p.card, borderTopColor: p.border },
-        tabBarActiveTintColor: p.tint,
-        tabBarInactiveTintColor: p.textMuted,
+        // Tab roots never show a stack header — each owns its in-page header.
+        // Household used to be the exception, carrying a redundant "Household"
+        // bar above a page that already says "Set your kitchen's rules".
+        headerShown: false,
+        // BottomTabView places the bar before or after the screens based on
+        // this, so one AppNav element lands at the top on desktop and the
+        // bottom on mobile. It also drives the height context screens read for
+        // their bottom inset — published as 0 when the bar is on top, which is
+        // correct: nothing sits at the bottom to clear.
+        tabBarPosition: isDesktop ? 'top' : 'bottom',
         sceneStyle: { backgroundColor: p.background },
       }}
+      tabBar={(props) => <AppNav {...props} variant={isDesktop ? 'header' : 'bottom'} />}
     >
       <Tabs.Screen
         name="index"
         options={{
           // Your personalized feed of restaurant kitchens, grown from the shelf.
           title: 'Kitchens',
-          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="storefront-outline" size={size} color={color} />
           ),
@@ -35,7 +45,6 @@ export default function TabsLayout() {
           // The cart flow: build a new cart AND browse the household's cart
           // history (the old standalone Carts tab folded in here).
           title: 'New cart',
-          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="basket-outline" size={size} color={color} />
           ),
