@@ -10,9 +10,9 @@
 > (`git checkout -b <name> main`), never a bare `checkout -b`. Preview server is
 > the `design-worktree` config on port 8095.
 >
-> **Next up, in order:** finish Phase 7 (canvas rebalance, in progress on
-> `feat/canvas-rebalance` — STOP for TJ's screenshot review before merging), then
-> Phase 6c (image direction, design approved), then Phase 6b (widened seed).
+> **Next up, in order:** Phase 7 is BUILT and awaiting TJ's side-by-side review
+> (`feat/canvas-rebalance` at `f32a351` — do not merge without it). Then Phase 6c
+> (image direction, design approved), then Phase 6b (widened seed).
 >
 > **Owed to TJ:** an authed tap-through of Household, the merged Ask screen, and
 > cart detail. See "Known gaps in verification" below — TJ signs in himself in the
@@ -119,6 +119,45 @@ client renders otherwise.
 
 ---
 
+## Built, not merged
+
+### Phase 7 — `feat/canvas-rebalance` → `f32a351` (+ `d0329a1`)
+
+The bold blue becomes a **band**. Household moves to a neutral canvas; Ask keeps
+the blue for its hero and composer and hands off to a page-level sheet for the
+recent-carts list. Kitchen and cart detail untouched.
+
+**The pre-flight audit missed one thing.** It scoped "Household and the carts
+list", but `6156b76` had already folded the carts list *into* Ask — so §6's "lists
+go light" and "Ask keeps the blue" named the same screen, and the list had no
+container of its own to re-canvas. TJ's call was the band: blue on top, light
+sheet below, which is also the composition §7 praises in cart detail.
+
+**Two of the three new tokens fix defects that predate this branch.** Household's
+header uses `emphasis="rules"`, rendered in `accent` — banana-yellow measures
+**1.42:1** as text on a light surface, so that word would have silently vanished.
+And `EyebrowChip`'s non-brand variant was **already sub-AA at 3.09:1**; the move
+only made it visible. Hence `accentInk` and `tintInk` alongside `canvas`.
+
+**The scrim fix was a real legibility bug, not a polish note.** §7 read as "the
+eyebrow sits over a bright patch", but the cause was structural: the scrim
+darkened the top 62% while `FeatureHero`'s entire text block sits at the foot
+under only the flat 0.34 wash. Worst case (a pure-white photo) gave white foot
+text **2.20:1**. Bottom-anchored bands take it to **4.72–5.67:1**.
+
+**The lesson from §5 #1 is now enforced by types.** `onSurface(p, surface)`
+returns body, muted, and emphasis together, and the primitives take a `Surface`
+rather than a boolean. Cream-on-cream was never a wrong colour — it was a surface
+and its text chosen in two different places. They now move in one expression.
+
+Also `d0329a1`: `npx tsc --noEmit` in `apps/api` had been **failing since
+`20c14ba`** — `assertLegible`'s parameter was typed as a well-formed seed, so the
+guard's false branch narrowed to `never` and the gate's own diagnostic fields
+could not compile. The working agreement gates every commit on that typecheck, so
+it was worth its own commit.
+
+---
+
 ## Still open
 
 **Phase 6 remainder** — Gemini **text** `generateContent` path (reuse the plain-REST
@@ -130,9 +169,9 @@ all optional with safe defaults), caching columns (`design_seed`, `design_versio
 Wire `assertLegible` into `ensureKitchenIdentity` so a rejected seed falls back to
 `HOUSE_SEED` and logs the offending pair.
 
-**Phase 7** — canvas rebalance (largest visual change; TJ reviews side by side
-first). Pre-flight: audit every `p.onBg` / `onBgMuted` consumer — `HeroStat`
-hardcodes white and will go invisible on a light canvas.
+**Phase 7 review** — built (above), awaiting TJ side by side. The `HeroStat`
+landmine flagged in phase 5 turned out inert: its only call site is cart detail,
+which keeps the blue.
 
 ---
 

@@ -379,10 +379,58 @@ the canvas-coupled components actually live.
 
 Confirmed direction. Largest visual change — last, reviewed side by side.
 
-- [ ] Lists and settings move to a light canvas.
-- [ ] Full-bleed blue reserved for heroes, Ask, and cart detail.
-- [ ] Re-verify contrast everywhere the canvas changed.
-- [ ] Extend the hero scrim — the eyebrow currently sits over a bright patch of image.
+### Built — `f32a351`, NOT merged (awaiting TJ's side-by-side review)
+
+- [x] **Lists and settings move to a light canvas.** Household → `p.canvas`,
+      including its `sceneStyle` (an overscroll bounce would otherwise reveal the
+      blue it just stepped off) and its `LoadingView`.
+- [x] **Full-bleed blue reserved for heroes, Ask, and cart detail.** Ask resolved
+      the tension the pre-flight missed: the carts list had been folded into Ask
+      by `6156b76`, so "lists go light" and "Ask keeps the blue" pointed at the
+      same screen. **TJ's call: blue BAND on top, light sheet below** — the hero
+      and composer keep the blue, the list sits on a page-level sheet with
+      rounded top corners, echoing cart detail's hero-over-sheet (§7's "strongest
+      composition in the app"). Kitchen and cart detail untouched.
+- [x] **Re-verify contrast everywhere the canvas changed.** Every value measured,
+      not eyeballed. Three tokens added, each fixing a real failure:
+
+      | Token | Light | Dark | Fixes |
+      |---|---|---|---|
+      | `canvas` | `#EEF3FA` | `#0A1120` | text 14.29:1, muted 4.83:1; dark has no band split |
+      | `accentInk` | `#96590A` | `#E0A020` | accent as TEXT on light was **1.42:1** → 5.05:1 |
+      | `tintInk` | `#1668C4` | `#4FA4F2` | EyebrowChip's default label was **3.09:1** → 4.82:1 |
+
+      Two of those were pre-existing defects, not consequences of the move.
+      Household's header uses `emphasis="rules"`, which renders in `accent` — on
+      the new canvas that word would have been invisible. And EyebrowChip's
+      non-brand variant was already sub-AA before this branch touched it.
+- [x] **Extend the hero scrim.** The old scrim darkened the top 62%, but
+      `FeatureHero`'s text block sits at the FOOT under only the flat 0.34 wash —
+      §7's "the eyebrow sits over a bright patch" was the scrim weighting the half
+      with the least text on it. Bottom-anchored bands take worst-case (pure
+      white photo) foot text from **2.20:1 → 4.72–5.67:1**. Stacked flat views,
+      not a gradient: `expo-linear-gradient` is not a dependency.
+
+### The structural half, which matters more than the hexes
+
+`onSurface(p, surface)` in `lib/theme.tsx` returns body, muted, and emphasis
+**together**, and `EyebrowChip` / `DisplayTitle` / `Button(ghost)` / `LoadingView`
+now take a `Surface` instead of a boolean. Review §5 #1 (cream text on a cream
+card) was never a wrong colour — it was a surface and its text being chosen in
+two different places. Anything that changes surface now changes its text in the
+same expression. `EyebrowChip`'s old `onCanvas` also hardcoded
+`rgba(255,255,255,0.16)` and `#fff` rather than tokens, so it was structurally
+incapable of sitting on a light canvas at all.
+
+### Verification and what is still owed
+
+Verified at 375px and 1280px in light and dark, through a throwaway auth-exempt
+harness mounting the real primitives (deleted after use; `design-worktree` on
+port 8095 added to `launch.json`). Both typechecks clean, 185 API tests pass.
+
+**Still owed:** the authed tap-through. Household and Ask are behind auth, so the
+band/sheet split has been seen only in the harness, never with real carts. This
+is the same gap the work log already tracks — Phase 7 does not close it.
 
 ---
 
