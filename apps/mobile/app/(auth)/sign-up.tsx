@@ -75,7 +75,7 @@ export default function SignUpScreen() {
             <View style={styles.mascot}>
               <MascotMark size={72} />
             </View>
-            <EyebrowChip label="Groceries, in plain words" onCanvas />
+            <EyebrowChip label="Groceries, in plain words" surface="brand" />
             <DisplayTitle text="Make an account." emphasis="account" size={36} />
             <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               One account per person — you&apos;ll create or join your household next.

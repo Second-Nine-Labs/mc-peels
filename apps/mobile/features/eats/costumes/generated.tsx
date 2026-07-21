@@ -30,6 +30,18 @@ const MONO = Platform.select({
  * generated hero photo exists, it layers over the ground under a scrim so the
  * light title stays legible on any image.
  */
+/**
+ * Bottom-anchored scrim bands, tallest and lightest first. Percentages are of
+ * the hero's height; each composes over the ones beneath it, so the effective
+ * darkness ramps toward the foot where the text block sits.
+ */
+const SCRIM_FOOT = [
+  { height: '65%' as const, alpha: 0.14 },
+  { height: '45%' as const, alpha: 0.14 },
+  { height: '28%' as const, alpha: 0.14 },
+  { height: '14%' as const, alpha: 0.12 },
+];
+
 function GeneratedBackdrop({ identity }: { identity: GeneratedIdentity }) {
   const { mode, hue, accentHue } = identity.palette;
   const tokens = buildTokens(identity.palette);
@@ -78,8 +90,17 @@ function GeneratedBackdrop({ identity }: { identity: GeneratedIdentity }) {
       {identity.heroUrl ? (
         <>
           <Image source={{ uri: identity.heroUrl }} resizeMode="cover" style={StyleSheet.absoluteFill} />
-          {/* legibility scrim: an even wash + a stronger top-left corner where
-              the title sits, so white text reads over any photo. */}
+          {/* Legibility scrim. An even wash, a band under the day pill at the
+              top, and a ramp up from the bottom — because the hero's real text
+              block (eyebrow, dish name, description, CTA) sits at the FOOT, and
+              it previously had only the flat 0.34 wash over it. That is review
+              §7's "the eyebrow sits over a bright part of the image": the old
+              scrim weighted the half with the least text on it.
+
+              Stacked flat bands rather than a gradient — expo-linear-gradient
+              is not a dependency, and layered translucent views are already how
+              this file builds its ground. Composed alpha runs 0.34 mid-frame →
+              0.65 at the bottom edge. */}
           <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(10, 8, 14, 0.34)' }]} />
           <View
             style={{
@@ -91,6 +112,19 @@ function GeneratedBackdrop({ identity }: { identity: GeneratedIdentity }) {
               backgroundColor: 'rgba(10, 8, 14, 0.28)',
             }}
           />
+          {SCRIM_FOOT.map((band) => (
+            <View
+              key={band.height}
+              style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: band.height,
+                backgroundColor: `rgba(10, 8, 14, ${band.alpha})`,
+              }}
+            />
+          ))}
         </>
       ) : null}
     </View>

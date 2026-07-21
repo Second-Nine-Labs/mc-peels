@@ -59,6 +59,10 @@ export default function TabsLayout() {
         name="household"
         options={{
           title: 'Household',
+          // Settings sit on the neutral canvas, not the bold blue (review §6).
+          // The scene style has to move with the screen or an overscroll bounce
+          // reveals the blue the screen has just stepped off.
+          sceneStyle: { backgroundColor: p.canvas },
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="home-outline" size={size} color={color} />
           ),

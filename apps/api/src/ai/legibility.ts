@@ -215,7 +215,13 @@ export type LegibilityResult =
  * On failure the caller falls back to the house palette for that kitchen and
  * logs `failures`; the seed is never persisted.
  */
-export function assertLegible(seed: PaletteSeed): LegibilityResult {
+export function assertLegible(seed: PaletteSeed | null | undefined): LegibilityResult {
+  // Read the raw values for diagnostics BEFORE the guard runs. Inside the false
+  // branch the predicate has narrowed `seed` away, so reaching through it there
+  // does not compile — and the whole point of these two fields is to name what
+  // was wrong with a seed that failed.
+  const rawHue = seed?.hue;
+  const rawAccentHue = seed?.accentHue;
   // Validate the INPUT before trusting any arithmetic on it. A NaN hue derives
   // hex strings like "#NaNNaNNaN", whose contrast is NaN — and `NaN < 4.5` is
   // false, so every pair would silently "pass" and garbage would reach a screen.
@@ -228,8 +234,8 @@ export function assertLegible(seed: PaletteSeed): LegibilityResult {
           pair: 'seed shape',
           ratio: 0,
           required: AA_BODY,
-          fg: String(seed?.hue),
-          bg: String(seed?.accentHue),
+          fg: String(rawHue),
+          bg: String(rawAccentHue),
         },
       ],
     };
