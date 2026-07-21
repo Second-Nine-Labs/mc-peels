@@ -196,7 +196,7 @@ export function StarterPicker({
       <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]}>
         <BananaRain burstKey={burstKey} />
         <View style={styles.mintWrap}>
-          <EyebrowChip label="Grand opening" onCanvas />
+          <EyebrowChip label="Grand opening" surface="brand" />
           <DisplayTitle
             text={`The ${minted.label} kitchen is open`}
             emphasis="open"
@@ -232,7 +232,7 @@ export function StarterPicker({
               <Ionicons name="chevron-back" size={24} color={p.onBg} />
             </Pressable>
           ) : null}
-          <EyebrowChip label="Your first kitchen" onCanvas />
+          <EyebrowChip label="Your first kitchen" surface="brand" />
           <DisplayTitle text="Stock your first kitchen" emphasis="kitchen" size={32} style={styles.heroTitle} />
           <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
             Pick three dishes you would actually eat. Three from one cuisine opens that kitchen

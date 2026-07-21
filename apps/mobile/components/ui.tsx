@@ -19,7 +19,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { usePalette } from '@/lib/theme';
+import { onSurface, usePalette, type Surface } from '@/lib/theme';
 import type { CartStatus } from '@/lib/types';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -45,6 +45,8 @@ interface ButtonProps {
   loading?: boolean;
   disabled?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Only `ghost` reads this — it has no fill, so it inherits the surface. */
+  surface?: Surface;
   style?: StyleProp<ViewStyle>;
 }
 
@@ -55,6 +57,7 @@ export function Button({
   loading = false,
   disabled = false,
   icon,
+  surface = 'brand',
   style,
 }: ButtonProps) {
   const p = usePalette();
@@ -76,7 +79,7 @@ export function Button({
     variant === 'primary' ? p.onPrimary
     : variant === 'accent' ? p.onAccent
     : variant === 'danger' ? p.danger
-    : variant === 'ghost' ? p.onBg
+    : variant === 'ghost' ? onSurface(p, surface).text
     : variant === 'outline' ? p.text
     : p.text;
   // The outline carries its weight with a border instead of a fill.
@@ -460,51 +463,72 @@ export function Card({
 
 /**
  * Pill eyebrow label — the landing's "● GROCERIES, IN PLAIN WORDS" chip.
- * `onCanvas` sits on the blue background; the default sits on a card.
+ *
+ * `surface="brand"` sits on the bold blue band; the default sits on the neutral
+ * canvas or a card. The off-brand label uses `tintInk` rather than `tint`:
+ * `tint` on `tintSoft` measures 3.09:1, which is sub-AA for a small uppercase
+ * label — a pre-existing defect that only became visible once Household moved
+ * off the blue.
  */
-export function EyebrowChip({ label, onCanvas = false }: { label: string; onCanvas?: boolean }) {
+export function EyebrowChip({
+  label,
+  surface = 'card',
+}: {
+  label: string;
+  surface?: Surface;
+}) {
   const p = usePalette();
+  const onBrand = surface === 'brand';
   return (
     <View
       style={[
         styles.eyebrowChip,
-        { backgroundColor: onCanvas ? 'rgba(255,255,255,0.16)' : p.tintSoft },
+        { backgroundColor: onBrand ? 'rgba(255,255,255,0.16)' : p.tintSoft },
       ]}
     >
-      <View style={[styles.eyebrowDot, { backgroundColor: p.accent }]} />
-      <Text style={[styles.eyebrowChipText, { color: onCanvas ? '#fff' : p.tint }]}>{label}</Text>
+      <View style={[styles.eyebrowDot, { backgroundColor: onBrand ? p.accent : p.accentInk }]} />
+      <Text style={[styles.eyebrowChipText, { color: onBrand ? p.onBg : p.tintInk }]}>{label}</Text>
     </View>
   );
 }
 
 /**
  * Bold display headline (the landing's "Just **say** what you want."). Pass
- * `emphasis` to tint one word banana-yellow. Defaults to canvas text (onBg).
+ * `emphasis` to tint one word banana-yellow.
+ *
+ * `surface` moves the body colour AND the emphasis colour together, which is
+ * the point: banana-yellow is a fill colour, and as text on a light surface it
+ * measures 1.42:1. A title that changes surface without changing both would
+ * lose its emphasised word entirely.
  */
 export function DisplayTitle({
   text,
   emphasis,
   size = 34,
   color,
+  surface = 'brand',
   style,
   numberOfLines,
 }: {
   text: string;
   emphasis?: string;
   size?: number;
+  /** Explicit override; wins over `surface`. */
   color?: string;
+  surface?: Surface;
   style?: StyleProp<ViewStyle>;
   /** Clamp for titles built from user text, which has no length ceiling. */
   numberOfLines?: number;
 }) {
   const p = usePalette();
-  const c = color ?? p.onBg;
+  const pair = onSurface(p, surface);
+  const c = color ?? pair.text;
   const body = emphasis
     ? text
         .split(new RegExp(`(${emphasis})`, 'i'))
         .map((part, i) =>
           part.toLowerCase() === emphasis.toLowerCase() ? (
-            <Text key={i} style={{ color: p.accent }}>
+            <Text key={i} style={{ color: pair.emphasis }}>
               {part}
             </Text>
           ) : (
@@ -550,12 +574,22 @@ export function HeroStat({
   );
 }
 
-export function LoadingView({ message }: { message?: string }) {
+/**
+ * Full-screen spinner. `surface` must match the screen it stands in for, or the
+ * screen flashes the wrong colour before its body renders.
+ */
+export function LoadingView({ message, surface = 'brand' }: { message?: string; surface?: Surface }) {
   const p = usePalette();
+  const pair = onSurface(p, surface);
   return (
-    <View style={[styles.loadingView, { backgroundColor: p.background }]}>
-      <ActivityIndicator size="large" color={p.onBg} />
-      {message ? <Text style={[styles.loadingText, { color: p.onBgMuted }]}>{message}</Text> : null}
+    <View
+      style={[
+        styles.loadingView,
+        { backgroundColor: surface === 'brand' ? p.background : p.canvas },
+      ]}
+    >
+      <ActivityIndicator size="large" color={pair.text} />
+      {message ? <Text style={[styles.loadingText, { color: pair.muted }]}>{message}</Text> : null}
     </View>
   );
 }

@@ -25,7 +25,15 @@ import {
 import { useColorScheme } from 'react-native';
 
 export interface Palette {
+  /** The bold brand blue. A *band*, not an infinite canvas (review §6). */
   background: string;
+  /**
+   * The neutral page surface for lists and settings. In light mode this is the
+   * quiet counterpart to the brand blue; in dark mode there is no such split —
+   * the bold-blue treatment is a light-mode statement — so it resolves to the
+   * same ground as `background`.
+   */
+  canvas: string;
   card: string;
   text: string;
   textMuted: string;
@@ -36,6 +44,8 @@ export interface Palette {
   tint: string;
   tintSoft: string;
   onTint: string;
+  /** Tint darkened until it clears AA as *text* on `tintSoft`. */
+  tintInk: string;
   /** Primary action button — navy so it pops on the blue canvas. */
   primary: string;
   onPrimary: string;
@@ -43,6 +53,12 @@ export interface Palette {
   accent: string;
   accentSoft: string;
   onAccent: string;
+  /**
+   * The accent's legible-on-light counterpart. `accent` is a fill colour; as
+   * *text* on a light surface it measures 1.42:1 and disappears. Same trade the
+   * review already made for dark-mode fills, applied to light-mode ink.
+   */
+  accentInk: string;
   danger: string;
   dangerSoft: string;
   success: string;
@@ -57,6 +73,7 @@ export interface Palette {
 // primary button is the mascot's deep navy so it never melts into the canvas.
 export const lightPalette: Palette = {
   background: '#208AEF',
+  canvas: '#EEF3FA',
   card: '#FFFFFF',
   text: '#152238',
   textMuted: '#5C6B85',
@@ -66,11 +83,13 @@ export const lightPalette: Palette = {
   tint: '#208AEF',
   tintSoft: '#E6F1FE',
   onTint: '#FFFFFF',
+  tintInk: '#1668C4',
   primary: '#152238',
   onPrimary: '#FFFFFF',
   accent: '#FFC531',
   accentSoft: '#FFF3D0',
   onAccent: '#152238',
+  accentInk: '#96590A',
   danger: '#E24B4A',
   dangerSoft: '#FDECEB',
   success: '#17A34A',
@@ -96,6 +115,8 @@ export const lightPalette: Palette = {
 //   light ones, not narrower.
 export const darkPalette: Palette = {
   background: '#0A1120',
+  // No band/canvas split at night: there is no bold blue to step down from.
+  canvas: '#0A1120',
   card: '#152743',
   text: '#EAF2FE',
   textMuted: '#97A6C2',
@@ -105,11 +126,15 @@ export const darkPalette: Palette = {
   tint: '#4FA4F2',
   tintSoft: '#132E52',
   onTint: '#06192E',
+  // Already clears AA on the dark tintSoft (5.14:1), so it needs no darkening.
+  tintInk: '#4FA4F2',
   primary: '#1D6FD1',
   onPrimary: '#FFFFFF',
   accent: '#E0A020',
   accentSoft: '#3A2D08',
   onAccent: '#20180A',
+  // The dark accent is already ink-legible on the dark ground (8.28:1).
+  accentInk: '#E0A020',
   danger: '#F98A82',
   dangerSoft: '#3A1B19',
   success: '#4ADE80',
@@ -118,6 +143,33 @@ export const darkPalette: Palette = {
   warningSoft: '#33270A',
   chip: '#1F3554',
 };
+
+// ---------------------------------------------------------------------------
+// Surfaces
+
+/**
+ * Which surface a piece of content is sitting on.
+ *
+ * `brand` is the bold blue band; `canvas` is the neutral page; `card` is a
+ * raised sheet on either of them.
+ */
+export type Surface = 'brand' | 'canvas' | 'card';
+
+/**
+ * The text triple that belongs to a surface — body, muted, and the emphasis
+ * colour a display title tints one word with.
+ *
+ * Pairing these deliberately, rather than letting call sites pick a background
+ * and a colour independently, is the whole point. Review §5 #1 (cream text on a
+ * cream card) was not a wrong colour: it was a surface and its text drifting
+ * apart, because the two were chosen in different places. Anything that changes
+ * its surface should change its text in the same expression.
+ */
+export function onSurface(p: Palette, surface: Surface) {
+  return surface === 'brand'
+    ? { text: p.onBg, muted: p.onBgMuted, emphasis: p.accent }
+    : { text: p.text, muted: p.textMuted, emphasis: p.accentInk };
+}
 
 // ---------------------------------------------------------------------------
 // Theme preference

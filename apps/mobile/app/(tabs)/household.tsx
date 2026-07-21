@@ -258,20 +258,21 @@ export default function HouseholdScreen() {
   };
 
   if (!loaded) {
-    return <LoadingView message="Loading household…" />;
+    return <LoadingView message="Loading household…" surface="canvas" />;
   }
 
   return (
     <ScrollView
-      style={[styles.screen, { backgroundColor: p.background }]}
+      style={[styles.screen, { backgroundColor: p.canvas }]}
       contentContainerStyle={[styles.container, { paddingBottom: bottomInset }]}
     >
       <View style={styles.header}>
-        <EyebrowChip label="Your household" onCanvas />
+        <EyebrowChip label="Your household" surface="canvas" />
         <DisplayTitle
           text="Set your kitchen’s rules."
           emphasis="rules"
           size={34}
+          surface="canvas"
           style={styles.headerTitle}
         />
       </View>
@@ -559,7 +560,13 @@ export default function HouseholdScreen() {
         ) : null}
       </Card>
 
-      <Button title="Sign out" variant="ghost" onPress={signOut} style={styles.signOut} />
+      <Button
+        title="Sign out"
+        variant="ghost"
+        surface="canvas"
+        onPress={signOut}
+        style={styles.signOut}
+      />
     </ScrollView>
   );
 }

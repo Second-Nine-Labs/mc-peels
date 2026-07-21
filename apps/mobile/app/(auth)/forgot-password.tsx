@@ -62,7 +62,7 @@ export default function ForgotPasswordScreen() {
             <View style={styles.mascot}>
               <MascotMark size={72} />
             </View>
-            <EyebrowChip label="Account help" onCanvas />
+            <EyebrowChip label="Account help" surface="brand" />
             <DisplayTitle text="Forgot your password?" emphasis="password" size={34} />
             <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               Enter your email and we&apos;ll send a link to set a new one.

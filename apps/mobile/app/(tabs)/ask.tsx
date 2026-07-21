@@ -253,17 +253,22 @@ export default function AskScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView
-            contentContainerStyle={[styles.container, { paddingBottom: bottomInset }]}
+            contentContainerStyle={styles.container}
             keyboardShouldPersistTaps="handled"
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={p.onBg} />
             }
           >
+          {/* The bold blue is a BAND, not the whole page (review §6): it carries
+              the hero and the composer, then hands off to a neutral surface for
+              the history below. Everything in here sits on `brand`. */}
+          <View style={[styles.band, { backgroundColor: p.background }]}>
+          <View style={styles.column}>
           <View style={styles.hero}>
             <View style={styles.mascot}>
               <MascotMark size={60} onStreak={throwParty} />
             </View>
-            <EyebrowChip label="Groceries, in plain words" onCanvas />
+            <EyebrowChip label="Groceries, in plain words" surface="brand" />
             <DisplayTitle text="What do you need?" emphasis="need" size={38} style={styles.heroTitle} />
             <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
               Say it in plain language — we&apos;ll build an Instacart cart with{' '}
@@ -345,13 +350,22 @@ export default function AskScreen() {
               </View>
             </>
           ) : null}
+          </View>
+          </View>
 
           {/* Recent carts — the household's history, folded in from the old
-              standalone Carts tab. Ordered + in-progress carts both live here. */}
+              standalone Carts tab. Ordered + in-progress carts both live here.
+              This is a LIST, so it sits on the neutral canvas rather than the
+              blue wash review §6 objects to. Text switches to the canvas pair
+              in the same move; a surface and its text change together. */}
+          <View style={[styles.listSurface, { backgroundColor: p.canvas }]}>
+          <View style={[styles.column, { paddingBottom: bottomInset + 24 }]}>
           <ErrorBanner message={cartsError} />
           {hasCarts ? (
             <View style={styles.history}>
-              <Text style={[styles.examplesLabel, { color: p.onBgMuted }]}>Recent carts</Text>
+              <Text style={[styles.examplesLabel, styles.historyLabel, { color: p.textMuted }]}>
+                Recent carts
+              </Text>
               {carts!.map((item) => {
                 // retailer_key is null when a cart was built via the
                 // partial-success path (no preferred retailer, lookup empty).
@@ -390,9 +404,11 @@ export default function AskScreen() {
             </View>
           ) : null}
 
-          <Text style={[styles.footnote, { color: p.onBgMuted }]}>
+          <Text style={[styles.footnote, { color: p.textMuted }]}>
             You&apos;ll review and pay on Instacart — MC Peels never handles payment.
           </Text>
+          </View>
+          </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </Animated.View>
@@ -409,10 +425,24 @@ const styles = StyleSheet.create({
     // viewport — the composer no longer floats centered.
     flexGrow: 1,
     justifyContent: 'flex-start',
+  },
+  // Both sections are full-bleed so their colours reach the screen edges; the
+  // reading column is re-centred inside each one.
+  band: { width: '100%' },
+  column: {
     padding: 24,
     maxWidth: 560,
     width: '100%',
     alignSelf: 'center',
+  },
+  listSurface: {
+    width: '100%',
+    // flexGrow so the neutral surface runs to the bottom of the viewport even
+    // with one cart in the list — otherwise the blue band reappears underneath
+    // it and the band/page split reads as a rendering fault.
+    flexGrow: 1,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
   hero: {
     marginTop: 12,
@@ -491,6 +521,11 @@ const styles = StyleSheet.create({
   },
   history: {
     gap: 10,
+  },
+  // First thing in the light surface, so it does not also carry examplesLabel's
+  // 28pt lead on top of the column's own padding.
+  historyLabel: {
+    marginTop: 0,
   },
   cartRow: {
     borderRadius: 16,

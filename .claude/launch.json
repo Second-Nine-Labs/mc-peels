@@ -30,6 +30,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "apps/mobile", "run", "web", "--", "--port", "8093"],
       "port": 8093
+    },
+    {
+      "name": "design-worktree",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "apps/mobile", "run", "web", "--", "--port", "8095"],
+      "port": 8095
     }
   ]
 }

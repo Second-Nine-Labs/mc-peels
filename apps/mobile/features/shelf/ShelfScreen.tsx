@@ -259,7 +259,7 @@ export function ShelfScreen({
               <Ionicons name="chevron-back" size={22} color={p.onBg} />
             </Pressable>
           ) : null}
-          <EyebrowChip label="Send a link, get a dish" onCanvas />
+          <EyebrowChip label="Send a link, get a dish" surface="brand" />
           <DisplayTitle text="Menu builder" emphasis="builder" size={34} />
           <Text style={[styles.subtitle, { color: p.onBgMuted }]}>
             the shelf of dishes you sent us — enough of one cuisine and its kitchen opens

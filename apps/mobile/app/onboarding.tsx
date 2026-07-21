@@ -131,7 +131,7 @@ export default function OnboardingScreen() {
             <View style={styles.mascot}>
               <MascotMark size={60} />
             </View>
-            <EyebrowChip label="Welcome to MC Peels" onCanvas />
+            <EyebrowChip label="Welcome to MC Peels" surface="brand" />
             <DisplayTitle
               text="Set up your household"
               emphasis="household"
