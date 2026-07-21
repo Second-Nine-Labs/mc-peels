@@ -250,6 +250,57 @@ being coherent.
       one call returning identity **and** design seed.
 - [ ] Invalidation only on: version bump, material cuisine change, manual debug regen.
 
+## Phase 6c — image direction (TJ's steer, 2026-07-21)
+
+Lean photography; let illustration surface occasionally as a personality, with no
+rules about how often or which cuisine. **The one hard constraint: medium is
+consistent WITHIN a kitchen.** If a kitchen generates as illustration, every image
+it owns is illustration. If photography, all photography.
+
+### That constraint is currently unenforceable — and the code contradicts itself
+
+`prompts.ts`'s own header states the style lock owns the medium "so the prompt
+never forces 'photograph' onto an illustrated kitchen". Then:
+
+- `heroArtPrompt()` hardcodes the word **"photograph"** into the scene string.
+- It appends `heroStyle(mode)`, which takes the **palette mode**, not the style
+  lock, and returns one of exactly two strings — both explicitly photography.
+- `heroJudgeRubric` grades against that same photographic brief, so an
+  illustrated hero is **failed and rerolled** as off-brief.
+
+So a kitchen's hero cannot express any medium but photography, and the judge
+actively enforces the mismatch. Столовая's tiles are Soviet-poster illustration;
+its hero is forced photographic.
+
+This is masked today only because every shelf-minted kitchen falls through to
+`DEFAULT_LOCK` (dark photography), so hero and tiles agree by accident. It bites
+the moment illustration becomes reachable.
+
+### What to build
+
+- [ ] **Make the hero take the style lock, not the palette mode.** Its medium and
+      the tiles' medium must come from one source. Drop "photograph" from the
+      scene string; let the lock lead, exactly as `dishArtPrompt` already does.
+- [ ] **Judge against the kitchen's own lock**, so an illustrated hero passes for
+      an illustrated kitchen.
+- [ ] **Let the mint emit a bounded style lock** rather than falling through to
+      one hardcoded default. Today `LOCKS` has six hand-written entries and every
+      generated kitchen shares `DEFAULT_LOCK` — review §4's "hand-built costumes
+      don't scale past the flagships", exactly as predicted.
+- [ ] **Use the flagship locks as the quality bar.** `SOVIET_POSTER` works because
+      it commits to a medium, names palette values as hexes, and asks for physical
+      process artifacts ("slight misregistration and aged-paper grain"). It reads
+      as a real object made a real way, not "art in a style". Ask the model for
+      that shape of answer.
+- [ ] **`heroTreatment: photo | duotone | flat` is too coarse** and should be
+      reconsidered — it cannot express "flat ink printing with misregistration",
+      so it cannot reach the look TJ already likes.
+- [ ] Weight the vocabulary toward photography, with illustration reachable but
+      not common. No per-cuisine rules.
+
+`HOUSE_RULES` / `HERO_HOUSE_RULES` already enforce the hard floor (no text, no
+lettering, no watermarks, no emoji) and stay as-is.
+
 ## Phase 7 — `feat/canvas-rebalance`
 
 ### Pre-flight audit (done — the change is smaller than it looks)
