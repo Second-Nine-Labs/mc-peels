@@ -164,11 +164,17 @@ surface in the app, wearing a full generated costume.
 Review §3 + §6. Pulled ahead of Gemini: the legibility gate depends on these tokens
 being coherent.
 
-- [ ] **Split `primary` from `tint` in dark** — both `#4FA4F2` today, so the system
-      can't distinguish an action from an accent.
-- [ ] **Dark values for saturated fills** — accent `#FFC531` hits 11.6:1 as a
-      full-width dark fill. Add ~`#E0A020` (~8:1). Same for the Eats reds.
-- [ ] **Widen dark elevation steps** — `#0B1626` → `#13233A` → nested rows are too close.
+- [x] **Split `primary` from `tint` in dark** — primary is now `#1D6FD1` with white
+      text (4.95:1), a solid committed action fill; tint stays `#4FA4F2` for links,
+      icons, selected states. Visibly different lightness classes (1.87:1 apart).
+- [x] **Dark values for saturated fills** — accent `#E0A020` measures 8.28:1 on the
+      new canvas (was 11.48:1), on-accent text 7.70:1. Shancheng's CTA fill drops
+      from CHILE to LANTERN — its label was ALREADY sub-AA at 3.19:1 and improves
+      to 3.97:1; clearing 4.5 properly belongs to the phase-6 legibility gate.
+      All ratios computed, not eyeballed.
+- [x] **Widen dark elevation steps** — canvas `#0A1120` → card `#152743` → chip
+      `#1F3554`; canvas-to-card ratio widened 1.15 → 1.26, and muted text still
+      clears 6:1 on every surface.
 - [ ] **One primary button.** Accent yellow reserved for terminal retailer hand-off.
       Alternates outlined, never a second equal-weight fill.
 - [ ] **Three chips:** `eyebrow`, `selectable`, `status`. Map the other five in.

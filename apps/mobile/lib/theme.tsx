@@ -82,20 +82,32 @@ export const lightPalette: Palette = {
 
 // Dark mode keeps its calm navy canvas — the bold-blue treatment is a
 // light-mode statement; at night the same tokens resolve to on-dark values.
+//
+// Three deliberate departures from the old values (design review §6):
+// - `primary` is no longer the same hex as `tint`. When both were #4FA4F2 the
+//   system literally could not distinguish "the action" from "an accent". The
+//   action is now a solid committed blue; the tint stays airy for links, icons,
+//   and selected states.
+// - `accent` has a dark value. #FFC531 hit ~11.6:1 against the canvas as a
+//   full-width fill — the glare on the cart screen. #E0A020 lands near 8:1:
+//   still emphatic, ~30% less luminous.
+// - The elevation ramp is wider. Canvas, card, and nested rows sat within a
+//   narrow band, so structure read as vague. Dark UIs need wider steps than
+//   light ones, not narrower.
 export const darkPalette: Palette = {
-  background: '#0B1626',
-  card: '#13233A',
+  background: '#0A1120',
+  card: '#152743',
   text: '#EAF2FE',
   textMuted: '#97A6C2',
   onBg: '#EAF2FE',
   onBgMuted: '#97A6C2',
-  border: '#243953',
+  border: '#2B4467',
   tint: '#4FA4F2',
   tintSoft: '#132E52',
   onTint: '#06192E',
-  primary: '#4FA4F2',
-  onPrimary: '#06192E',
-  accent: '#FFC531',
+  primary: '#1D6FD1',
+  onPrimary: '#FFFFFF',
+  accent: '#E0A020',
   accentSoft: '#3A2D08',
   onAccent: '#20180A',
   danger: '#F98A82',
@@ -104,7 +116,7 @@ export const darkPalette: Palette = {
   successSoft: '#0F2A1B',
   warning: '#FBBF24',
   warningSoft: '#33270A',
-  chip: '#1C2E48',
+  chip: '#1F3554',
 };
 
 // ---------------------------------------------------------------------------
