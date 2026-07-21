@@ -231,11 +231,28 @@ being coherent.
 
 ## Phase 7 — `feat/canvas-rebalance`
 
-**Landmine found during phase 5:** `HeroStat` hardcodes `color: p.onBg` (white in
-light mode) because it is designed to sit on the blue canvas. Move any screen
-using it onto a light canvas and its labels go white-on-white. Surfaced by a
-harness that rendered it on a Card; not a bug today, since cart detail does render
-it on the canvas. Audit every `p.onBg` / `onBgMuted` consumer before rebalancing.
+### Pre-flight audit (done — the change is smaller than it looks)
+
+53 `p.onBg` / `onBgMuted` consumers across 14 files sounds alarming, but almost
+all of them sit on screens §6 says KEEP the bold blue (Ask, cart detail, the auth
+flow). Only what actually moves matters:
+
+| Canvas-coupled thing | Call sites | Risk |
+|---|---|---|
+| `HeroStat` (hardcodes `p.onBg`) | **1** — `cart/[id].tsx` only | None. Cart detail stays blue. |
+| `EyebrowChip onCanvas` | 7 | Low. Already parameterized — moving a screen means dropping the prop. |
+| `DisplayTitle` (defaults to `onBg`) | 9 files | Low. Card usages already pass `color={p.text}` explicitly. |
+
+**Household — the screen §6 most wants moved — has ZERO `onBg` consumers.** It
+uses `p.background` for the screen, one `EyebrowChip onCanvas`, and a canvas
+`DisplayTitle`. Moving it is three edits, not a sweep.
+
+So the HeroStat landmine flagged in phase 5 is real in principle but inert in
+practice: its only call site is on a screen that keeps the blue.
+
+**Scope to move:** Household and the carts list (lists + forms).
+**Scope to keep blue:** heroes, Ask, cart detail — per §6, and confirmed by where
+the canvas-coupled components actually live.
 
 Confirmed direction. Largest visual change — last, reviewed side by side.
 
