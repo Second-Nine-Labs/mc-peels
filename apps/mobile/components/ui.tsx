@@ -245,6 +245,60 @@ export function Toggle({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Segmented control
+
+/**
+ * Mutually-exclusive choice across 2–4 options. Used for the theme preference,
+ * where a binary switch would be wrong: "System" has to stay reachable, and it
+ * is a third state rather than the absence of a choice.
+ */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  accessibilityLabel,
+}: {
+  options: ReadonlyArray<{ value: T; label: string }>;
+  value: T;
+  onChange: (next: T) => void;
+  accessibilityLabel?: string;
+}) {
+  const p = usePalette();
+  return (
+    <View
+      accessibilityRole="radiogroup"
+      accessibilityLabel={accessibilityLabel}
+      style={[styles.segmented, { backgroundColor: p.chip, borderColor: p.border }]}
+    >
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <Pressable
+            key={option.value}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: active }}
+            onPress={() => onChange(option.value)}
+            style={[
+              styles.segment,
+              active && { backgroundColor: p.card, borderColor: p.tint },
+            ]}
+          >
+            <Text
+              style={[
+                styles.segmentText,
+                { color: active ? p.tint : p.textMuted },
+              ]}
+            >
+              {option.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 /** Tiny non-interactive chip used for applied filters on line items. */
 export function FilterTag({ label, tone = 'tint' }: { label: string; tone?: 'tint' | 'neutral' }) {
   const p = usePalette();
@@ -587,6 +641,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginTop: 6,
+  },
+  segmented: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 3,
+    gap: 3,
+  },
+  segment: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '700',
   },
   toggleTrack: {
     width: TRACK_W,

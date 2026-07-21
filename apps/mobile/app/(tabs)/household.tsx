@@ -11,6 +11,7 @@ import {
   EyebrowChip,
   Field,
   LoadingView,
+  Segmented,
   SuccessBanner,
   TagInput,
   Toggle,
@@ -18,7 +19,7 @@ import {
 import { api, getErrorMessage } from '@/lib/api';
 import { formatDate, prettifyFilterValue, prettifyRetailerKey } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { usePalette } from '@/lib/theme';
+import { usePalette, useThemeMode } from '@/lib/theme';
 import { useScrollBottomInset } from '@/lib/use-scroll-bottom-inset';
 import {
   EMPTY_DIETARY_PROFILE,
@@ -43,6 +44,7 @@ const ALLERGEN_HONESTY_COPY =
 export default function HouseholdScreen() {
   const p = usePalette();
   const bottomInset = useScrollBottomInset();
+  const { mode: themeMode, setMode: setThemeMode } = useThemeMode();
   const { me, membership, refreshMe, signOut } = useSession();
   const householdId = membership?.household_id;
   const myUserId = me?.user.id;
@@ -299,6 +301,23 @@ export default function HouseholdScreen() {
           ))}
         </View>
         <Button title="Save household" onPress={saveHousehold} loading={savingHousehold} />
+      </Card>
+
+      <Card elevated style={styles.section}>
+        <DisplayTitle text="Appearance" size={20} color={p.text} style={styles.cardTitle} />
+        <Text style={[styles.helperText, { color: p.textMuted }]}>
+          Applies on this device only.
+        </Text>
+        <Segmented
+          accessibilityLabel="Appearance"
+          value={themeMode}
+          onChange={setThemeMode}
+          options={[
+            { value: 'system', label: 'System' },
+            { value: 'light', label: 'Light' },
+            { value: 'dark', label: 'Dark' },
+          ]}
+        />
       </Card>
 
       <Card elevated style={styles.section}>
