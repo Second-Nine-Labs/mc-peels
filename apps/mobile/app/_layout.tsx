@@ -38,6 +38,10 @@ function AuthGate({ children }: { children: ReactNode }) {
     // host); redirecting away would eat the nonce mid-flight.
     if (segments[0] === 'auth') return;
 
+    // /welcome is the one-time arrived-from-Third-Brain explainer — it renders
+    // for signed-out members too (its buttons lead into the gated app).
+    if (segments[0] === 'welcome') return;
+
     // /eats-preview is the signed-out showcase of the Eats home + restaurants:
     // static menus only, launches scrub without a session.
     if (segments[0] === 'eats-preview') return;
@@ -107,6 +111,7 @@ function RootChrome() {
           <Stack.Screen name="connect" options={{ headerShown: false }} />
           <Stack.Screen name="oauth/authorize" options={{ headerShown: false }} />
           <Stack.Screen name="auth/handoff" options={{ headerShown: false }} />
+          <Stack.Screen name="welcome" options={{ headerShown: false }} />
           <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         </Stack>
       </AuthGate>
