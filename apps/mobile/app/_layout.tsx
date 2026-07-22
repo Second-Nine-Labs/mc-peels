@@ -1,12 +1,34 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, type ReactNode } from 'react';
+import { Platform } from 'react-native';
 
 import { EnvSetupScreen } from '@/components/EnvSetupScreen';
 import { LoadingView } from '@/components/ui';
 import { SessionProvider, useSession } from '@/lib/session';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { ThemeProvider, usePalette, useThemeMode } from '@/lib/theme';
+
+/**
+ * Standalone pages that own their whole auth UX — the gate never redirects
+ * into or out of them:
+ * - connect: agent-token consent (inline sign-in, query params load-bearing)
+ * - oauth: OAuth code-flow consent (same rules)
+ * - auth: /auth/handoff signs the browser in itself via a one-time nonce
+ * - welcome: one-time arrived-from-Third-Brain explainer, renders signed-out
+ * - eats-preview: signed-out showcase, static menus only
+ * - reset-password: recovery-email landing with its own short-lived session
+ * - green-room: the backstage playground (nothing personal on it)
+ */
+const STANDALONE_ROUTES = [
+  'connect',
+  'oauth',
+  'auth',
+  'welcome',
+  'eats-preview',
+  'reset-password',
+  'green-room',
+];
 
 /**
  * Auth gate (task + PRD section 6):
@@ -22,43 +44,25 @@ function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!ready) return;
 
-    // On web the router hydrates asynchronously and useSegments() is [] until
-    // it does. Redirecting on "location unknown" is how exempted routes got
-    // bounced (observed live: /welcome → /onboarding for a signed-in member
-    // with a warm cache — every standalone route below had the same latent
-    // race). The effect re-fires once segments populate; wait for it. The
-    // cast exists because the typed route tuple claims length ≥ 1 — untrue
-    // mid-hydration.
+    // WEB DEEP-LINK GUARD — the address bar is the only truth during boot.
+    // The navigator sits on its DEFAULT route (the (auth) front door) until
+    // the deep link is applied, and useSegments() reports that default; an
+    // effect firing in that window used to hijack standalone pages (observed
+    // live, repeatedly: /welcome → home for a signed-in member, because
+    // segments said "(auth)"). window.location is synchronously correct from
+    // the first frame, so exempt by URL first, segments second.
+    if (Platform.OS === 'web') {
+      const urlFirst = window.location.pathname.split('/').filter(Boolean)[0] ?? null;
+      if (urlFirst && STANDALONE_ROUTES.includes(urlFirst)) return;
+    }
+    // Native (and settled web): segments are authoritative.
+    if (STANDALONE_ROUTES.includes((segments as string[])[0] ?? '')) return;
+    // Router not hydrated yet — location unknown, never redirect blind. (The
+    // cast: the typed route tuple claims length ≥ 1, untrue mid-hydration.)
     if ((segments as string[]).length === 0) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
-
-    // /connect is a standalone consent page (agent-token handoff). It manages
-    // its own sign-in inline and must keep its query params, so never redirect
-    // into or out of it.
-    if (segments[0] === 'connect') return;
-
-    // /oauth/authorize is the same consent UX for the OAuth code flow — same
-    // rules: inline sign-in, query params are load-bearing.
-    if (segments[0] === 'oauth') return;
-
-    // /auth/handoff signs the browser in itself (one-time nonce from an agent
-    // host); redirecting away would eat the nonce mid-flight.
-    if (segments[0] === 'auth') return;
-
-    // /welcome is the one-time arrived-from-Third-Brain explainer — it renders
-    // for signed-out members too (its buttons lead into the gated app).
-    if (segments[0] === 'welcome') return;
-
-    // /eats-preview is the signed-out showcase of the Eats home + restaurants:
-    // static menus only, launches scrub without a session.
-    if (segments[0] === 'eats-preview') return;
-
-    // /reset-password is reached from a recovery email while signed out, and
-    // establishes a short-lived recovery session of its own. Never redirect
-    // into or out of it — it routes onward once the new password is saved.
-    if (segments[0] === 'reset-password') return;
 
     if (!session) {
       if (!inAuthGroup) router.replace('/(auth)/sign-in');
