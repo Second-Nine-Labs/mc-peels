@@ -26,8 +26,10 @@ function AuthGate({ children }: { children: ReactNode }) {
     // it does. Redirecting on "location unknown" is how exempted routes got
     // bounced (observed live: /welcome → /onboarding for a signed-in member
     // with a warm cache — every standalone route below had the same latent
-    // race). The effect re-fires once segments populate; wait for it.
-    if (segments.length === 0) return;
+    // race). The effect re-fires once segments populate; wait for it. The
+    // cast exists because the typed route tuple claims length ≥ 1 — untrue
+    // mid-hydration.
+    if ((segments as string[]).length === 0) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
