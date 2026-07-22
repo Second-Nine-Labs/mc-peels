@@ -36,28 +36,33 @@ function markSeen(): void {
   }
 }
 
-// Module scope on purpose: router hydration can remount this screen, and a
-// remount that re-read localStorage would find the first mount's own mark and
-// bounce the card it was meant to show. The show/bounce decision is made ONCE
-// per page load, at render time — declaratively via <Redirect>, never in an
-// effect racing hydration. Real navigation re-evaluates it fresh.
-let decision: 'show' | 'bounce' | null = null;
+/**
+ * The show/bounce decision is made once per PAGE LOAD and latched on `window`
+ * — not module scope, because this module provably gets instantiated twice on
+ * web (entry + route chunk): a module-level latch let instance two read
+ * instance one's localStorage mark and bounce the card it was meant to show.
+ * Both instances share `window`; real navigation resets it. Decided at render
+ * time, declaratively via <Redirect> — never in an effect racing hydration.
+ */
+function pageLoadDecision(): 'show' | 'bounce' {
+  if (Platform.OS !== 'web') return 'show';
+  const w = window as unknown as Record<string, unknown>;
+  // Deploy-verification marker: which revision of this screen is running.
+  w.__welcomeRev = 5;
+  if (w.__mcpeelsWelcomeDecision !== 'show' && w.__mcpeelsWelcomeDecision !== 'bounce') {
+    w.__mcpeelsWelcomeDecision = alreadySeen() ? 'bounce' : 'show';
+  }
+  return w.__mcpeelsWelcomeDecision as 'show' | 'bounce';
+}
 
 export default function WelcomeScreen() {
   const p = usePalette();
   const router = useRouter();
-
-  if (decision === null) {
-    decision = alreadySeen() ? 'bounce' : 'show';
-    if (Platform.OS === 'web') {
-      // Deploy-verification marker: which revision of this screen is running.
-      (window as unknown as Record<string, unknown>).__welcomeRev = 4;
-    }
-  }
+  const decision = pageLoadDecision();
 
   useEffect(() => {
     if (decision === 'show') markSeen();
-  }, []);
+  }, [decision]);
 
   if (decision === 'bounce') return <Redirect href="/" />;
 
