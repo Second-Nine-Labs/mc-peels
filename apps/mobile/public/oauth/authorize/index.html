@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<!--
+  OAuth consent screen (authorization-code + PKCE) for agent hosts — the human
+  half of "Sign in with MC Peels". STATIC on purpose (workplan item 7): the SPA
+  rewrote this deep link to the app home for signed-in members (expo-router
+  boot pathology, timeline evidence in the workplan log), and the consent page
+  is the one surface that must never lose its query params. Static files
+  outrank the SPA rewrite on Vercel; this page cannot be hijacked because
+  nothing here navigates except explicit user outcomes (Allow / Deny).
+
+  Talks plain REST: GoTrue for sign-in/sign-up/refresh (same anon key and
+  localStorage slot as the app, so sessions are shared both directions) and
+  POST /api/v1/oauth/code for the one-time code. Server re-validates client_id
+  and redirect_uri regardless of anything this page does.
+
+  app/oauth/authorize.tsx remains as the in-app (native) fallback.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect · MC Peels</title>
+<style>
+  :root {
+    --bg: #0f1b2d;
+    --card: #16263c;
+    --border: #23364f;
+    --text: #eef3fa;
+    --muted: #9db0c7;
+    --tint: #57a1f0;
+    --tint-ink: #0b1626;
+    --danger: #e5766d;
+    --ok: #6fbf8f;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  main { max-width: 520px; width: 100%; }
+  .hero { text-align: center; margin-bottom: 20px; }
+  .hero .glyph { font-size: 34px; color: var(--tint); }
+  h1 { font-size: 26px; font-weight: 800; margin-top: 8px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .sub { color: var(--muted); font-size: 15px; margin-bottom: 14px; }
+  .banner {
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .banner.error { background: rgba(229, 118, 109, 0.12); color: var(--danger); }
+  .banner.info { background: rgba(111, 191, 143, 0.12); color: var(--ok); }
+  label { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; margin: 12px 0 6px; }
+  input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 16px;
+    padding: 12px;
+  }
+  input:focus { outline: 2px solid var(--tint); border-color: transparent; }
+  button {
+    width: 100%;
+    border: 0;
+    border-radius: 12px;
+    padding: 13px 16px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+  button:disabled { opacity: 0.6; cursor: default; }
+  .btn-primary { background: var(--tint); color: var(--tint-ink); }
+  .btn-secondary { background: transparent; color: var(--tint); border: 1px solid var(--border); }
+  .switch { display: block; text-align: center; color: var(--tint); font-weight: 600; margin-top: 14px; background: none; border: 0; font-size: 14px; width: auto; margin-left: auto; margin-right: auto; }
+  .perm { display: flex; gap: 10px; margin-bottom: 10px; font-size: 14px; line-height: 1.45; }
+  .perm .glyph { color: var(--tint); }
+  .perm.never .glyph { color: var(--danger); }
+  .identity { text-align: center; color: var(--muted); font-size: 13px; margin-top: 14px; }
+  .identity button { display: inline; width: auto; margin: 0; padding: 0; background: none; border: 0; color: var(--tint); font-size: 13px; font-weight: 600; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <div class="glyph">&#9670;</div>
+    <h1 id="title">Connect Third Brain</h1>
+  </div>
+
+  <div class="card" id="card-blocked" hidden>
+    <div class="banner error" id="blocked-msg"></div>
+  </div>
+
+  <div class="card" id="card-loading">
+    <p class="sub">One moment&hellip;</p>
+  </div>
+
+  <div class="card" id="card-auth" hidden>
+    <p class="sub" id="auth-sub"></p>
+    <div class="banner error" id="auth-error" hidden></div>
+    <div class="banner info" id="auth-info" hidden></div>
+    <label for="email">Email</label>
+    <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+    <label for="password">Password</label>
+    <input id="password" type="password" placeholder="Your password">
+    <button class="btn-primary" id="auth-submit">Sign in</button>
+    <button class="switch" id="auth-switch">New here? Create an account</button>
+  </div>
+
+  <div class="card" id="card-consent" hidden>
+    <p class="sub" id="consent-sub"></p>
+    <div class="perm"><span class="glyph">&#9670;</span><span>Build Instacart carts from your grocery requests, with your household dietary profile applied automatically</span></div>
+    <div class="perm"><span class="glyph">&#9670;</span><span>See your household&rsquo;s carts, retailers, and dietary profile</span></div>
+    <div class="perm never"><span class="glyph">&#9670;</span><span>It can never complete a purchase &mdash; checkout always happens by you, on Instacart.</span></div>
+    <div class="banner error" id="consent-error" hidden></div>
+    <button class="btn-primary" id="allow">Allow</button>
+    <button class="btn-secondary" id="deny">Deny</button>
+    <p class="identity">Signed in as <span id="who"></span> &middot; <button id="switch-account">Use a different account</button></p>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var SUPABASE_URL = 'https://bltrwuailnxhefyefzyk.supabase.co';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJsdHJ3dWFpbG54aGVmeWVmenlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMTU5NDksImV4cCI6MjA5ODc5MTk0OX0.JA4QnbeDrq79a_jo2bc91ZWMovoXukEIJ1JE0DBwiDU';
+  var API_URL = 'https://mc-peels-api-9zt9.vercel.app';
+  var STORAGE_KEY = 'sb-bltrwuailnxhefyefzyk-auth-token';
+  var ALLOWED_ORIGINS = ['https://brainos.secondninelabs.com'];
+  var KNOWN_CLIENTS = { 'third-brain': 'Third Brain' };
+
+  var qs = new URLSearchParams(location.search);
+  var params = {
+    responseType: qs.get('response_type'),
+    clientId: qs.get('client_id') || '',
+    redirectUri: qs.get('redirect_uri'),
+    scope: qs.get('scope') || 'groceries',
+    state: qs.get('state'),
+    codeChallenge: qs.get('code_challenge'),
+    codeChallengeMethod: qs.get('code_challenge_method'),
+  };
+  var agentName = KNOWN_CLIENTS[params.clientId] || params.clientId || 'your agent';
+
+  var el = function (id) { return document.getElementById(id); };
+  var show = function (id) {
+    ['card-blocked', 'card-loading', 'card-auth', 'card-consent'].forEach(function (c) {
+      el(c).hidden = c !== id;
+    });
+  };
+
+  el('title').textContent = 'Connect ' + agentName;
+  el('auth-sub').textContent = 'Sign in to your MC Peels account to connect ' + agentName + '.';
+  el('consent-sub').textContent = agentName + ' is asking to use MC Peels on your behalf. It will be able to:';
+
+  // ---- request validation (server re-validates; this is UX, not security) --
+  function checkRedirect(raw) {
+    if (!raw) return 'the link is missing its return address (redirect_uri).';
+    var url;
+    try { url = new URL(raw); } catch (e) { return 'the redirect_uri is not a valid absolute URL.'; }
+    var isLocal = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    if (url.protocol !== 'https:' && !(isLocal && url.protocol === 'http:')) return 'the redirect_uri must use https.';
+    if (!isLocal && ALLOWED_ORIGINS.indexOf(url.origin) === -1) return url.origin + ' is not an approved destination for MC Peels tokens.';
+    return null;
+  }
+  var problem = checkRedirect(params.redirectUri) ||
+    (params.responseType !== 'code' ? 'this link is malformed (response_type must be "code").' : null) ||
+    (!KNOWN_CLIENTS[params.clientId] ? '"' + (params.clientId || '(missing client_id)') + '" is not a registered agent.' : null) ||
+    (!params.codeChallenge || params.codeChallengeMethod !== 'S256' ? 'this link is malformed (PKCE S256 code_challenge is required).' : null);
+  if (problem) {
+    el('blocked-msg').textContent = 'Connection blocked: ' + problem;
+    show('card-blocked');
+    return;
+  }
+
+  function sendBack(fields) {
+    var url = new URL(params.redirectUri);
+    Object.keys(fields).forEach(function (k) { if (fields[k]) url.searchParams.set(k, fields[k]); });
+    location.replace(url.toString());
+  }
+
+  // ---- session (shared with the SPA: same storage slot, same shape) --------
+  function readSession() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { return null; }
+  }
+  function persistSession(s) {
+    if (s && !s.expires_at && s.expires_in) s.expires_at = Math.floor(Date.now() / 1000) + s.expires_in;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) {}
+    return s;
+  }
+  function clearSession() { try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} }
+  function sessionValid(s) {
+    return !!(s && s.access_token && s.expires_at && s.expires_at - 60 > Date.now() / 1000);
+  }
+  function gotrue(path, body) {
+    return fetch(SUPABASE_URL + '/auth/v1/' + path, {
+      method: 'POST',
+      headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, json: j }; }); });
+  }
+  function gotrueError(j) {
+    return j.error_description || j.msg || (j.error && j.error.message) || j.error || 'Something went wrong. Please try again.';
+  }
+  function freshSession() {
+    var s = readSession();
+    if (sessionValid(s)) return Promise.resolve(s);
+    if (s && s.refresh_token) {
+      return gotrue('token?grant_type=refresh_token', { refresh_token: s.refresh_token }).then(function (r) {
+        if (r.ok && r.json.access_token) return persistSession(r.json);
+        return null;
+      });
+    }
+    return Promise.resolve(null);
+  }
+
+  // ---- views ---------------------------------------------------------------
+  var mode = 'sign-in';
+  function showAuth() {
+    el('auth-error').hidden = true;
+    el('auth-info').hidden = true;
+    show('card-auth');
+  }
+  function showConsent(session) {
+    el('who').textContent = (session.user && session.user.email) || 'your account';
+    el('consent-error').hidden = true;
+    show('card-consent');
+  }
+  function settle() {
+    freshSession().then(function (s) { s ? showConsent(s) : showAuth(); });
+  }
+
+  el('auth-switch').addEventListener('click', function () {
+    mode = mode === 'sign-in' ? 'sign-up' : 'sign-in';
+    el('auth-submit').textContent = mode === 'sign-in' ? 'Sign in' : 'Create account';
+    el('auth-switch').textContent = mode === 'sign-in' ? 'New here? Create an account' : 'Have an account? Sign in';
+    el('password').placeholder = mode === 'sign-in' ? 'Your password' : 'At least 6 characters';
+  });
+
+  el('auth-submit').addEventListener('click', function () {
+    var email = el('email').value.trim();
+    var password = el('password').value;
+    el('auth-error').hidden = true;
+    el('auth-info').hidden = true;
+    if (!email || !password) {
+      el('auth-error').textContent = 'Enter your email and password.';
+      el('auth-error').hidden = false;
+      return;
+    }
+    el('auth-submit').disabled = true;
+    var req = mode === 'sign-in'
+      ? gotrue('token?grant_type=password', { email: email, password: password })
+      : gotrue('signup', { email: email, password: password });
+    req.then(function (r) {
+      el('auth-submit').disabled = false;
+      if (r.ok && r.json.access_token) {
+        showConsent(persistSession(r.json));
+      } else if (r.ok && mode === 'sign-up') {
+        el('auth-info').textContent = 'Check your email to confirm your account, then come back to this page — the connect link still works.';
+        el('auth-info').hidden = false;
+      } else {
+        el('auth-error').textContent = gotrueError(r.json);
+        el('auth-error').hidden = false;
+      }
+    });
+  });
+
+  el('allow').addEventListener('click', function () {
+    el('allow').disabled = true;
+    el('deny').disabled = true;
+    el('consent-error').hidden = true;
+    freshSession().then(function (s) {
+      if (!s) { showAuth(); return; }
+      return fetch(API_URL + '/api/v1/oauth/code', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + s.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: params.clientId,
+          redirect_uri: params.redirectUri,
+          scope: params.scope,
+          code_challenge: params.codeChallenge,
+          code_challenge_method: 'S256',
+        }),
+      }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, json: j }; }); })
+        .then(function (r) {
+          if (r.ok && r.json.code) {
+            sendBack({ code: r.json.code, state: params.state });
+          } else {
+            el('allow').disabled = false;
+            el('deny').disabled = false;
+            el('consent-error').textContent = (r.json.error && r.json.error.message) || 'Could not connect. Please try again.';
+            el('consent-error').hidden = false;
+          }
+        });
+    }).catch(function () {
+      el('allow').disabled = false;
+      el('deny').disabled = false;
+      el('consent-error').textContent = 'Could not reach MC Peels. Check your connection and try again.';
+      el('consent-error').hidden = false;
+    });
+  });
+
+  el('deny').addEventListener('click', function () {
+    sendBack({ error: 'access_denied', state: params.state });
+  });
+
+  el('switch-account').addEventListener('click', function () {
+    clearSession();
+    showAuth();
+  });
+
+  settle();
+})();
+</script>
+</body>
+</html>
