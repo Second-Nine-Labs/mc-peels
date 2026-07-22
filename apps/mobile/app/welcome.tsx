@@ -36,16 +36,23 @@ function markSeen(): void {
   }
 }
 
+// Module scope on purpose: router hydration remounts this screen, and a
+// remount that re-reads localStorage would find the first mount's own mark
+// and bounce (observed live: card flashed, then /). The first mount's
+// decision holds for the whole page load; real navigation resets it.
+let decidedShowThisLoad = false;
+
 export default function WelcomeScreen() {
   const p = usePalette();
   const router = useRouter();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (alreadySeen()) {
+    if (!decidedShowThisLoad && alreadySeen()) {
       router.replace('/');
       return;
     }
+    decidedShowThisLoad = true;
     markSeen();
     setVisible(true);
   }, [router]);
