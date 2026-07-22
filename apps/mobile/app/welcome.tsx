@@ -7,8 +7,8 @@
  * send anyone here, linked or not.
  */
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Redirect, useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,28 +36,30 @@ function markSeen(): void {
   }
 }
 
-// Module scope on purpose: router hydration remounts this screen, and a
-// remount that re-reads localStorage would find the first mount's own mark
-// and bounce (observed live: card flashed, then /). The first mount's
-// decision holds for the whole page load; real navigation resets it.
-let decidedShowThisLoad = false;
+// Module scope on purpose: router hydration can remount this screen, and a
+// remount that re-read localStorage would find the first mount's own mark and
+// bounce the card it was meant to show. The show/bounce decision is made ONCE
+// per page load, at render time — declaratively via <Redirect>, never in an
+// effect racing hydration. Real navigation re-evaluates it fresh.
+let decision: 'show' | 'bounce' | null = null;
 
 export default function WelcomeScreen() {
   const p = usePalette();
   const router = useRouter();
-  const [visible, setVisible] = useState(false);
+
+  if (decision === null) {
+    decision = alreadySeen() ? 'bounce' : 'show';
+    if (Platform.OS === 'web') {
+      // Deploy-verification marker: which revision of this screen is running.
+      (window as unknown as Record<string, unknown>).__welcomeRev = 4;
+    }
+  }
 
   useEffect(() => {
-    if (!decidedShowThisLoad && alreadySeen()) {
-      router.replace('/');
-      return;
-    }
-    decidedShowThisLoad = true;
-    markSeen();
-    setVisible(true);
-  }, [router]);
+    if (decision === 'show') markSeen();
+  }, []);
 
-  if (!visible) return null;
+  if (decision === 'bounce') return <Redirect href="/" />;
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: p.background }]}>
