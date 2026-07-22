@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--
+  One-time post-connect explainer for members arriving from Third Brain
+  (workplan item 5, household-os/docs/mcpeels-connect-workplan.md).
+
+  Deliberately a STATIC page, not an SPA route: expo-router's web boot was
+  observed rewriting deep-linked standalone routes to sibling routes
+  mid-hydration (timeline evidence in the workplan log, 2026-07-22), and a
+  doorway page must be boring. Static files outrank the SPA rewrite on
+  Vercel, so this wins for /welcome; app/welcome.tsx remains as the in-app
+  fallback. Self-gating per browser via localStorage.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome to MC Peels</title>
+<script>
+  try {
+    if (localStorage.getItem('mcpeels.welcome.seen') === '1') location.replace('/');
+  } catch (e) { /* private mode: just show the card */ }
+</script>
+<style>
+  :root {
+    --bg: #0f1b2d;
+    --card: #16263c;
+    --border: #23364f;
+    --text: #eef3fa;
+    --muted: #9db0c7;
+    --tint: #57a1f0;
+    --tint-ink: #0b1626;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  main { max-width: 520px; width: 100%; }
+  .hero { text-align: center; margin-bottom: 20px; }
+  .hero .glyph { font-size: 34px; color: var(--tint); }
+  h1 { font-size: 26px; font-weight: 800; margin-top: 8px; }
+  .sub { color: var(--muted); font-size: 15px; margin-top: 6px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .path { display: flex; gap: 12px; margin-bottom: 16px; }
+  .path .glyph { color: var(--tint); font-size: 18px; line-height: 1.6; }
+  .path h2 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .path p { color: var(--muted); font-size: 14px; line-height: 1.45; }
+  a.btn {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    border-radius: 12px;
+    padding: 13px 16px;
+    font-weight: 700;
+    margin-top: 10px;
+  }
+  .btn-primary { background: var(--tint); color: var(--tint-ink); }
+  .btn-secondary { background: transparent; color: var(--tint); border: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <div class="glyph">&#9670;</div>
+    <h1>Welcome to MC Peels</h1>
+    <p class="sub">You came from Third Brain &mdash; here&rsquo;s how the two fit together.</p>
+  </div>
+  <div class="card">
+    <div class="path">
+      <div class="glyph">&#9670;</div>
+      <div>
+        <h2>Curate your kitchen here</h2>
+        <p>Stores, dietary profile, staples, saved recipes &mdash; MC Peels is where your
+        household&rsquo;s food preferences live, and every cart gets them applied automatically.</p>
+      </div>
+    </div>
+    <div class="path">
+      <div class="glyph">&#9670;</div>
+      <div>
+        <h2>Build carts back in Third Brain</h2>
+        <p>Just ask in chat &mdash; &ldquo;grab organic bananas&rdquo; &mdash; and you get a
+        checkout-ready Instacart link. You always review and pay yourself.</p>
+      </div>
+    </div>
+    <a class="btn btn-primary" href="/">Set up my kitchen</a>
+    <a class="btn btn-secondary" href="https://brainos.secondninelabs.com">Back to Third Brain</a>
+  </div>
+</main>
+<script>
+  try { localStorage.setItem('mcpeels.welcome.seen', '1'); } catch (e) {}
+</script>
+</body>
+</html>
